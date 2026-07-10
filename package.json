@@ -1,0 +1,14 @@
+{
+  "name": "nexo-root",
+  "private": true,
+  "scripts": {
+    "dev": "yarn --cwd NEXO dev",
+    "build": "yarn --cwd NEXO build",
+    "preview": "yarn --cwd NEXO preview",
+    "lint": "yarn --cwd NEXO lint"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "tailwindcss": "^4.2.2"
+  }
+}

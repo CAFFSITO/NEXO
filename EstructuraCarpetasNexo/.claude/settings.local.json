@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn *)",
+      "Bash(cat)",
+      "Bash(chmod +x /tmp/limpiar_html.sh)",
+      "Bash(git checkout *)",
+      "Bash(chmod +x /tmp/fix_critical.sh)",
+      "Bash(/tmp/fix_critical.sh)"
+    ]
+  }
+}
