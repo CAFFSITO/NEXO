@@ -1,0 +1,74 @@
+// src/pages/LoginPage.tsx
+// Página principal de inicio de sesión — ensambla todos los componentes
+
+import { useState } from "react";
+import BackgroundGlow from "./components/shared/BackgroundGlow";
+import NexoLogo from "./components/shared/NexoLogo";
+import LoginForm from "./components/moduloLogin/LoginForm";
+import LoginFooter from "./components/moduloLogin/LoginFooter";
+import { useNavegacion } from "../navegacion";
+
+export default function LoginPage() {
+  const { login } = useNavegacion();
+  const [error, setError] = useState<string | null>(null);
+
+  const handleLogin = (email: string, password: string) => {
+    const ok = login(email, password);
+    if (!ok) {
+      setError("Correo o contraseña incorrectos.");
+    }
+  };
+
+  const handleForgotPassword = () => {
+    // TODO: navegar a recuperación de contraseña
+    console.log("Forgot password clicked");
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
+      <BackgroundGlow />
+
+      <main className="w-full max-w-[440px] relative z-10">
+        {/* Card central */}
+        <div className="bg-surface-container p-8 md:p-10 rounded-[20px] border border-primary/10 shadow-[0_20px_40px_rgba(0,0,0,0.4)] transition-all duration-300">
+          {/* Branding */}
+          <div className="mb-10">
+            <NexoLogo size="md" showSlogan />
+          </div>
+
+          {/* Título de sección */}
+          <h2 className="text-2xl font-headline font-bold text-on-surface mb-8">
+            Iniciar sesión
+          </h2>
+
+          {/* Formulario */}
+          <LoginForm
+            onSubmit={handleLogin}
+            onForgotPassword={handleForgotPassword}
+            error={error}
+          />
+
+          {/* Separador informativo */}
+          <div className="mt-8 pt-8 border-t border-outline-variant/10 text-center">
+            <p className="text-xs leading-relaxed text-on-surface-variant/60 font-medium">
+              Tus credenciales fueron enviadas por la administración de tu institución
+            </p>
+          </div>
+        </div>
+
+        {/* Link de ayuda externo */}
+        <div className="mt-8 text-center">
+          <a
+            href="#"
+            className="text-sm font-medium text-on-surface-variant/70 hover:text-primary transition-colors duration-200 inline-flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-lg">help_outline</span>
+            ¿Problemas para ingresar?
+          </a>
+        </div>
+      </main>
+
+      <LoginFooter />
+    </div>
+  );
+}

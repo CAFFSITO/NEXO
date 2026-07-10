@@ -1,0 +1,65 @@
+/* src/index.css */
+/* Estilos globales de NEXO — fuentes, resets y utilidades base */
+
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600&family=Architects+Daughter&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+
+@import "tailwindcss";
+
+/* Material Symbols config */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+/* Base body */
+body {
+  font-family: "Inter", sans-serif;
+  background-color: #190d2d;
+  color: #ecdcff;
+}
+
+/* Utility: headline font */
+.font-headline {
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+/* Dark class en html por defecto */
+html {
+  color-scheme: dark;
+}
+
+/* Utility: handwritten font (Aula Virtual — pizarrón) */
+.font-handwritten {
+  font-family: "Architects Daughter", cursive;
+}
+
+/* Textura de pizarrón para el Aula Virtual */
+.chalkboard-texture {
+  background-color: #12241c;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.03) 0%, transparent 45%),
+    linear-gradient(135deg, #14261e 0%, #0f1f18 100%);
+}
+
+/* Grilla del pizarrón digital (Aula Virtual — Profesor) */
+.whiteboard-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Custom scrollbar for chat */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c548f5;
+  border-radius: 10px;
+}

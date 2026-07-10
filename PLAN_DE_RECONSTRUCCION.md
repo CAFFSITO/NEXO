@@ -85,18 +85,34 @@ Y si algo se rompió y querés volver atrás, pedile a la IA que te ayude a "vol
 
 Es un programa gratuito con ventanas para abrir `nexo.db` y ver las planillas con tus propios ojos: los usuarios, los comentarios, las notas. No es obligatorio, pero da muchísima tranquilidad poder verificar que las cosas se están guardando de verdad. Se descarga de **https://sqlitebrowser.org**.
 
-### 3.4. Poner en marcha la aplicación actual
+### 3.4. Yarn — el encargado de descargar las piezas
+
+Este proyecto usa **yarn** para descargar e instalar las piezas de código que la aplicación necesita (todos los comandos de este plan lo usan). Comprobá si está instalado:
+
+```
+yarn --version
+```
+
+Si responde un número, listo. Si dice que no reconoce el comando, activalo con este comando (viene incluido con Node.js) y volvé a probar:
+
+```
+corepack enable
+```
+
+(Si `corepack enable` da un error de permisos, cerrá la terminal y abrila de nuevo eligiendo "Ejecutar como administrador".)
+
+### 3.5. Poner en marcha la aplicación actual
 
 Para ver la maqueta como está hoy (y comprobar que el entorno funciona):
 
 ```
 cd C:\NEXO-main\NEXO-main\NEXO
-npm install
-npm run dev
+yarn
+yarn dev
 ```
 
-- `npm install` descarga las piezas que la aplicación ya usa (tarda unos minutos la primera vez; solo hace falta de nuevo si se agregan piezas).
-- `npm run dev` la enciende: la terminal muestra una dirección tipo `http://localhost:5173`; abrila en el navegador.
+- `yarn` (solo, sin nada más) descarga las piezas que la aplicación ya usa (tarda unos minutos la primera vez; solo hace falta de nuevo si se agregan piezas).
+- `yarn dev` la enciende: la terminal muestra una dirección tipo `http://localhost:5173`; abrila en el navegador.
 
 Para apagarla: en la terminal, teclas `Ctrl` + `C`.
 
@@ -1398,9 +1414,9 @@ La cocina es un programa aparte de la aplicación. Vive en una carpeta nueva `se
 cd C:\NEXO-main\NEXO-main
 mkdir servidor
 cd servidor
-npm init -y
-npm install express
-npm install ws
+yarn init -y
+yarn add express
+yarn add ws
 ```
 
 - **express** es la pieza más usada del mundo para armar cocinas en Node: recibe pedidos y responde.
@@ -1408,7 +1424,7 @@ npm install ws
 
 **Qué pedirle a la IA:** que cree, dentro de `servidor/`, un programa que (1) abra la base `base-de-datos/nexo.db` usando el módulo SQLite integrado de Node (`node:sqlite`) con las reglas de integridad activadas, (2) atienda pedidos en la dirección local (puerto 3000), y (3) tenga una primera "ventanilla" de prueba en `/api/salud` que responda que está viva. Pedile también que configure la aplicación (el proyecto de la carpeta `NEXO/`) para que todos los pedidos que empiecen con `/api` lleguen al servidor (esto se hace con una línea en la configuración de Vite, la IA sabe cuál).
 
-**Cómo comprobar:** con el servidor encendido (`node servidor.js` o el comando que la IA te indique) y la aplicación encendida (`npm run dev` en `NEXO/`), entrá en el navegador a `http://localhost:5173` y pedile a la IA una forma visible de verificar que la app "ve" al servidor. A partir de acá, **siempre vas a tener dos terminales abiertas**: una con la cocina y otra con la vidriera.
+**Cómo comprobar:** con el servidor encendido (`node servidor.js` o el comando que la IA te indique) y la aplicación encendida (`yarn dev` en `NEXO/`), entrá en el navegador a `http://localhost:5173` y pedile a la IA una forma visible de verificar que la app "ve" al servidor. A partir de acá, **siempre vas a tener dos terminales abiertas**: una con la cocina y otra con la vidriera.
 
 ---
 
@@ -1424,7 +1440,7 @@ El orden importa: cada etapa usa lo que construyó la anterior. Referencias como
 
 ```
 cd C:\NEXO-main\NEXO-main\NEXO
-npm install react-router-dom
+yarn add react-router-dom
 ```
 
 (Es el "enrutador": la pieza que le da una dirección propia a cada pantalla.)
@@ -1502,7 +1518,7 @@ npm install react-router-dom
 **Instalación:** dentro de `NEXO`:
 
 ```
-npm install @jitsi/react-sdk
+yarn add @jitsi/react-sdk
 ```
 
 (Jitsi es un motor de videollamadas gratuito y de código abierto que se incrusta dentro de la aplicación: el video y el audio los resuelve él, y nosotros construimos alrededor todo lo propio de NEXO.)
@@ -1540,10 +1556,10 @@ No hacen falta textos mágicos; hace falta **método**. Estas son las prácticas
 
 | Paso | Qué se logra | Comandos / instalaciones nuevas |
 |---|---|---|
-| 3. Preparación | Motor, fotos y visor listos | Node.js 22.5+, Git, DB Browser; `npm install` y `npm run dev` en `NEXO/` |
+| 3. Preparación | Motor, fotos y visor listos | Node.js 22.5+, Git, DB Browser, yarn (`corepack enable`); `yarn` y `yarn dev` en `NEXO/` |
 | 4. Base de datos | El archivador `nexo.db` con las 53 planillas y datos coherentes | copiar los bloques A-D; `node crear-base.mjs` |
-| 5. Servidor | La cocina que atiende pedidos | `mkdir servidor` → `npm init -y` → `npm install express ws` |
-| Etapa 1 | Ingreso real, recarga sin perder sesión, direcciones por pantalla | `npm install react-router-dom` (en `NEXO/`) |
+| 5. Servidor | La cocina que atiende pedidos | `mkdir servidor` → `yarn init -y` → `yarn add express ws` |
+| Etapa 1 | Ingreso real, recarga sin perder sesión, direcciones por pantalla | `yarn add react-router-dom` (en `NEXO/`) |
 | Etapa 2 | Todas las pantallas leen datos reales | — |
 | Etapa 3 | Altas reales, papelera, roles separados | — |
 | Etapa 4 | Circuito completo de tareas con archivos | — |
@@ -1551,7 +1567,7 @@ No hacen falta textos mágicos; hace falta **método**. Estas son las prácticas
 | Etapa 6 | Chat en vivo y notificaciones | (usa `ws`, ya instalado) |
 | Etapa 7 | Calendario con capas, biblioteca, comunicados, quejas | — |
 | Etapa 8 | Reportes descargables y asistencia IA real | clave gratuita del proveedor de IA, guardada en el servidor |
-| Etapa 9 | Aula virtual con videollamadas | `npm install @jitsi/react-sdk` (en `NEXO/`) |
+| Etapa 9 | Aula virtual con videollamadas | `yarn add @jitsi/react-sdk` (en `NEXO/`) |
 | Etapa 10 | Verificación ficha por ficha contra el informe | — |
 
 Al terminar la etapa 10, cada error de `ERRORES_DETALLADOS.md` tiene que poder marcarse como resuelto con una prueba hecha por vos. Ese es el criterio de "aplicación terminada".
