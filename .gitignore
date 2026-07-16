@@ -1,0 +1,47 @@
+# Qué NO entra en las fotos de git.
+# Regla general: si un archivo se puede volver a generar con un comando, no se
+# guarda. Las fotos son para el código que escribimos, no para lo descargado.
+
+# ── Piezas descargadas (las trae "yarn", pesan cientos de megas) ─────────────
+node_modules/
+
+# ── Lo que produce compilar la aplicación ───────────────────────────────────
+dist/
+dist-ssr/
+*.local
+
+# ── El archivador ───────────────────────────────────────────────────────────
+# nexo.db NO se guarda: es un archivo binario que se regenera cuando quieras
+# con  cd base-de-datos  &&  node crear-base.mjs --forzar
+# Lo que sí se guarda es su receta: esquema.sql y datos-iniciales.sql.
+# Ojo: volver a una foto vieja NO toca tu nexo.db — la base queda como está.
+base-de-datos/nexo.db
+base-de-datos/nexo.db-journal
+base-de-datos/nexo.db-wal
+base-de-datos/nexo.db-shm
+
+# ── Secretos ────────────────────────────────────────────────────────────────
+# Las claves de API (por ejemplo la de la Asistencia IA, etapa 8) van en un
+# archivo .env que jamás se sube: si se sube, queda en el historial para siempre.
+.env
+.env.*
+!.env.ejemplo
+
+# ── Archivos que suben los usuarios (etapa 4 en adelante) ───────────────────
+servidor/archivos-subidos/
+
+# ── Registros ───────────────────────────────────────────────────────────────
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Cosas del editor y del sistema ──────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+*.suo
+*.sw?

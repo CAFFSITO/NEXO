@@ -881,6 +881,8 @@ CREATE INDEX idx_cola_revision_orden    ON cola_revision(estado, presentado_en);
 
 ### 4.3. Bloque B — `datos-iniciales.sql` (los datos de prueba, coherentes)
 
+> **Atención — este bloque quedó viejo en una sola cosa: las contraseñas.** Se conserva tal como se escribió originalmente, pero en la **etapa 1** las contraseñas se migraron de SHA-256 a **scrypt** (ver la nota de seguridad del punto 4.7). Como scrypt le pone a cada usuario una **sal distinta y al azar**, los hashes reales no se pueden copiar de un documento: se generan una sola vez, al crear la base. **El archivo verdadero es `base-de-datos/datos-iniciales.sql`**, no este bloque. Si ya creaste la base, no hay nada que hacer. Si tenés que rehacerla desde cero y el archivo se perdió, pedile a la IA que lo regenere cifrando `nexo1234` con `servidor/contrasenas.js`. Todo lo demás del bloque (personas, cursos, tareas, notas, chats) sigue siendo exacto.
+
 ```sql
 -- ============================================================================
 -- NEXO — Datos iniciales de demostración (coherentes)
@@ -891,7 +893,8 @@ CREATE INDEX idx_cola_revision_orden    ON cola_revision(estado, presentado_en);
 -- preceptor, cada trabajo una nota.
 --
 -- Contraseña de TODAS las cuentas de demostración: nexo1234
--- (guardada como hash SHA-256; ver la nota de seguridad del plan).
+-- (versión original, con hash SHA-256. En la etapa 1 se migró a scrypt: el
+--  archivo real usa un hash con sal única por usuario. Ver la nota de arriba.)
 --
 -- Las fechas de ejemplo giran alrededor de julio de 2026.
 -- ============================================================================
@@ -1382,7 +1385,9 @@ Todas con contraseña **`nexo1234`**:
 | `centro@sanmartin.nexo.edu` | El Centro de Estudiantes |
 | `sistema@nexo.edu` | El administrador de la plataforma |
 
-> **Nota de seguridad (importante pero simple):** en estos datos de prueba la contraseña está protegida con un cifrado básico (SHA-256), suficiente para desarrollar. Cuando se construya el ingreso real (etapa 1), pedile a la IA que use un cifrado **pensado para contraseñas** (se llaman bcrypt, scrypt o argon2 — con nombrarlos alcanza) y que las claves secretas nunca queden dentro del código que ve el navegador.
+> **Nota de seguridad — ya resuelta en la etapa 1.** Originalmente estos datos de prueba usaban un cifrado básico (SHA-256), suficiente para desarrollar pero **no** para contraseñas: SHA-256 está hecho para ser rapidísimo, y esa es justo la propiedad que le sirve a quien roba la base y quiere probar millones de claves por segundo. Al construir el ingreso real se migraron las 18 cuentas a **scrypt**, que está diseñado para ser lento y consumir mucha memoria, con una **sal distinta para cada usuario** (por eso los 18 hashes son diferentes aunque la contraseña sea la misma). Viene incluido en Node: no hubo que instalar nada. El único lugar del proyecto que cifra y verifica contraseñas es **`servidor/contrasenas.js`**; si algún día hay que endurecer el cifrado, se toca ahí y en ningún otro lado.
+>
+> **Lo que sigue vigente como regla:** ninguna clave secreta puede quedar dentro del código que ve el navegador. La lista de ocho cuentas con la contraseña al lado que vivía en `NEXO/src/navegacion.tsx` (Error 12.4) se eliminó en la etapa 1 — que no vuelva.
 
 ### 4.8. Qué planilla hace funcionar cada cosa (mapa rápido)
 
@@ -1446,9 +1451,9 @@ yarn add react-router-dom
 (Es el "enrutador": la pieza que le da una dirección propia a cada pantalla.)
 
 **Qué pedirle a la IA (en este orden, de a uno):**
-1. Ventanilla de ingreso en el servidor: recibir correo y contraseña, compararlos contra la tabla `usuarios`, y si coinciden crear una fila en `sesiones` con una llave que el navegador guarda (sección 14.1). Eliminar del código de la aplicación la lista de cuentas escrita adentro (Error 12.4).
-2. Que al recargar la página la aplicación revalide la llave guardada y te deje donde estabas (Error 12.1).
-3. Reemplazar la navegación interna por el enrutador, conservando las direcciones que ya existen (Errores 12.2 y 12.3).
+1. ~~Ventanilla de ingreso en el servidor: recibir correo y contraseña, compararlos contra la tabla `usuarios`, y si coinciden crear una fila en `sesiones` con una llave que el navegador guarda (sección 14.1). Eliminar del código de la aplicación la lista de cuentas escrita adentro (Error 12.4).~~ **HECHO.** Vive en `servidor/sesiones.js` (`POST`/`GET`/`DELETE /api/sesion`) y `NEXO/src/servicios/sesion.ts`. La llave viaja en una cookie **httpOnly**, que el JavaScript de la página no puede leer: ni siquiera nuestro propio código la toca. Las ocho cuentas de juguete se borraron de `navegacion.tsx`; **los correos viejos tipo `estudiante@nexo.edu` ya no existen**, ahora se entra con los del punto 4.7.
+2. ~~Que al recargar la página la aplicación revalide la llave guardada y te deje donde estabas (Error 12.1).~~ **HECHO a medias, y no por descuido:** F5 ya no te expulsa, pero te deja en el **inicio de tu rol**, no en la pantalla exacta donde estabas. Eso no se puede arreglar todavía: sin direcciones propias no hay forma de saber dónde estabas. Lo completa el punto 3.
+3. Reemplazar la navegación interna por el enrutador, conservando las direcciones que ya existen (Errores 12.2 y 12.3). **← acá vas.**
 4. Que el servidor controle qué rol puede pedir qué cosa, y que la aplicación muestre un mensaje claro cuando no hay permiso, en vez del salto mudo (Error 12.6).
 5. Arreglar el menú lateral para que marque exactamente una sección activa (Error 12.7) y que ningún botón apunte a pantallas inexistentes (Error 12.8).
 6. Una pantalla de configuración de cuenta con cambio de contraseña y el flujo de "olvidé mi contraseña" (Errores 2.A.1 y 12.5).

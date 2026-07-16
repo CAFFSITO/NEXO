@@ -11,11 +11,20 @@ import { useNavegacion } from "../navegacion";
 export default function LoginPage() {
   const { login } = useNavegacion();
   const [error, setError] = useState<string | null>(null);
+  const [ingresando, setIngresando] = useState(false);
 
-  const handleLogin = (email: string, password: string) => {
-    const ok = login(email, password);
-    if (!ok) {
-      setError("Correo o contraseña incorrectos.");
+  // Ahora las credenciales viajan al servidor, así que esto tarda: hay que
+  // avisar que está en curso y evitar que se apriete "Ingresar" dos veces.
+  const handleLogin = async (email: string, contrasena: string) => {
+    setIngresando(true);
+    setError(null);
+
+    const resultado = await login(email, contrasena);
+
+    // Si entró, este componente desaparece de pantalla y no hay nada que apagar.
+    if (!resultado.ok) {
+      setError(resultado.error ?? "Correo o contraseña incorrectos.");
+      setIngresando(false);
     }
   };
 
@@ -46,6 +55,7 @@ export default function LoginPage() {
             onSubmit={handleLogin}
             onForgotPassword={handleForgotPassword}
             error={error}
+            ingresando={ingresando}
           />
 
           {/* Separador informativo */}

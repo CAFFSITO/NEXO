@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   NavegacionContext,
   rutaAPagina,
   puedeAcceder,
-  CREDENCIALES,
   HOME_POR_ROL,
   type Page,
+  type ResultadoLogin,
   type Usuario,
 } from "./navegacion";
+import { iniciarSesion, sesionActual, cerrarSesionEnServidor } from "./servicios/sesion";
 import LoginPage from "./paginas/LoginPage.tsx";
 import AsistenciaIAPage from "./paginas/AsistenciaIAPage.tsx";
 import BibliotecaPage from "./paginas/BibliotecaPage.tsx";
@@ -80,6 +81,7 @@ export default function App() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [currentPage, setCurrentPage] = useState<Page>("login");
   const [rutaActiva, setRutaActiva] = useState<string>("/comunidad");
+  const [revisandoSesion, setRevisandoSesion] = useState(true);
 
   // Coloca la app en una ruta ya validada (sin re-chequear permisos).
   const irA = (ruta: string) => {
@@ -107,16 +109,44 @@ export default function App() {
     }
   };
 
-  // Valida credenciales y abre la sesión en el home del rol.
-  const login = (email: string, password: string): boolean => {
-    const cred = CREDENCIALES[email.trim().toLowerCase()];
-    if (!cred || cred.password !== password) return false;
-    setUsuario(cred.usuario);
-    irA(HOME_POR_ROL[cred.usuario.rol]);
-    return true;
+  // Al arrancar (y en cada F5), preguntarle al servidor si la cookie de sesión
+  // sigue siendo válida. Si lo es, se entra directo sin pasar por el login:
+  // eso es lo que hace que recargar ya no expulse al usuario (Error 12.1).
+  useEffect(() => {
+    let vigente = true;
+
+    sesionActual().then((usuarioGuardado) => {
+      if (!vigente) return;
+      if (usuarioGuardado) {
+        setUsuario(usuarioGuardado);
+        irA(HOME_POR_ROL[usuarioGuardado.rol]);
+      }
+      setRevisandoSesion(false);
+    });
+
+    // Si el componente se desmonta antes de que conteste el servidor, no
+    // tocamos el estado de algo que ya no está en pantalla.
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
+  // El servidor valida las credenciales contra la tabla `usuarios`; la pantalla
+  // ya no sabe ninguna contraseña.
+  const login = async (email: string, contrasena: string): Promise<ResultadoLogin> => {
+    const resultado = await iniciarSesion(email, contrasena);
+    if (!resultado.ok || !resultado.usuario) {
+      return { ok: false, error: resultado.error };
+    }
+    setUsuario(resultado.usuario);
+    irA(HOME_POR_ROL[resultado.usuario.rol]);
+    return { ok: true };
   };
 
   const cerrarSesion = () => {
+    // Borrar la sesión también en el servidor: si solo se limpiara la pantalla,
+    // la llave seguiría viva y serviría para volver a entrar.
+    void cerrarSesionEnServidor();
     setUsuario(null);
     setCurrentPage("login");
     setRutaActiva("/comunidad");
@@ -124,8 +154,20 @@ export default function App() {
 
   const render = currentPage !== "login" ? PAGINAS[currentPage] : undefined;
 
+  // Mientras se revalida la sesión no se muestra el login: si no, quien ya está
+  // logueado vería un parpadeo de "iniciar sesión" en cada recarga.
+  if (revisandoSesion) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center bg-background">
+        <p className="text-sm font-medium text-on-surface-variant/60">Abriendo NEXO...</p>
+      </div>
+    );
+  }
+
   return (
-    <NavegacionContext.Provider value={{ usuario, rutaActiva, navegar, cerrarSesion, login }}>
+    <NavegacionContext.Provider
+      value={{ usuario, rutaActiva, revisandoSesion, navegar, cerrarSesion, login }}
+    >
       {!usuario || currentPage === "login" ? <LoginPage /> : render ? render() : <ComunidadPage />}
     </NavegacionContext.Provider>
   );

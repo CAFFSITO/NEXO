@@ -120,71 +120,23 @@ export function rutaAPagina(ruta: string): Page | null {
 // ─── CONTEXTO ───────────────────────────────────────────
 // ─── SESIÓN Y CONTROL DE ACCESO ─────────────────────────
 
+// Quién es el usuario logueado. Lo arma el SERVIDOR a partir de la tabla
+// `usuarios` y lo entrega al iniciar sesión (ver servicios/sesion.ts).
+//
+// Acá NO hay ninguna lista de cuentas: hasta la Etapa 1, este archivo tenía
+// ocho usuarios de juguete con la contraseña escrita al lado, y todo eso se
+// descargaba al navegador, donde cualquiera podía leerlo (Error 12.4). Las
+// personas reales viven en la base y las contraseñas se verifican en el
+// servidor, cifradas con scrypt. Que no vuelva a aparecer una lista de
+// credenciales en el código de la vidriera.
 export interface Usuario {
+    id: number;
     nombre: string;
     rol: Rol;
     avatarUrl?: string;
     curso?: string;
     materia?: string;
 }
-
-// Credenciales demo. Clave = email institucional (en minúsculas).
-export const CREDENCIALES: Record<string, { password: string; usuario: Usuario }> = {
-    "estudiante@nexo.edu": {
-        password: "nexo1234",
-        usuario: {
-            nombre: "Julieta Rossi",
-            rol: "estudiante",
-            curso: "4° B",
-            avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Julieta",
-        },
-    },
-    "profesor@nexo.edu": {
-        password: "nexo1234",
-        usuario: {
-            nombre: "Prof. García",
-            rol: "profesor",
-            materia: "Matemática",
-            avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Garcia",
-        },
-    },
-    "admin@nexo.edu": {
-        password: "nexo1234",
-        usuario: {
-            nombre: "Directora Romero",
-            rol: "admin-academico",
-            avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Romero",
-        },
-    },
-    "preceptor@nexo.edu": {
-        password: "nexo1234",
-        usuario: {
-            nombre: "Carlos Pereyra",
-            rol: "preceptor",
-            avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Pereyra",
-        },
-    },
-    "centro@nexo.edu": {
-        password: "nexo1234",
-        usuario: { nombre: "Centro de Estudiantes", rol: "centro-estudiantes" },
-    },
-    "biblioteca@nexo.edu": {
-        password: "nexo1234",
-        usuario: { nombre: "Bibliotecario", rol: "bibliotecario" },
-    },
-    "familia@nexo.edu": {
-        password: "nexo1234",
-        usuario: {
-            nombre: "Fam. Rossi",
-            rol: "familia",
-            avatarUrl: "https://api.dicebear.com/7.x/initials/svg?seed=Rossi",
-        },
-    },
-    "sistema@nexo.edu": {
-        password: "nexo1234",
-        usuario: { nombre: "Administrador", rol: "administrador" },
-    },
-};
 
 // Página de inicio (home) a la que cae cada rol tras loguearse.
 export const HOME_POR_ROL: Record<Rol, string> = {
@@ -260,20 +212,31 @@ export function puedeAcceder(rol: Rol, ruta: string): boolean {
 }
 
 // ─── CONTEXTO ───────────────────────────────────────────
+export interface ResultadoLogin {
+    ok: boolean;
+    error?: string;
+}
+
 interface NavegacionValor {
     usuario: Usuario | null;
     rutaActiva: string;
+    // true mientras se le pregunta al servidor si la sesión guardada sigue viva
+    // (el instante posterior a recargar la página).
+    revisandoSesion: boolean;
     navegar: (ruta: string) => void;
     cerrarSesion: () => void;
-    login: (email: string, password: string) => boolean;
+    // Ahora el ingreso viaja al servidor, así que la respuesta tarda: es una
+    // promesa, y trae el motivo del rechazo para poder mostrarlo tal cual.
+    login: (email: string, contrasena: string) => Promise<ResultadoLogin>;
 }
 
 export const NavegacionContext = createContext<NavegacionValor>({
     usuario: null,
     rutaActiva: "/comunidad",
+    revisandoSesion: true,
     navegar: () => { },
     cerrarSesion: () => { },
-    login: () => false,
+    login: async () => ({ ok: false }),
 });
 
 export const useNavegacion = () => useContext(NavegacionContext);

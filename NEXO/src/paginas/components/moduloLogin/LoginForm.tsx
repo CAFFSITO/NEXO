@@ -5,18 +5,26 @@ import { useState } from "react";
 import InputField from "../shared/InputField";
 
 interface LoginFormProps {
-  onSubmit: (email: string, password: string) => void;
+  onSubmit: (email: string, contrasena: string) => void;
   onForgotPassword: () => void;
   error?: string | null;
+  /** true mientras el servidor está verificando las credenciales. */
+  ingresando?: boolean;
 }
 
-export default function LoginForm({ onSubmit, onForgotPassword, error }: LoginFormProps) {
+export default function LoginForm({
+  onSubmit,
+  onForgotPassword,
+  error,
+  ingresando = false,
+}: LoginFormProps) {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [contrasena, setContrasena] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(email, password);
+    if (ingresando) return; // no mandar dos veces el mismo ingreso
+    onSubmit(email, contrasena);
   };
 
   return (
@@ -33,8 +41,8 @@ export default function LoginForm({ onSubmit, onForgotPassword, error }: LoginFo
         label="Contraseña"
         type="password"
         placeholder="••••••••"
-        value={password}
-        onChange={setPassword}
+        value={contrasena}
+        onChange={setContrasena}
       />
 
       {/* Mensaje de error */}
@@ -58,9 +66,10 @@ export default function LoginForm({ onSubmit, onForgotPassword, error }: LoginFo
       {/* Botón CTA */}
       <button
         type="submit"
-        className="w-full bg-primary hover:bg-primary-container text-surface-container-lowest font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all duration-200"
+        disabled={ingresando}
+        className="w-full bg-primary hover:bg-primary-container text-surface-container-lowest font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
       >
-        Ingresar
+        {ingresando ? "Ingresando..." : "Ingresar"}
       </button>
     </form>
   );
