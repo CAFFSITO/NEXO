@@ -1,20 +1,26 @@
 // src/paginas/components/cursos/EstadoCicloLectivo.tsx
-// Panel resumen del ciclo lectivo: progreso académico + métricas globales.
+// Panel resumen del ciclo lectivo: avance del cronograma + métricas globales.
+//
+// Los cuatro números eran inventados: el progreso era la constante 65, los
+// docentes eran 86 (el colegio tiene 4) y las "Aulas" se calculaban como
+// `cursos × 6`, una cuenta que no representaba nada — no hay aulas en la base.
+// Ahora los cuatro vienen contados de la base (ver `servidor/perfiles.js`).
 
 interface EstadoCicloLectivoProps {
-  progreso: number; // 0..100
+  /** Qué parte de las tareas del colegio ya pasó su fecha límite (0..100). */
+  avanceCronograma: number;
   inscripciones: number;
   docentes: number;
-  aulas: number;
+  materias: number;
 }
 
 export default function EstadoCicloLectivo({
-  progreso,
+  avanceCronograma,
   inscripciones,
   docentes,
-  aulas,
+  materias,
 }: EstadoCicloLectivoProps) {
-  const progresoClamp = Math.max(0, Math.min(100, progreso));
+  const avance = Math.max(0, Math.min(100, avanceCronograma));
 
   return (
     <div className="lg:col-span-2 bg-[#2D1B4E]/40 backdrop-blur-sm p-8 rounded-lg border border-surface-variant">
@@ -25,13 +31,17 @@ export default function EstadoCicloLectivo({
 
       <div className="mb-8">
         <div className="flex justify-between text-sm mb-2">
-          <span className="text-on-surface-variant font-medium">Progreso Académico General</span>
-          <span className="text-primary font-bold">{progresoClamp}%</span>
+          {/* Antes decía "Progreso Académico General", que sonaba a cuánto
+              aprendieron los chicos y era un 65 escrito a mano. Esto dice lo
+              que de verdad se está midiendo: cuánto del trabajo planificado ya
+              venció. Es menos ambicioso y es cierto. */}
+          <span className="text-on-surface-variant font-medium">Avance del cronograma de tareas</span>
+          <span className="text-primary font-bold">{avance}%</span>
         </div>
         <div className="w-full bg-slate-900 h-3 rounded-full overflow-hidden">
           <div
             className="bg-[#C548F5] h-full rounded-full transition-all duration-500"
-            style={{ width: `${progresoClamp}%` }}
+            style={{ width: `${avance}%` }}
           />
         </div>
       </div>
@@ -39,7 +49,7 @@ export default function EstadoCicloLectivo({
       <div className="grid grid-cols-3 gap-4">
         <Metrica label="Inscripciones" valor={inscripciones.toLocaleString("es-AR")} />
         <Metrica label="Docentes" valor={docentes.toString()} />
-        <Metrica label="Aulas" valor={aulas.toString()} />
+        <Metrica label="Materias" valor={materias.toString()} />
       </div>
     </div>
   );

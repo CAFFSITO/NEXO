@@ -29,6 +29,7 @@ base-de-datos/nexo.db-shm
 
 # ── Archivos que suben los usuarios (etapa 4 en adelante) ───────────────────
 servidor/archivos-subidos/
+servidor/almacen/
 
 # ── Registros ───────────────────────────────────────────────────────────────
 logs

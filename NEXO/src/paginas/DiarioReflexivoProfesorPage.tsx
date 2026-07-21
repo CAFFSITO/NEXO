@@ -1,11 +1,25 @@
 // src/paginas/DiarioReflexivoProfesorPage.tsx
 // VISTA: Diario Reflexivo (Portafolio Docente).
-// Conversión de diarioReflexivoProfesor.html → React + TS + Tailwind.
 // El diario es un espacio de registro y reflexión sobre la práctica docente.
+//
+// Antes vivía SOLO en la memoria de la pantalla: crear un registro y recargar
+// lo borraba, y editar/borrar no hacían nada (Errores 3.C.3 y 3.C.6). Ahora
+// todo va a la base a través de `/api/diario` (ver servicios/diario.ts): los
+// registros sobreviven a la recarga, se editan y se borran, y son de quien los
+// escribió (el servidor no muestra ni deja tocar el diario de otro profesor).
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
+import { usarCatedras } from "../servicios/aula";
+import {
+  usarDiario,
+  crearRegistro,
+  editarRegistro,
+  eliminarRegistro,
+  type RegistroDiario,
+  type CuerpoRegistro,
+} from "../servicios/diario";
 import FormularioNuevoRegistro, {
   type NuevoRegistro,
 } from "./components/portafolio-docente/FormularioNuevoRegistro";
@@ -13,56 +27,99 @@ import TarjetaRegistro, {
   type Registro,
 } from "./components/portafolio-docente/TarjetaRegistro";
 
-const MATERIAS_CURSO = ["Matemática, 4° B", "Historia, 5° A", "Física, 3° C"];
+// ── Traducción entre lo que guarda la cocina y lo que muestra la tarjeta ──────
+// La base guarda un registro como tres campos (titulo, contenido, etiquetas).
+// La pantalla, en cambio, lo piensa con más piezas (fecha de la sesión, resumen,
+// "¿qué funcionó?" y "¿qué mejorar?"). Para no cambiar el esquema, esas piezas
+// viajan serializadas dentro de `contenido`; `etiquetas` lleva la materia/curso.
 
-const REGISTROS_INICIALES: Registro[] = [
-  {
-    id: "1",
-    titulo: "Clase de discriminante",
-    fecha: "2026-03-19",
-    materiaCurso: "Matemática, 4° B",
-    resumen:
-      "Se explicó el uso del discriminante en ecuaciones cuadráticas. Los estudiantes mostraron interés genuino en los casos donde no hay raíces reales.",
-    queFunciono:
-      "El uso de software de graficación ayudó a visualizar por qué el discriminante negativo no toca el eje X.",
-    queMejorar:
-      "La transición del álgebra a la gráfica fue un poco rápida para algunos alumnos rezagados.",
-  },
-  {
-    id: "2",
-    titulo: "Introducción a parábolas",
-    fecha: "2026-03-17",
-    materiaCurso: "Matemática, 4° B",
-    resumen:
-      "Primer contacto con la función cuadrática. Exploramos los coeficientes a, b y c mediante ejemplos prácticos de lanzamientos físicos.",
-    queFunciono:
-      "Los videos de cámara lenta de tiros libres en fútbol captaron la atención de toda la clase.",
-    queMejorar:
-      "Faltó tiempo para que ellos mismos intentaran graficar manualmente en el cuaderno.",
-  },
-  {
-    id: "3",
-    titulo: "Línea de tiempo Mayo",
-    fecha: "2026-03-14",
-    materiaCurso: "Historia, 5° A",
-    resumen:
-      "Construcción colaborativa de los eventos previos a la Revolución de Mayo. Análisis de causas externas (Invasiones Napoleónicas).",
-    queFunciono:
-      "El debate sobre el rol del Virrey Cisneros fue muy activo y argumentado.",
-    queMejorar:
-      "Mejorar la distribución de grupos para que los alumnos más tímidos participen más.",
-  },
-];
+interface CuerpoDiario {
+  fecha?: string;
+  resumen: string;
+  queFunciono: string;
+  queMejorar: string;
+}
+
+/**
+ * Desarma el `contenido` guardado. Si es el JSON que escribe esta pantalla, lo
+ * usa; si es texto plano (por ejemplo un registro sembrado en la base), lo trata
+ * como el resumen. Así lo viejo y lo nuevo se ven bien, sin inventar nada.
+ */
+function desglosar(contenido: string): CuerpoDiario {
+  try {
+    const o = JSON.parse(contenido);
+    if (o && typeof o === "object" && typeof o.resumen === "string") {
+      return {
+        fecha: typeof o.fecha === "string" ? o.fecha : undefined,
+        resumen: o.resumen,
+        queFunciono:
+          typeof o.queFunciono === "string" && o.queFunciono ? o.queFunciono : "Sin registrar.",
+        queMejorar:
+          typeof o.queMejorar === "string" && o.queMejorar ? o.queMejorar : "Sin registrar.",
+      };
+    }
+  } catch {
+    // No era JSON: es un registro de texto plano. Cae al retorno de abajo.
+  }
+  return { resumen: contenido, queFunciono: "Sin registrar.", queMejorar: "Sin registrar." };
+}
+
+/** Registro de la base → la forma que dibuja `TarjetaRegistro`. */
+function aRegistro(r: RegistroDiario): Registro {
+  const c = desglosar(r.contenido);
+  return {
+    id: r.id,
+    titulo: r.titulo,
+    // La fecha de la sesión, o —para lo viejo/plano— el día en que se creó.
+    fecha: c.fecha ?? r.creadoEn.slice(0, 10),
+    materiaCurso: r.etiquetas,
+    resumen: c.resumen,
+    queFunciono: c.queFunciono,
+    queMejorar: c.queMejorar,
+  };
+}
+
+/** Lo que produce el formulario → los tres campos que guarda la cocina. */
+function aCuerpo(n: NuevoRegistro): CuerpoRegistro {
+  return {
+    titulo: n.titulo,
+    contenido: JSON.stringify({
+      fecha: n.fecha,
+      resumen: n.resumen,
+      queFunciono: n.queFunciono,
+      queMejorar: n.queMejorar,
+    }),
+    etiquetas: n.materiaCurso,
+  };
+}
 
 export default function DiarioReflexivoProfesorPage() {
-  const [usuario] = useState({
-    nombre: "Prof. García",
-    rol: "profesor" as const,
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Garcia",
-  });
+  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } = useNavegacion();
 
-  const [registros, setRegistros] = useState<Registro[]>(REGISTROS_INICIALES);
+  // Las materias del selector son las cátedras reales del docente logueado.
+  const { catedras } = usarCatedras();
+  const materiasCurso = useMemo(
+    () => (catedras ?? []).map((c) => c.etiqueta),
+    [catedras]
+  );
+
+  // Los registros salen de la base: lo que se ve es lo que el docente escribió.
+  const { datos, cargando, error, recargar } = usarDiario();
+  const registros = useMemo(
+    () => (datos?.registros ?? []).map(aRegistro),
+    [datos]
+  );
+
   const [busqueda, setBusqueda] = useState<string>("");
+  // Qué registro se está editando (su id), y un contador para remontar el
+  // formulario limpio tras cada creación exitosa. Al remontarlo (con `key`), el
+  // formulario vuelve a leer su estado inicial: crear deja el form vacío, editar
+  // lo prellena, y un guardado fallido conserva lo escrito (no remontamos).
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [remonte, setRemonte] = useState(0);
+  const [errorGuardado, setErrorGuardado] = useState<string | null>(null);
+
+  const formRef = useRef<HTMLDivElement>(null);
 
   // Registros ordenados por fecha descendente + filtrados por búsqueda
   const registrosVisibles = useMemo(() => {
@@ -78,27 +135,70 @@ export default function DiarioReflexivoProfesorPage() {
       .sort((a, b) => b.fecha.localeCompare(a.fecha));
   }, [registros, busqueda]);
 
-  const handleGuardar = (nuevo: NuevoRegistro) => {
-    setRegistros((prev) => [
-      { ...nuevo, id: crypto.randomUUID() },
-      ...prev,
-    ]);
+  // Valores con que arranca el formulario cuando se está editando.
+  const valorInicial = useMemo<NuevoRegistro | null>(() => {
+    if (!editandoId) return null;
+    const r = registros.find((x) => x.id === editandoId);
+    if (!r) return null;
+    return {
+      titulo: r.titulo,
+      fecha: r.fecha,
+      materiaCurso: r.materiaCurso,
+      resumen: r.resumen,
+      queFunciono: r.queFunciono,
+      queMejorar: r.queMejorar,
+    };
+  }, [editandoId, registros]);
+
+  const handleGuardar = async (nuevo: NuevoRegistro) => {
+    setErrorGuardado(null);
+    try {
+      const cuerpo = aCuerpo(nuevo);
+      if (editandoId) {
+        await editarRegistro(editandoId, cuerpo);
+        setEditandoId(null); // vuelve a modo "nuevo": el form se remonta limpio
+      } else {
+        await crearRegistro(cuerpo);
+        setRemonte((n) => n + 1); // remonta el form vacío tras crear
+      }
+      recargar();
+    } catch (e) {
+      setErrorGuardado(e instanceof Error ? e.message : "No se pudo guardar el registro.");
+    }
   };
 
   const handleEditar = (id: string) => {
-    console.log("Editar registro:", id);
+    setErrorGuardado(null);
+    setEditandoId(id);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion } = useNavegacion();
+  const handleCancelarEdicion = () => {
+    setEditandoId(null);
+    setErrorGuardado(null);
+  };
+
+  const handleEliminar = async (id: string) => {
+    if (!window.confirm("¿Borrar este registro del diario? No se puede deshacer.")) return;
+    setErrorGuardado(null);
+    try {
+      await eliminarRegistro(id);
+      if (editandoId === id) setEditandoId(null);
+      recargar();
+    } catch (e) {
+      setErrorGuardado(e instanceof Error ? e.message : "No se pudo borrar el registro.");
+    }
+  };
 
   // El registro más reciente se destaca visualmente
   const idDestacado = registrosVisibles[0]?.id;
+
+  if (!usuario) return null;
 
   return (
     <div className="flex bg-[#1C1030] min-h-screen text-on-surface overflow-x-hidden">
       <Sidebar
         usuario={usuario}
-        rutaActiva="/portafolio-docente"
         onNavegar={handleNavegar}
         onCerrarSesion={handleCerrarSesion}
       />
@@ -153,12 +253,43 @@ export default function DiarioReflexivoProfesorPage() {
             </div>
           </header>
 
-          {/* Formulario nuevo registro */}
-          <FormularioNuevoRegistro materiasCurso={MATERIAS_CURSO} onGuardar={handleGuardar} />
+          {/* Formulario nuevo registro / edición. La `key` lo remonta al cambiar
+              de registro o tras crear, para que arranque con el estado correcto. */}
+          <div ref={formRef}>
+            <FormularioNuevoRegistro
+              key={editandoId ?? `nuevo-${remonte}`}
+              materiasCurso={materiasCurso}
+              valorInicial={valorInicial}
+              onGuardar={handleGuardar}
+              onCancelar={handleCancelarEdicion}
+            />
+          </div>
+
+          {errorGuardado && (
+            <p className="mb-6 text-[#EF4444] text-sm font-medium flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm">error</span>
+              {errorGuardado}
+            </p>
+          )}
 
           {/* Lista del diario */}
           <div className="space-y-6">
-            {registrosVisibles.length === 0 ? (
+            {cargando ? (
+              <div className="text-center py-16 text-slate-400">Cargando el diario…</div>
+            ) : error ? (
+              <div className="text-center py-16 text-[#EF4444]">
+                <span className="material-symbols-outlined text-5xl mb-2 block">error</span>
+                {error}
+                <div className="mt-4">
+                  <button
+                    onClick={recargar}
+                    className="text-[#C548F5] font-bold hover:underline font-label"
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              </div>
+            ) : registrosVisibles.length === 0 ? (
               <div className="text-center py-16 text-slate-400">
                 <span className="material-symbols-outlined text-5xl mb-2 block">
                   menu_book
@@ -174,6 +305,7 @@ export default function DiarioReflexivoProfesorPage() {
                   registro={registro}
                   destacado={registro.id === idDestacado}
                   onEditar={handleEditar}
+                  onEliminar={handleEliminar}
                 />
               ))
             )}

@@ -1,10 +1,10 @@
 // src/paginas/components/perfiles/BadgePerfilRol.tsx
 // Pill de rol institucional. Color automático según el rol (META_ROL).
 
-import { META_ROL, type RolPerfil } from "./tipos";
+import { META_ROL, type Rol } from "./tipos";
 
 interface BadgePerfilRolProps {
-  rol: RolPerfil;
+  rol: Rol;
 }
 
 export default function BadgePerfilRol({ rol }: BadgePerfilRolProps) {

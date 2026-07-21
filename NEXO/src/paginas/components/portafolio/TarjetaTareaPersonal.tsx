@@ -3,6 +3,7 @@ import type { TareaPersonal } from "./tiposTareas";
 interface TarjetaTareaPersonalProps {
   tarea: TareaPersonal;
   onToggle: (id: string) => void;
+  onEditar: (tarea: TareaPersonal) => void;
   onEliminar: (id: string) => void;
 }
 
@@ -10,6 +11,7 @@ interface TarjetaTareaPersonalProps {
 export default function TarjetaTareaPersonal({
   tarea,
   onToggle,
+  onEditar,
   onEliminar,
 }: TarjetaTareaPersonalProps) {
   return (
@@ -48,13 +50,23 @@ export default function TarjetaTareaPersonal({
           </div>
         </div>
 
-        <button
-          onClick={() => onEliminar(tarea.id)}
-          aria-label="Eliminar tarea personal"
-          className="text-slate-500 hover:text-red-400 transition-colors p-2"
-        >
-          <span className="material-symbols-outlined">delete</span>
-        </button>
+        <div className="flex items-center">
+          {/* Editar (Error 2.C.8): antes no se podía editar una tarea. */}
+          <button
+            onClick={() => onEditar(tarea)}
+            aria-label="Editar tarea personal"
+            className="text-slate-500 hover:text-[#C548F5] transition-colors p-2"
+          >
+            <span className="material-symbols-outlined">edit</span>
+          </button>
+          <button
+            onClick={() => onEliminar(tarea.id)}
+            aria-label="Eliminar tarea personal"
+            className="text-slate-500 hover:text-red-400 transition-colors p-2"
+          >
+            <span className="material-symbols-outlined">delete</span>
+          </button>
+        </div>
       </div>
     </div>
   );

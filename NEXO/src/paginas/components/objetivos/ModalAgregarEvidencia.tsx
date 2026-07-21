@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { Evidencia } from "./tiposCompetencia";
 
 // Trabajos disponibles desde el Portafolio para vincular como evidencia
 export interface TrabajoDisponible {
@@ -11,10 +10,13 @@ export interface TrabajoDisponible {
 interface ModalAgregarEvidenciaProps {
   competenciaNombre: string;
   trabajos: TrabajoDisponible[];
-  onGuardar: (evidencia: Evidencia) => void;
+  onGuardar: () => void;
   onCerrar: () => void;
 }
 
+// Guardar la evidencia de verdad (vincular un trabajo del portafolio y su
+// reflexión, y que la fila viaje a `evidencias`) es la Etapa 5. En esta etapa
+// el formulario valida y se cierra; por eso `onGuardar` no lleva datos.
 export default function ModalAgregarEvidencia({
   competenciaNombre,
   trabajos,
@@ -28,12 +30,8 @@ export default function ModalAgregarEvidencia({
   const puedeGuardar = trabajoSeleccionado !== undefined && reflexion.trim().length > 0;
 
   const handleGuardar = () => {
-    if (!trabajoSeleccionado) return;
-    onGuardar({
-      id: crypto.randomUUID(),
-      titulo: trabajoSeleccionado.titulo,
-      icono: trabajoSeleccionado.icono,
-    });
+    if (!puedeGuardar) return;
+    onGuardar();
   };
 
   return (

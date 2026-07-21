@@ -11,6 +11,14 @@ export type NuevoRegistro = Omit<Registro, "id">;
 interface FormularioNuevoRegistroProps {
   materiasCurso: string[];
   onGuardar: (registro: NuevoRegistro) => void;
+  /**
+   * Si viene, el formulario arranca en modo edición con estos valores. La
+   * pantalla lo remonta (con `key`) al cambiar de registro, así que alcanza con
+   * leerlo una vez en el estado inicial; no hace falta sincronizarlo después.
+   */
+  valorInicial?: NuevoRegistro | null;
+  /** Salir del modo edición sin guardar. Solo aparece cuando se está editando. */
+  onCancelar?: () => void;
 }
 
 const ESTADO_INICIAL = {
@@ -21,15 +29,39 @@ const ESTADO_INICIAL = {
   queMejorar: "",
 };
 
+// "Sin registrar." es lo que guarda el formulario cuando el campo quedó vacío.
+// Al editar no lo mostramos como texto a borrar: vuelve a quedar en blanco.
+const vacioSiSinRegistrar = (texto: string) =>
+  texto === "Sin registrar." ? "" : texto;
+
 export default function FormularioNuevoRegistro({
   materiasCurso,
   onGuardar,
+  valorInicial = null,
+  onCancelar,
 }: FormularioNuevoRegistroProps) {
-  const [form, setForm] = useState({
-    ...ESTADO_INICIAL,
-    materiaCurso: materiasCurso[0] ?? "",
-  });
+  const editando = valorInicial !== null;
+
+  const [form, setForm] = useState(() =>
+    valorInicial
+      ? {
+          fecha: valorInicial.fecha,
+          materiaCurso: valorInicial.materiaCurso,
+          resumen: valorInicial.resumen,
+          queFunciono: vacioSiSinRegistrar(valorInicial.queFunciono),
+          queMejorar: vacioSiSinRegistrar(valorInicial.queMejorar),
+        }
+      : { ...ESTADO_INICIAL, materiaCurso: materiasCurso[0] ?? "" }
+  );
   const [error, setError] = useState<string>("");
+
+  // El registro que se edita puede tener una etiqueta (ej. la de un dato
+  // sembrado) que no está entre las cátedras del docente: la sumamos como
+  // opción para que el desplegable no la pierda.
+  const opciones =
+    form.materiaCurso && !materiasCurso.includes(form.materiaCurso)
+      ? [form.materiaCurso, ...materiasCurso]
+      : materiasCurso;
 
   const actualizar = (
     campo: keyof typeof ESTADO_INICIAL,
@@ -57,6 +89,8 @@ export default function FormularioNuevoRegistro({
       form.resumen.trim().split(/\s+/).slice(0, 5).join(" ") +
       (form.resumen.trim().split(/\s+/).length > 5 ? "…" : "");
 
+    // Guardar (crear o editar). La pantalla decide qué hacer con el resultado y
+    // remonta el formulario limpio si salió bien; si falla, conserva lo escrito.
     onGuardar({
       titulo,
       fecha: form.fecha,
@@ -65,16 +99,15 @@ export default function FormularioNuevoRegistro({
       queFunciono: form.queFunciono.trim() || "Sin registrar.",
       queMejorar: form.queMejorar.trim() || "Sin registrar.",
     });
-
-    // Reset (mantiene la materia seleccionada)
-    setForm({ ...ESTADO_INICIAL, materiaCurso: form.materiaCurso });
   };
 
   return (
     <section className="bg-[#2D1B4E] p-6 rounded-lg shadow-xl mb-12 border border-[#C548F5]/20">
       <div className="flex items-center gap-2 mb-6 text-[#C548F5]">
         <span className="material-symbols-outlined">edit_note</span>
-        <h3 className="text-xl font-bold font-headline">Nuevo registro</h3>
+        <h3 className="text-xl font-bold font-headline">
+          {editando ? "Editar registro" : "Nuevo registro"}
+        </h3>
       </div>
 
       <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
@@ -100,7 +133,7 @@ export default function FormularioNuevoRegistro({
                 onChange={(e) => actualizar("materiaCurso", e.target.value)}
                 className="bg-[#1C1030] border-none rounded-full px-4 py-2 text-white focus:ring-2 focus:ring-[#C548F5]"
               >
-                {materiasCurso.map((mc) => (
+                {opciones.map((mc) => (
                   <option key={mc}>{mc}</option>
                 ))}
               </select>
@@ -153,13 +186,22 @@ export default function FormularioNuevoRegistro({
             </p>
           )}
 
-          <div className="flex justify-end pt-2">
+          <div className="flex justify-end items-center gap-3 pt-2">
+            {editando && onCancelar && (
+              <button
+                type="button"
+                onClick={onCancelar}
+                className="text-slate-400 font-bold px-5 py-3 rounded-full hover:text-white transition-colors font-label"
+              >
+                Cancelar
+              </button>
+            )}
             <button
               type="submit"
               className="bg-[#C548F5] text-white font-bold px-8 py-3 rounded-full hover:shadow-[0_0_20px_rgba(197,72,245,0.4)] transition-all active:scale-95 flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-sm">save</span>
-              Guardar registro
+              {editando ? "Actualizar registro" : "Guardar registro"}
             </button>
           </div>
         </div>

@@ -2,85 +2,26 @@ import { useMemo, useState } from "react";
 import Sidebar, { type Rol } from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import SearchAndFilter from "./components/biblioteca/SearchAndFilter";
-import ResourceCard, { type EstadoRecurso } from "./components/biblioteca/ResourceCard";
+import ResourceCard from "./components/biblioteca/ResourceCard";
+import ModalPresentarRecurso from "./components/biblioteca/ModalPresentarRecurso";
+import {
+  normalizar,
+  usarBiblioteca,
+  type AmbitoBiblioteca,
+  type Recurso,
+} from "../servicios/biblioteca";
+import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
+import { usarInstitucion } from "../servicios/institucion";
+import { urlDescarga } from "../servicios/archivos";
 
-type Ambito = "nacional" | "institucional";
-
-interface Resource {
-  id: string;
-  title: string;
-  category: string;
-  icon: string;
-  author?: string;
-  authorIcon?: string;
-  authorFallbackIcon?: string;
-  fileType: string;
-  fileSize: string;
-  estado?: EstadoRecurso;
-  ambito: Ambito;
-}
-
-const RESOURCES: Resource[] = [
-  {
-    id: "1",
-    title: "Reglamento institucional 2025",
-    category: "General",
-    icon: "description",
-    author: "Dirección Académica",
-    authorFallbackIcon: "account_balance",
-    fileType: "PDF",
-    fileSize: "2.4 MB",
-    estado: "verificado",
-    ambito: "institucional",
-  },
-  {
-    id: "2",
-    title: "Guía de estudio: Parcial de Historia",
-    category: "Historia",
-    icon: "menu_book",
-    author: "Prof. Méndez",
-    fileType: "DOCX",
-    fileSize: "1.1 MB",
-    estado: "verificado",
-    ambito: "institucional",
-  },
-  {
-    id: "3",
-    title: "Canal de YouTube del departamento de Ciencias",
-    category: "Biología",
-    icon: "link",
-    author: "Depto. de Ciencias",
-    authorFallbackIcon: "labs",
-    fileType: "LINK",
-    fileSize: "N/A",
-    estado: "revision",
-    ambito: "institucional",
-  },
-  {
-    id: "4",
-    title: "Banco Nacional de Lecturas - Lengua",
-    category: "Lengua",
-    icon: "auto_stories",
-    author: "Ministerio de Educación",
-    authorFallbackIcon: "public",
-    fileType: "PDF",
-    fileSize: "5.8 MB",
-    estado: "verificado",
-    ambito: "nacional",
-  },
-  {
-    id: "5",
-    title: "Simulaciones interactivas de Física",
-    category: "Física",
-    icon: "link",
-    author: "Red Federal de Recursos",
-    authorFallbackIcon: "public",
-    fileType: "LINK",
-    fileSize: "N/A",
-    estado: "verificado",
-    ambito: "nacional",
-  },
-];
+// Ícono por tipo de recurso. Decoración, no un dato de la base.
+const ICONO_TIPO: Record<Recurso["tipo"], string> = {
+  documento: "description",
+  guia: "menu_book",
+  video: "smart_display",
+  enlace: "link",
+  libro: "auto_stories",
+};
 
 export default function BibliotecaPage() {
   const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } = useNavegacion();
@@ -92,27 +33,44 @@ export default function BibliotecaPage() {
   const puedeSubir = rol === "admin-academico" || rol === "bibliotecario";
   const puedePresentar = rol === "estudiante" || rol === "profesor";
 
-  const [ambito, setAmbito] = useState<Ambito>("institucional");
+  const [ambito, setAmbito] = useState<AmbitoBiblioteca>("institucional");
   const [query, setQuery] = useState("");
+  const [modalPresentar, setModalPresentar] = useState(false);
+  const { institucion } = usarInstitucion();
 
-  // Filtra por ámbito (tab) + texto de búsqueda
+  // Los recursos inventados ("Reglamento institucional 2025", "Simulaciones de
+  // Física" del "Ministerio de Educación") se fueron: cada pestaña pide a la
+  // base los recursos de su ámbito.
+  const { recursos, cargando, error, recargar } = usarBiblioteca(ambito);
+
+  // La búsqueda ya no distingue tildes ni mayúsculas (Error 2.E.3): "cancion"
+  // encuentra "canción". Antes solo tomaba coincidencias exactas.
   const recursosVisibles = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return RESOURCES.filter((r) => r.ambito === ambito).filter((r) => {
-      if (!q) return true;
-      return (
-        r.title.toLowerCase().includes(q) ||
-        r.category.toLowerCase().includes(q) ||
-        (r.author?.toLowerCase().includes(q) ?? false)
-      );
-    });
-  }, [ambito, query]);
+    const q = normalizar(query.trim());
+    if (!recursos) return [];
+    if (!q) return recursos;
+    return recursos.filter(
+      (r) =>
+        normalizar(r.titulo).includes(q) ||
+        normalizar(r.categoria).includes(q) ||
+        normalizar(r.autor).includes(q)
+    );
+  }, [recursos, query]);
 
-  const handlePresentarRecurso = () => console.log("Abrir formulario: presentar recurso para aprobación");
-  const handleSubirArchivo = () => console.log("Abrir formulario: subir nuevo archivo");
-  const handleAccionRecurso = (r: Resource) => console.log("Acción sobre recurso:", r.title);
+  // "Presentar recurso" y "Agregar recurso" abren el mismo flujo (Etapa 7): un
+  // recurso nuevo entra a la cola de revisión (Error 2.E.2). El bibliotecario y
+  // la dirección lo presentan igual que un estudiante; el circuito editorial es
+  // uno solo (14.11), así que no hay dos formularios distintos.
+  const handlePresentarRecurso = () => setModalPresentar(true);
+  // Descargar descarga y Ver guía abre (Error 2.E.4): un enlace se abre tal
+  // cual; un archivo se baja por /api/archivos/:id, donde el servidor valida
+  // el permiso antes de entregar un byte.
+  const handleAccionRecurso = (r: Recurso) => {
+    if (r.enlaceUrl) window.open(r.enlaceUrl, "_blank", "noopener");
+    else if (r.archivoId) window.open(urlDescarga(r.archivoId), "_blank");
+  };
 
-  const tabs: { id: Ambito; label: string }[] = [
+  const tabs: { id: AmbitoBiblioteca; label: string }[] = [
     { id: "nacional", label: "Nacional" },
     { id: "institucional", label: "Institucional" },
   ];
@@ -121,7 +79,6 @@ export default function BibliotecaPage() {
     <div className="bg-[#190d2d] min-h-screen text-on-surface font-body">
       <Sidebar
         usuario={usuario ?? { nombre: "", rol }}
-        rutaActiva="/biblioteca/institucional"
         onNavegar={handleNavegar}
         onCerrarSesion={handleCerrarSesion}
       />
@@ -163,9 +120,11 @@ export default function BibliotecaPage() {
               <span className="material-symbols-outlined text-[10px]">chevron_right</span>
               <span className="text-[#C548F5]">Biblioteca</span>
             </nav>
+            {/* El nombre del colegio salía escrito a mano ("Colegio San
+                Martín"). Sale de la base. */}
             <h1 className="text-4xl font-black font-headline text-white tracking-tight">
               {ambito === "institucional"
-                ? "Biblioteca · Colegio San Martín"
+                ? `Biblioteca · ${institucion?.nombre ?? ""}`
                 : "Biblioteca Digital Nacional"}
             </h1>
             <p className="text-gray-400 font-body max-w-2xl">
@@ -176,7 +135,7 @@ export default function BibliotecaPage() {
           </div>
           {puedeSubir ? (
             <button
-              onClick={handleSubirArchivo}
+              onClick={handlePresentarRecurso}
               className="flex items-center gap-2 px-6 py-3 bg-[#C548F5] text-white rounded-full font-bold hover:bg-[#d15aff] transition-all active:scale-95"
             >
               <span className="material-symbols-outlined">add</span>
@@ -197,72 +156,66 @@ export default function BibliotecaPage() {
         <SearchAndFilter onSearch={setQuery} onFilter={() => console.log("Abrir filtros avanzados")} />
 
         {/* Resource Cards Grid */}
-        {recursosVisibles.length > 0 ? (
+        {cargando ? (
+          <Cargando que="los recursos de la biblioteca" />
+        ) : error ? (
+          <Fallo error={error} onReintentar={recargar} />
+        ) : recursosVisibles.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {recursosVisibles.map((r) => (
               <ResourceCard
                 key={r.id}
-                title={r.title}
-                category={r.category}
-                icon={r.icon}
-                author={r.author}
-                authorIcon={r.authorIcon}
-                authorFallbackIcon={r.authorFallbackIcon}
-                fileType={r.fileType}
-                fileSize={r.fileSize}
-                estado={r.estado}
+                title={r.titulo}
+                category={r.categoria}
+                icon={ICONO_TIPO[r.tipo]}
+                author={r.autor}
+                authorIcon={r.autorAvatar}
+                fileType={r.etiquetaArchivo}
+                fileSize={r.tamano ?? "N/A"}
+                // La tarjeta habla de "verificado"/"revision"; la base, de
+                // "aprobado"/"en-revision". Es la misma cosa; se traduce acá.
+                estado={r.estado === "aprobado" ? "verificado" : "revision"}
                 onAction={() => handleAccionRecurso(r)}
               />
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <span className="material-symbols-outlined text-4xl text-gray-400 block mb-4">library_books</span>
-            <p className="text-gray-400">No se encontraron recursos</p>
-          </div>
+          <Vacio
+            icono="library_books"
+            mensaje={query ? "No se encontraron recursos para tu búsqueda." : "Todavía no hay recursos en esta biblioteca."}
+          />
         )}
 
-        {/* Empty State Suggestion / Footer */}
-        <div className="mt-16 p-8 border border-dashed border-[#2D1B4E] rounded-lg text-center flex flex-col items-center gap-4 bg-[#1C1030]/30">
-          <div className="w-16 h-16 rounded-full bg-[#2D1B4E] flex items-center justify-center">
-            <span className="material-symbols-outlined text-gray-500 text-3xl">upload_file</span>
-          </div>
-          <div>
-            <h4 className="text-lg font-bold text-white font-headline">¿No encuentras lo que buscas?</h4>
-            <p className="text-gray-400 text-sm max-w-sm mx-auto">
-              {puedeSubir
-                ? "Sumá recursos verificados a la biblioteca del Colegio San Martín."
-                : puedePresentar
-                  ? "Colaborá presentando tus apuntes o recursos: la biblioteca los revisa antes de publicarlos."
-                  : "Explorá los recursos disponibles compartidos por tu institución."}
-            </p>
-          </div>
-          {puedeSubir ? (
-            <button
-              onClick={handleSubirArchivo}
-              className="text-[#C548F5] text-sm font-bold bg-[#C548F5]/10 px-6 py-2 rounded-full hover:bg-[#C548F5]/20 transition-colors"
-            >
-              Subir nuevo recurso
-            </button>
-          ) : puedePresentar ? (
-            <button
-              onClick={handlePresentarRecurso}
-              className="text-[#C548F5] text-sm font-bold bg-[#C548F5]/10 px-6 py-2 rounded-full hover:bg-[#C548F5]/20 transition-colors"
-            >
-              Presentar recurso
-            </button>
-          ) : null}
-        </div>
+        {/* Antes había, además del botón de arriba, un segundo "Presentar
+            recurso" en un bloque al pie: el mismo acceso aparecía dos veces
+            (Error 2.E.6). Se deja uno solo, el del encabezado. */}
       </main>
 
-      {/* Botón flotante contextual (ayuda IA) */}
-      <button
-        onClick={() => console.log("Abrir asistente contextual")}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-[#C548F5] text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50"
-        aria-label="Asistente"
-      >
-        <span className="material-symbols-outlined text-2xl">question_answer</span>
-      </button>
+      {/* Botón flotante de ayuda: abre la Asistencia IA real. Solo lo ve el
+          estudiante, que es el único rol con acceso a esa pantalla (los
+          permisos los valida el servidor; acá solo no se ofrece un botón que
+          terminaría rebotando — Error 12.6). */}
+      {rol === "estudiante" && (
+        <button
+          onClick={() => handleNavegar("/asistencia-academica")}
+          className="fixed bottom-8 right-8 w-14 h-14 bg-[#C548F5] text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50"
+          aria-label="Asistente"
+        >
+          <span className="material-symbols-outlined text-2xl">question_answer</span>
+        </button>
+      )}
+
+      {modalPresentar && (
+        <ModalPresentarRecurso
+          onCerrar={() => setModalPresentar(false)}
+          onPresentado={() => {
+            setModalPresentar(false);
+            // El recurso queda "en revisión" y aparece en la sección propia
+            // (Error 2.E.1): se recarga para que se vea sin refrescar la página.
+            recargar();
+          }}
+        />
+      )}
     </div>
   );
 }

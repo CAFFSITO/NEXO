@@ -1,6 +1,4 @@
 // Tipos y paleta del Calendario de Familia (vista de solo lectura).
-// A diferencia del institucional, cada evento tiene estado de lectura y
-// puede requerir confirmación de asistencia por parte de la familia.
 
 export type TipoEventoFamilia = "examen" | "aviso" | "reunion" | "especial";
 
@@ -11,8 +9,6 @@ export interface EventoFamilia {
   tipo: TipoEventoFamilia;
   etiqueta: string; // Texto del chip (ej: "Acto escolar", "Aviso")
   leido: boolean;
-  requiereConfirmacion?: boolean; // true en reuniones de padres
-  confirmado?: boolean; // asistencia confirmada por la familia
   lugar?: string;
   horaInicio?: string;
   horaFin?: string;
@@ -56,3 +52,14 @@ export const PALETA_FAMILIA: Record<TipoEventoFamilia, PaletaEventoFamilia> = {
 
 // Orden de categorías para la leyenda del pie.
 export const ORDEN_LEYENDA: TipoEventoFamilia[] = ["examen", "aviso", "reunion", "especial"];
+
+// Traduce el tipo libre de un evento de la base ("acto", "reunión", "cita"…) a
+// una de las cuatro familias de color de esta vista. El tipo real es texto
+// libre (Error 6.E.4); esto es solo cómo se pinta.
+export function familiaEvento(tipo: string): TipoEventoFamilia {
+  const t = tipo.toLowerCase();
+  if (t.includes("examen") || t.includes("parcial") || t.includes("prueba")) return "examen";
+  if (t.includes("reunión") || t.includes("reunion") || t.includes("cita") || t.includes("entrevista")) return "reunion";
+  if (t.includes("acto") || t.includes("asamblea") || t.includes("aviso")) return "aviso";
+  return "especial";
+}

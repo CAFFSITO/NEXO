@@ -1,15 +1,29 @@
 interface ResumenCalificacionesProps {
   promedio: number | null;
-  tendencia?: string; // Ej: "+0.5 este mes"
   materiasPendientes: number;
+  /**
+   * Llevar a la tarea que está esperando corrección (Error 2.C.7). Si viene, la
+   * tarjeta "Correcciones en camino" se vuelve pulsable; antes era un cartel
+   * muerto que no llevaba a ningún lado.
+   */
+  onIrACorreccion?: () => void;
 }
 
 // Bloque inferior: promedio general (calculado) + aviso de pendientes.
+//
+// Tenía una tercera cosa: una flechita verde que decía "+0.5 este mes". No
+// salía de ningún lado — era un texto fijo, así que subía medio punto todos los
+// meses para siempre, incluso con el promedio en caída. Calcular la tendencia
+// de verdad (comparar con el mes anterior) es un algoritmo y va con el resto de
+// los algoritmos de progreso; hasta entonces, mejor no decir nada que mentir.
 export default function ResumenCalificaciones({
   promedio,
-  tendencia,
   materiasPendientes,
+  onIrACorreccion,
 }: ResumenCalificacionesProps) {
+  // Pulsable solo si hay algo a lo que llevar: sin pendientes, "Todo al día" no
+  // tiene destino.
+  const pulsable = materiasPendientes > 0 && Boolean(onIrACorreccion);
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
       {/* Promedio general */}
@@ -18,30 +32,36 @@ export default function ResumenCalificaciones({
         <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest">
           Promedio General
         </p>
+        {/* "—" cuando no hay ninguna nota todavía: un promedio de cero sería
+            una acusación falsa. */}
         <p className="text-5xl font-headline font-black text-white mt-4">
           {promedio !== null ? promedio.toFixed(1) : "—"}
         </p>
-        {tendencia && (
-          <div className="mt-4 flex items-center gap-2 text-emerald-400 text-sm">
-            <span className="material-symbols-outlined text-base">trending_up</span>
-            <span>{tendencia}</span>
-          </div>
-        )}
       </div>
 
-      {/* Materias pendientes de corrección */}
-      <div className="bg-surface-container rounded-xl p-8 border border-white/5 col-span-2 flex items-center justify-between">
+      {/* Materias pendientes de corrección (Error 2.C.7: ahora pulsable) */}
+      <button
+        type="button"
+        onClick={pulsable ? onIrACorreccion : undefined}
+        disabled={!pulsable}
+        className={`bg-surface-container rounded-xl p-8 border border-white/5 col-span-2 flex items-center justify-between text-left w-full transition-colors ${
+          pulsable ? "hover:border-primary/40 cursor-pointer" : "cursor-default"
+        }`}
+      >
         <div className="max-w-xs">
-          <h4 className="text-white font-headline font-bold text-lg">
-            {materiasPendientes > 0
-              ? "Correcciones en camino"
-              : "Todo al día"}
+          <h4 className="text-white font-headline font-bold text-lg flex items-center gap-2">
+            {materiasPendientes > 0 ? "Correcciones en camino" : "Todo al día"}
+            {pulsable && (
+              <span className="material-symbols-outlined text-primary text-lg">
+                arrow_forward
+              </span>
+            )}
           </h4>
           <p className="text-on-surface-variant text-sm mt-2">
             {materiasPendientes > 0
               ? `Tenés ${materiasPendientes} ${
                   materiasPendientes === 1 ? "materia" : "materias"
-                } esperando la devolución del profesor.`
+                } esperando la devolución del profesor. Tocá para ver la entrega.`
               : "No quedan materias pendientes de corrección en este portafolio."}
           </p>
         </div>
@@ -52,7 +72,7 @@ export default function ResumenCalificaciones({
             </span>
           </div>
         </div>
-      </div>
+      </button>
     </div>
   );
 }

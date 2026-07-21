@@ -11,7 +11,10 @@ interface ChatWindowProps {
   nombreContacto: string;
   avatarUrl?: string;
   messages: Message[];
-  onSendMessage?: (mensaje: string) => void;
+  /** Enviar. Puede llevar un archivo adjunto (Error 2.F.3). Solo lectura si falta. */
+  onSendMessage?: (mensaje: string, archivo?: File | null) => void;
+  /** Modo moderación (preceptor): se lee el hilo pero no se escribe (Error 7.A.3). */
+  soloLectura?: boolean;
 }
 
 export default function ChatWindow({
@@ -19,9 +22,13 @@ export default function ChatWindow({
   avatarUrl,
   messages,
   onSendMessage,
+  soloLectura = false,
 }: ChatWindowProps) {
   const [mensaje, setMensaje] = useState("");
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [enviando, setEnviando] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputArchivo = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -30,17 +37,23 @@ export default function ChatWindow({
     });
   }, [messages]);
 
-  const handleSend = () => {
-    if (mensaje.trim()) {
-      onSendMessage?.(mensaje);
+  const handleSend = async () => {
+    if (enviando) return;
+    if (!mensaje.trim() && !archivo) return;
+    setEnviando(true);
+    try {
+      await onSendMessage?.(mensaje, archivo);
       setMensaje("");
+      setArchivo(null);
+    } finally {
+      setEnviando(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      void handleSend();
     }
   };
 
@@ -56,15 +69,15 @@ export default function ChatWindow({
               <span className="text-xs font-bold text-white">{nombreContacto.charAt(0)}</span>
             )}
           </div>
+          {/* Antes decía "En línea" siempre: no hay estado de presencia real
+              detrás, así que se saca en vez de afirmar algo que no se sabe. */}
           <div>
             <h2 className="font-bold text-white">{nombreContacto}</h2>
-            <p className="text-xs text-gray-400">En línea</p>
           </div>
         </div>
+        {/* El botón de "llamar" (teléfono) se elimina: no corresponde a la
+            funcionalidad del chat de la plataforma (Error 2.F.2). */}
         <div className="flex items-center gap-2">
-          <button className="p-2 hover:bg-[#2D1B4E] rounded-full text-gray-400 transition-colors">
-            <span className="material-symbols-outlined">call</span>
-          </button>
           <button className="p-2 hover:bg-[#2D1B4E] rounded-full text-gray-400 transition-colors">
             <span className="material-symbols-outlined">more_vert</span>
           </button>
@@ -95,30 +108,66 @@ export default function ChatWindow({
         )}
       </div>
 
-      {/* Input */}
-      <div className="bg-[#1C1030] border-t border-[#3b2f50] p-4">
-        <div className="flex items-end gap-2">
-          <input
-            type="text"
-            placeholder="Escribe un mensaje..."
-            value={mensaje}
-            onChange={(e) => setMensaje(e.target.value)}
-            onKeyPress={handleKeyPress}
-            className="flex-1 bg-[#2D1B4E] text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary/50 border border-[#3b2f50] placeholder-gray-500"
-          />
-          <button className="p-2 hover:bg-[#2D1B4E] rounded-lg text-gray-400 transition-colors">
-            <span className="material-symbols-outlined">attach_file</span>
-          </button>
-          <button
-            onClick={handleSend}
-            className="p-3 bg-primary hover:bg-[#d15aff] text-white rounded-lg transition-colors"
-          >
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
-              send
-            </span>
-          </button>
+      {/* Input. En moderación (preceptor) el hilo se lee pero no se escribe. */}
+      {soloLectura ? (
+        <div className="bg-[#1C1030] border-t border-[#3b2f50] p-4 text-center text-xs text-gray-500">
+          Estás moderando esta conversación (solo lectura).
         </div>
-      </div>
+      ) : (
+        <div className="bg-[#1C1030] border-t border-[#3b2f50] p-4">
+          {/* Adjunto elegido: se muestra antes de enviar, con opción de quitarlo. */}
+          {archivo && (
+            <div className="flex items-center gap-2 mb-2 text-sm text-gray-300 bg-[#2D1B4E] rounded-lg px-3 py-2 w-fit">
+              <span className="material-symbols-outlined text-base">attach_file</span>
+              <span className="truncate max-w-[240px]">{archivo.name}</span>
+              <button
+                onClick={() => setArchivo(null)}
+                className="text-gray-400 hover:text-red-400"
+                aria-label="Quitar adjunto"
+              >
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+          )}
+          <div className="flex items-end gap-2">
+            <input
+              type="text"
+              placeholder="Escribe un mensaje..."
+              value={mensaje}
+              onChange={(e) => setMensaje(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={enviando}
+              className="flex-1 bg-[#2D1B4E] text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary/50 border border-[#3b2f50] placeholder-gray-500 disabled:opacity-60"
+            />
+            {/* El clip ahora abre el selector de archivos de verdad (Error 2.F.3). */}
+            <input
+              ref={inputArchivo}
+              type="file"
+              className="hidden"
+              onChange={(e) => {
+                setArchivo(e.target.files?.[0] ?? null);
+                e.target.value = ""; // permite volver a elegir el mismo archivo
+              }}
+            />
+            <button
+              onClick={() => inputArchivo.current?.click()}
+              className="p-2 hover:bg-[#2D1B4E] rounded-lg text-gray-400 transition-colors"
+              aria-label="Adjuntar archivo"
+            >
+              <span className="material-symbols-outlined">attach_file</span>
+            </button>
+            <button
+              onClick={handleSend}
+              disabled={enviando}
+              className="p-3 bg-primary hover:bg-[#d15aff] text-white rounded-lg transition-colors disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+                send
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

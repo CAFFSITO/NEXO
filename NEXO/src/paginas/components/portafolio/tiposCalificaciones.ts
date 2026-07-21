@@ -1,37 +1,39 @@
-// Tipos y lógica del módulo de Calificaciones (Portafolio de Aprendizaje — Estudiante)
+// Presentación del módulo de Calificaciones (Portafolio — Estudiante).
+//
+// Acá NO hay datos ni reglas: las notas vienen de `servicios/portafolio.ts`,
+// la MISMA puerta que usa Mis Tareas, y las reglas (qué es aprobar, cómo se
+// promedia) viven ahí también. Hasta la Etapa 2 este archivo tenía su propia
+// definición de aprobación y su propio promedio, y la página traía adentro
+// cuatro materias inventadas: por eso Biología figuraba 8.0 acá y 9.5 en Mis
+// Tareas sobre el mismo informe (Error 13.1).
 
-// Acento visual del ícono de la materia (tokens del design system)
+import type { EstadoCalificacion } from "../../../servicios/portafolio";
+
+export type { EstadoCalificacion } from "../../../servicios/portafolio";
+export {
+  NOTA_APROBACION,
+  estadoDeNota,
+  calcularPromedio,
+} from "../../../servicios/portafolio";
+
+/** Acento visual del ícono de la materia (tokens del design system). */
 export type AcentoMateria = "primary" | "error" | "tertiary" | "secondary";
 
-// Estado derivado de la nota, nunca se guarda a mano
-export type EstadoCalificacion = "aprobado" | "desaprobado" | "pendiente";
-
+/**
+ * Lo que la tarjeta necesita para dibujarse. No es una fila de la base: es una
+ * tarea del portafolio traducida a lo que muestra esta pantalla (ver
+ * `CalificacionesPage`).
+ */
 export interface Calificacion {
   id: string;
   materia: string;
-  detalle?: string; // Ej: "Células procariotas"
-  icono: string; // Material Symbol
+  detalle?: string;
+  icono: string;
   acento: AcentoMateria;
-  nota: number | null; // null = todavía sin corregir
-  actualizado: string; // Ej: "Hace 2 días"
-  devolucion: string; // Feedback del profesor
-}
-
-// Nota mínima de aprobación (escala 1-10, criterio argentino)
-export const NOTA_APROBACION = 6;
-
-// La única fuente de verdad del estado es la nota
-export function estadoDeNota(nota: number | null): EstadoCalificacion {
-  if (nota === null) return "pendiente";
-  return nota >= NOTA_APROBACION ? "aprobado" : "desaprobado";
-}
-
-// Promedio general sobre las materias ya corregidas (ignora pendientes)
-export function calcularPromedio(calificaciones: Calificacion[]): number | null {
-  const corregidas = calificaciones.filter((c) => c.nota !== null);
-  if (corregidas.length === 0) return null;
-  const suma = corregidas.reduce((acc, c) => acc + (c.nota as number), 0);
-  return Math.round((suma / corregidas.length) * 10) / 10;
+  /** null = todavía sin corregir. */
+  nota: number | null;
+  actualizado: string;
+  devolucion: string;
 }
 
 // Metadatos de presentación por estado
@@ -60,3 +62,23 @@ export const ACENTO_META: Record<AcentoMateria, string> = {
   tertiary: "bg-tertiary/10 text-tertiary",
   secondary: "bg-secondary/10 text-secondary",
 };
+
+// ─── Cómo se ve cada materia ────────────────────────────
+// El ícono y el color de una materia son decoración, no un dato: no tiene
+// sentido guardarlos en la base. Se eligen acá por nombre de materia, igual
+// que los colores de Mis Tareas (`colorMateria`).
+
+const ESTILO_MATERIA: Record<string, { icono: string; acento: AcentoMateria }> = {
+  Matemática: { icono: "functions", acento: "primary" },
+  Historia: { icono: "history_edu", acento: "error" },
+  Biología: { icono: "biotech", acento: "tertiary" },
+  Lengua: { icono: "menu_book", acento: "secondary" },
+  Inglés: { icono: "translate", acento: "primary" },
+  Física: { icono: "science", acento: "tertiary" },
+};
+
+const ESTILO_DEFAULT = { icono: "school", acento: "secondary" as AcentoMateria };
+
+export function estiloMateria(materia: string) {
+  return ESTILO_MATERIA[materia] ?? ESTILO_DEFAULT;
+}

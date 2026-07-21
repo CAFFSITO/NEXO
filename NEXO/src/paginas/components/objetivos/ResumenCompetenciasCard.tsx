@@ -1,8 +1,9 @@
 import { LABEL_NIVEL } from "./tiposCompetencia";
-import { SEGMENTOS_POR_NIVEL, type CompetenciaResumen } from "./tiposDashboard";
+import { SEGMENTOS_POR_NIVEL } from "./tiposDashboard";
+import type { Competencia } from "../../../servicios/objetivos";
 
 interface ResumenCompetenciasCardProps {
-  competencias: CompetenciaResumen[];
+  competencias: Competencia[];
 }
 
 // Resumen compacto de competencias con escala de 4 segmentos por nivel.
@@ -12,6 +13,10 @@ export default function ResumenCompetenciasCard({
   return (
     <div className="bg-surface-container rounded-lg p-6 border border-white/5">
       <h3 className="font-headline font-bold mb-6">Competencias</h3>
+
+      {competencias.length === 0 && (
+        <p className="text-slate-400 text-sm">Todavía no empezaste ninguna competencia.</p>
+      )}
 
       <div className="space-y-8">
         {competencias.map((comp) => {
@@ -45,7 +50,7 @@ export default function ResumenCompetenciasCard({
           <span>INI</span>
           <span>DES</span>
           <span>AVA</span>
-          <span>EXP</span>
+          <span>DOM</span>
         </div>
       </div>
     </div>

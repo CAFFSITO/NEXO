@@ -1,8 +1,13 @@
 // src/paginas/components/perfiles/PanelPerfiles.tsx
-// Contenido (sin chrome: sidebar/header) de la pestaña "Perfiles académicos".
-// Lógica: lista con búsqueda + filtros (rol/estado), paginación, alta/edición vía modal,
-// y baja como soft delete (papelera, restaurable) según NEXO_PERFIL_ARCHITECTURE.
-// Reutilizado por PerfilesAcademicosPage (standalone) y GestionInstitucionalPage (tabs).
+// Gestión de Perfiles de la dirección. Lista con búsqueda + filtros (rol/estado),
+// paginación, alta/edición por modal y papelera con contador de 7 días.
+// Reutilizado por PerfilesAcademicosPage (Gestión de Perfiles de la dirección).
+//
+// Etapa 3: todo esto ahora es REAL y persiste. El alta crea una cuenta con
+// contraseña de verdad (Errores 6.B.3, 6.B.4); la baja manda a la papelera con
+// registro de quién y cuándo, y a los 7 días el servidor la borra solo
+// (Error 6.B.5, sección 14.17). Ya no se pierde nada al recargar: la lista sale
+// siempre de `/api/perfiles`, y después de cada cambio se vuelve a pedir.
 
 import { useMemo, useState } from "react";
 import EstadisticasPerfiles from "./EstadisticasPerfiles";
@@ -12,24 +17,32 @@ import FiltrosPerfiles, {
 } from "./FiltrosPerfiles";
 import TablaPerfiles from "./TablaPerfiles";
 import ModalPerfil from "./ModalPerfil";
-import { META_ROL, type Perfil, type PerfilEditable } from "./tipos";
+import { type Perfil, type PerfilEditable } from "./tipos";
+import {
+  usarPerfiles,
+  crearPerfil,
+  editarPerfil,
+  enviarAPapelera,
+  restaurarPerfilEnServidor,
+} from "../../../servicios/perfiles";
+import { Cargando, Fallo } from "../shared/EstadoCarga";
 
 const POR_PAGINA = 5;
 
-// Datos de ejemplo (español rioplatense) — equivalentes a las filas del HTML original.
-const PERFILES_INICIALES: Perfil[] = [
-  { id: "1", nombre: "Julieta Rossi", identificador: "ID: #48291", rol: "estudiante", asignacion: "4°B — Secundario", estado: "activo" },
-  { id: "2", nombre: "Lucas Fernández", identificador: "ID: #48292", rol: "estudiante", asignacion: "4°B — Secundario", estado: "activo" },
-  { id: "3", nombre: "Prof. García", identificador: "Matrícula: DOC-331", rol: "profesor", asignacion: "Cátedra de Matemática", estado: "activo" },
-  { id: "4", nombre: "Prof. Méndez", identificador: "Matrícula: DOC-332", rol: "profesor", asignacion: "Cátedra de Biología", estado: "activo" },
-  { id: "5", nombre: "Preceptora Martínez", identificador: "ID: #AUX-012", rol: "preceptor", asignacion: "4°B — Nivel Medio", estado: "activo" },
-  { id: "6", nombre: "Admin Romero", identificador: "ID: #ADMIN-01", rol: "admin", asignacion: "Dirección Académica", estado: "activo" },
-  { id: "7", nombre: "Sofía Giménez", identificador: "ID: #48293", rol: "estudiante", asignacion: "5°A — Secundario", estado: "inactivo" },
-  { id: "8", nombre: "Prof. Lombardi", identificador: "Matrícula: DOC-333", rol: "profesor", asignacion: "Cátedra de Historia", estado: "activo" },
-];
+// Aviso que aparece tras un alta: las credenciales que la dirección tiene que
+// entregarle a la persona. Se muestra UNA vez (la contraseña no se puede volver
+// a ver); si se pierde, se usa "olvidé mi contraseña".
+interface Credenciales {
+  email: string;
+  contrasena: string;
+}
 
 export default function PanelPerfiles() {
-  const [perfiles, setPerfiles] = useState<Perfil[]>(PERFILES_INICIALES);
+  const { perfiles: perfilesDelServidor, cargando, error, recargar } = usarPerfiles();
+
+  // La lista viene del servidor y es la única verdad. No hay copia en memoria que
+  // editar: cada cambio se guarda en la base y se vuelve a leer.
+  const perfiles = perfilesDelServidor ?? [];
 
   // Filtros
   const [busqueda, setBusqueda] = useState("");
@@ -40,6 +53,10 @@ export default function PanelPerfiles() {
   // Modal
   const [modalAbierto, setModalAbierto] = useState(false);
   const [perfilEnEdicion, setPerfilEnEdicion] = useState<Perfil | null>(null);
+
+  // Avisos
+  const [credenciales, setCredenciales] = useState<Credenciales | null>(null);
+  const [avisoError, setAvisoError] = useState("");
 
   // ─── Derivados ──────────────────────────────────────────
 
@@ -85,60 +102,69 @@ export default function PanelPerfiles() {
     setPagina(1);
   };
 
-  // ─── CRUD ───────────────────────────────────────────────
+  // ─── CRUD (todo contra el servidor) ─────────────────────
 
   const abrirAlta = () => {
     setPerfilEnEdicion(null);
+    setAvisoError("");
     setModalAbierto(true);
   };
 
   const abrirEdicion = (perfil: Perfil) => {
     setPerfilEnEdicion(perfil);
+    setAvisoError("");
     setModalAbierto(true);
   };
 
-  // Genera un identificador legible según el rol (simula credenciales automáticas).
-  const generarIdentificador = (perfil: PerfilEditable) => {
-    const meta = META_ROL[perfil.rol];
-    const numero = Math.floor(1000 + Math.random() * 9000);
-    const etiqueta = perfil.rol === "profesor" ? "Matrícula" : "ID";
-    return `${etiqueta}: ${meta.prefijoId}${numero}`;
+  // Devuelve el mensaje de error del servidor (o null si salió bien). El modal lo
+  // usa para quedarse abierto y mostrar el motivo de un rechazo.
+  const guardarPerfil = async (
+    datos: PerfilEditable,
+    idEnEdicion: string | null,
+  ): Promise<string | null> => {
+    if (idEnEdicion) {
+      const r = await editarPerfil(idEnEdicion, {
+        nombre: datos.nombre,
+        rol: datos.rol,
+        email: datos.email,
+        estado: datos.estado,
+      });
+      if (!r.ok) return r.error ?? "No se pudo guardar.";
+      cerrarModal();
+      recargar();
+      return null;
+    }
+
+    const r = await crearPerfil({ nombre: datos.nombre, rol: datos.rol, email: datos.email });
+    if (!r.ok) return r.error ?? "No se pudo crear el perfil.";
+    // Las credenciales viajan una sola vez: se muestran para que la dirección las
+    // copie y se las dé a la persona.
+    if (r.email && r.contrasenaInicial) {
+      setCredenciales({ email: r.email, contrasena: r.contrasenaInicial });
+    }
+    cerrarModal();
+    setPagina(1);
+    recargar();
+    return null;
   };
 
-  const guardarPerfil = (datos: PerfilEditable, idEnEdicion: string | null) => {
-    if (idEnEdicion) {
-      // Edición: conserva id e identificador existentes.
-      setPerfiles((prev) =>
-        prev.map((p) => (p.id === idEnEdicion ? { ...p, ...datos } : p)),
-      );
-    } else {
-      // Alta: id y credenciales autogeneradas.
-      const nuevo: Perfil = {
-        id: crypto.randomUUID(),
-        identificador: generarIdentificador(datos),
-        eliminadoEn: null,
-        ...datos,
-      };
-      setPerfiles((prev) => [nuevo, ...prev]);
-      setPagina(1);
-    }
+  const cerrarModal = () => {
     setModalAbierto(false);
     setPerfilEnEdicion(null);
   };
 
-  // Baja = soft delete (papelera, restaurable 7 días según arquitectura).
-  const eliminarPerfil = (id: string) => {
-    setPerfiles((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, estado: "papelera", eliminadoEn: new Date().toISOString() } : p,
-      ),
-    );
+  const eliminarPerfil = async (id: string) => {
+    setAvisoError("");
+    const r = await enviarAPapelera(id);
+    if (!r.ok) setAvisoError(r.error ?? "No se pudo enviar a la papelera.");
+    recargar();
   };
 
-  const restaurarPerfil = (id: string) => {
-    setPerfiles((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, estado: "activo", eliminadoEn: null } : p)),
-    );
+  const restaurarPerfil = async (id: string) => {
+    setAvisoError("");
+    const r = await restaurarPerfilEnServidor(id);
+    if (!r.ok) setAvisoError(r.error ?? "No se pudo restaurar.");
+    recargar();
   };
 
   return (
@@ -162,28 +188,73 @@ export default function PanelPerfiles() {
         </button>
       </div>
 
-      <EstadisticasPerfiles perfiles={perfilesVigentes} />
+      {/* Credenciales recién generadas (se muestran una vez) */}
+      {credenciales && (
+        <div className="mb-6 rounded-2xl border border-green-500/30 bg-green-500/10 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-green-300 font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">key</span>
+                Credenciales del nuevo perfil
+              </p>
+              <p className="text-slate-300 text-sm mt-2">
+                Correo: <span className="font-mono text-white">{credenciales.email}</span>
+              </p>
+              <p className="text-slate-300 text-sm">
+                Contraseña inicial:{" "}
+                <span className="font-mono text-white">{credenciales.contrasena}</span>
+              </p>
+              <p className="text-slate-400 text-xs mt-2">
+                Entregáselas a la persona. No se van a poder volver a ver: si se pierden,
+                se usa “olvidé mi contraseña”.
+              </p>
+            </div>
+            <button
+              onClick={() => setCredenciales(null)}
+              className="text-slate-400 hover:text-white transition-colors"
+              title="Cerrar"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
+      )}
 
-      <FiltrosPerfiles
-        busqueda={busqueda}
-        filtroRol={filtroRol}
-        filtroEstado={filtroEstado}
-        onBuscar={onBuscar}
-        onFiltrarRol={onFiltrarRol}
-        onFiltrarEstado={onFiltrarEstado}
-      />
+      {avisoError && (
+        <div className="mb-6 rounded-xl border border-error/30 bg-error/10 p-4 text-sm text-error">
+          {avisoError}
+        </div>
+      )}
 
-      <TablaPerfiles
-        perfiles={perfilesPagina}
-        totalFiltrados={perfilesFiltrados.length}
-        totalGeneral={perfiles.length}
-        paginaActual={paginaSegura}
-        totalPaginas={totalPaginas}
-        onCambiarPagina={setPagina}
-        onEditar={abrirEdicion}
-        onEliminar={eliminarPerfil}
-        onRestaurar={restaurarPerfil}
-      />
+      {cargando && <Cargando que="los perfiles del colegio" />}
+      {error && <Fallo error={error} onReintentar={recargar} />}
+
+      {!cargando && !error && (
+        <>
+          <EstadisticasPerfiles perfiles={perfilesVigentes} />
+
+          <FiltrosPerfiles
+            busqueda={busqueda}
+            filtroRol={filtroRol}
+            filtroEstado={filtroEstado}
+            onBuscar={onBuscar}
+            onFiltrarRol={onFiltrarRol}
+            onFiltrarEstado={onFiltrarEstado}
+          />
+
+          <TablaPerfiles
+            perfiles={perfilesPagina}
+            totalFiltrados={perfilesFiltrados.length}
+            totalGeneral={perfiles.length}
+            paginaActual={paginaSegura}
+            totalPaginas={totalPaginas}
+            onCambiarPagina={setPagina}
+            onEditar={abrirEdicion}
+            onEliminar={eliminarPerfil}
+            onRestaurar={restaurarPerfil}
+          />
+        </>
+      )}
 
       {/* FAB acceso rápido */}
       <button
@@ -199,10 +270,7 @@ export default function PanelPerfiles() {
       <ModalPerfil
         abierto={modalAbierto}
         perfilEnEdicion={perfilEnEdicion}
-        onCerrar={() => {
-          setModalAbierto(false);
-          setPerfilEnEdicion(null);
-        }}
+        onCerrar={cerrarModal}
         onGuardar={guardarPerfil}
       />
     </>

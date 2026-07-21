@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
@@ -6,60 +6,33 @@ import TarjetaCompetencia from "./components/objetivos/TarjetaCompetencia";
 import ModalAgregarEvidencia, {
   type TrabajoDisponible,
 } from "./components/objetivos/ModalAgregarEvidencia";
-import type {
-  Competencia,
-  Evidencia,
-  NivelCompetencia,
+import {
+  colorDeCompetencia,
+  type Competencia,
 } from "./components/objetivos/tiposCompetencia";
+import {
+  usarObjetivos,
+  cambiarNivelCompetencia,
+  eliminarEvidencia,
+  type NivelCompetencia,
+} from "../servicios/objetivos";
+import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 
-// ─── DATOS DE EJEMPLO ───────────────────────────────────
+// Se fueron las cuatro competencias inventadas. Una de ellas, "Comunicación",
+// tenía nivel "inicial", un valor que la base rechaza (la escala real es
+// iniciado → dominado). Ahora las competencias salen de `competencia_avances`:
+// solo aparecen las que el estudiante de verdad empezó, con su nivel real.
 
-const COMPETENCIAS_INICIALES: Competencia[] = [
-  {
-    id: "pensamiento-critico",
-    nombre: "Pensamiento Crítico",
-    descripcion: "Analizar y evaluar la consistencia de los razonamientos.",
-    icono: "psychology",
-    color: "purple",
-    nivel: "en-desarrollo",
-    evidencias: [{ id: "e1", titulo: "Debate sobre microbiota", icono: "article" }],
-  },
-  {
-    id: "colaboracion",
-    nombre: "Colaboración",
-    descripcion: "Trabajar de manera efectiva con otros hacia una meta común.",
-    icono: "groups",
-    color: "blue",
-    nivel: "avanzado",
-    evidencias: [{ id: "e2", titulo: "Trabajo grupal Biología", icono: "folder_shared" }],
-  },
-  {
-    id: "autogestion",
-    nombre: "Autogestión",
-    descripcion: "Organizar y priorizar tareas para alcanzar objetivos.",
-    icono: "bolt",
-    color: "amber",
-    nivel: "en-desarrollo",
-    evidencias: [],
-  },
-  {
-    id: "comunicacion",
-    nombre: "Comunicación",
-    descripcion: "Expresar ideas de forma clara y asertiva en diversos medios.",
-    icono: "forum",
-    color: "teal",
-    nivel: "inicial",
-    evidencias: [],
-  },
-];
-
-// Trabajos del Portafolio disponibles para vincular como evidencia
-const TRABAJOS_DISPONIBLES: TrabajoDisponible[] = [
-  { id: "t1", titulo: "Ensayo de Historia Argentina", icono: "description" },
-  { id: "t2", titulo: "Proyecto de Física Aplicada", icono: "science" },
-  { id: "t3", titulo: "Exposición oral de Lengua", icono: "record_voice_over" },
-  { id: "t4", titulo: "Informe de laboratorio Química", icono: "biotech" },
-];
+// Un ícono por competencia según su nombre. El ícono es decoración, no un dato
+// del colegio: no tiene sentido guardarlo en la base.
+const ICONOS: Record<string, string> = {
+  "Pensamiento Crítico": "psychology",
+  "Análisis de fuentes": "search",
+  Argumentación: "forum",
+  Colaboración: "groups",
+  "Trabajo en equipo": "diversity_3",
+  Autogestión: "bolt",
+};
 
 // Sub-navegación del módulo Objetivos
 const SUBNAV = [
@@ -69,59 +42,67 @@ const SUBNAV = [
   { label: "Competencias", ruta: "/objetivos/competencias" },
 ];
 
+// El selector de "agregar evidencia" se conecta al portafolio en la Etapa 5
+// (por eso va vacío por ahora: sin escritura, no hay a dónde guardar).
+const TRABAJOS_DISPONIBLES: TrabajoDisponible[] = [];
+
 // ─── PÁGINA ─────────────────────────────────────────────
 
 export default function CompetenciasPage() {
-  const [competencias, setCompetencias] = useState<Competencia[]>(COMPETENCIAS_INICIALES);
+  const { datos, cargando, error, recargar } = usarObjetivos();
   const [competenciaActivaId, setCompetenciaActivaId] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
-  const [usuario] = useState({
-    nombre: "Mateo García",
-    rol: "estudiante" as const,
-    curso: "4° B",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mateo",
-  });
+  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } =
+    useNavegacion();
+
+  // Cada competencia de la base, vestida para la tarjeta: su ícono y su color
+  // se eligen de forma estable por nombre.
+  const competencias = useMemo<Competencia[]>(() => {
+    return (datos?.competencias ?? []).map((c) => ({
+      id: c.id,
+      nombre: c.nombre,
+      icono: ICONOS[c.nombre] ?? "workspace_premium",
+      color: colorDeCompetencia(c.nombre),
+      nivel: c.nivel,
+      evidencias: c.evidencias.map((e) => ({ id: e.id, titulo: e.titulo })),
+    }));
+  }, [datos]);
 
   const competenciaActiva = competencias.find((c) => c.id === competenciaActivaId) ?? null;
 
   // ── Acciones ──
-
-  const cambiarNivel = (competenciaId: string, nivel: NivelCompetencia) => {
-    setCompetencias((prev) =>
-      prev.map((c) => (c.id === competenciaId ? { ...c, nivel } : c))
-    );
+  // Cambiar el nivel y borrar una evidencia son escritura real contra nexo.db
+  // (Error 2.D.12): antes solo tocaban la memoria de la pantalla y se perdían al
+  // cambiar de sección. Ahora persisten y la lista se refresca desde el servidor.
+  const cambiarNivel = async (competenciaId: string, nivel: NivelCompetencia) => {
+    setAviso(null);
+    try {
+      await cambiarNivelCompetencia(competenciaId, nivel);
+      recargar();
+    } catch (e) {
+      setAviso(e instanceof Error ? e.message : "No se pudo cambiar el nivel.");
+    }
   };
 
-  const eliminarEvidencia = (competenciaId: string, evidenciaId: string) => {
-    setCompetencias((prev) =>
-      prev.map((c) =>
-        c.id === competenciaId
-          ? { ...c, evidencias: c.evidencias.filter((e) => e.id !== evidenciaId) }
-          : c
-      )
-    );
+  const quitarEvidencia = async (evidenciaId: string) => {
+    setAviso(null);
+    try {
+      await eliminarEvidencia(evidenciaId);
+      recargar();
+    } catch (e) {
+      setAviso(e instanceof Error ? e.message : "No se pudo borrar la evidencia.");
+    }
   };
 
-  const guardarEvidencia = (evidencia: Evidencia) => {
-    if (!competenciaActivaId) return;
-    setCompetencias((prev) =>
-      prev.map((c) =>
-        c.id === competenciaActivaId
-          ? { ...c, evidencias: [...c.evidencias, evidencia] }
-          : c
-      )
-    );
-    setCompetenciaActivaId(null);
-  };
+  const guardarEvidencia = () => setCompetenciaActivaId(null);
 
-  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion } = useNavegacion();
-  const analizarConIA = () => console.log("Analizando perfil de competencias con IA…");
+  if (!usuario) return null;
 
   return (
     <div className="flex bg-[#1C1030] min-h-screen">
       <Sidebar
         usuario={usuario}
-        rutaActiva="/objetivos"
         onNavegar={handleNavegar}
         onCerrarSesion={handleCerrarSesion}
       />
@@ -158,45 +139,47 @@ export default function CompetenciasPage() {
             </p>
           </div>
 
-          {/* Matriz de competencias */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {competencias.map((competencia) => (
-              <TarjetaCompetencia
-                key={competencia.id}
-                competencia={competencia}
-                onCambiarNivel={(nivel) => cambiarNivel(competencia.id, nivel)}
-                onAgregarEvidencia={() => setCompetenciaActivaId(competencia.id)}
-                onEliminarEvidencia={(evidenciaId) =>
-                  eliminarEvidencia(competencia.id, evidenciaId)
-                }
-              />
-            ))}
-          </div>
-
-          {/* Banner IA */}
-          <section className="mt-12 bg-gradient-to-r from-[#2D1B4E] to-[#1C1030] p-8 rounded-[2rem] border border-purple-500/10">
-            <div className="flex flex-col md:flex-row items-center gap-8">
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold font-headline text-white mb-3">
-                  Tu potencial no tiene límites
-                </h2>
-                <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                  NEXO utiliza Inteligencia Artificial para analizar tus evidencias y sugerirte las
-                  mejores estrategias para alcanzar el nivel "Experto" en tus competencias.
-                </p>
-                <button
-                  onClick={analizarConIA}
-                  className="bg-[#C548F5] hover:bg-[#b039df] text-white px-8 py-3 rounded-full font-bold text-sm transition-all shadow-lg shadow-[#C548F5]/20"
-                >
-                  Analizar mi Perfil con IA
-                </button>
-              </div>
-              <div className="relative w-full md:w-64 h-48 rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-[#C548F5]/30 to-[#4900a6]/40 flex items-center justify-center">
-                <span className="material-symbols-outlined text-white/80 text-7xl">auto_awesome</span>
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1C1030] to-transparent" />
-              </div>
+          {aviso && (
+            <div className="mb-6 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">
+              {aviso}
             </div>
-          </section>
+          )}
+
+          {/* Matriz de competencias */}
+          {cargando ? (
+            <Cargando que="tus competencias" />
+          ) : error ? (
+            <Fallo error={error} onReintentar={recargar} />
+          ) : competencias.length === 0 ? (
+            <div className="bg-[#2D1B4E]/40 border border-white/5 rounded-[20px] p-12 text-center">
+              <span className="material-symbols-outlined text-4xl text-slate-500 mb-2">
+                workspace_premium
+              </span>
+              <p className="text-slate-400 text-sm">
+                Todavía no empezaste a trabajar ninguna competencia.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {competencias.map((competencia) => (
+                <TarjetaCompetencia
+                  key={competencia.id}
+                  competencia={competencia}
+                  onCambiarNivel={(nivel) => cambiarNivel(competencia.id, nivel)}
+                  onAgregarEvidencia={() => setCompetenciaActivaId(competencia.id)}
+                  onEliminarEvidencia={quitarEvidencia}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Acá había un banner que ofrecía "Analizar mi Perfil con IA" para
+              alcanzar el nivel "Experto". Se saca en esta etapa por dos motivos:
+              no hay IA real detrás (el botón solo escribía en la consola, y la
+              IA real es la Etapa 8), y "Experto" no es un nivel de la escala —
+              la base va de iniciado a dominado. Un botón que promete algo que
+              no existe es, otra vez, la maqueta que esta reconstrucción viene a
+              desarmar. */}
         </div>
       </main>
 

@@ -1,5 +1,5 @@
 import { NOMBRES_MES, formatearRangoHorario } from "./fechas";
-import { PALETA_EVENTO, type EventoCalendario } from "./tipos";
+import { PALETA_EVENTO, familiaDeTipo, type EventoCalendario } from "./tipos";
 
 interface ModalDetalleEventoProps {
   evento: EventoCalendario;
@@ -10,7 +10,7 @@ interface ModalDetalleEventoProps {
 }
 
 export default function ModalDetalleEvento({ evento, onEliminar, onCerrar, puedeEliminar = true }: ModalDetalleEventoProps) {
-  const paleta = PALETA_EVENTO[evento.tipo];
+  const paleta = PALETA_EVENTO[familiaDeTipo(evento.tipo)];
   const [anio, mes, dia] = evento.fecha.split("-").map(Number);
   const horario = formatearRangoHorario(evento.horaInicio, evento.horaFin);
 

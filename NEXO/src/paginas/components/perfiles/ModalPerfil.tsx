@@ -1,24 +1,29 @@
 // src/paginas/components/perfiles/ModalPerfil.tsx
-// Modal de alta y edición de perfil. El campo "asignación" cambia de label/placeholder
-// según el rol (un estudiante necesita curso, un profesor una cátedra, etc.).
-// Valida campos obligatorios antes de emitir. La generación de credenciales/ID la hace
-// la página (lógica de negocio).
+// Modal de alta y edición de perfil. Recoge nombre, rol (los siete que la
+// dirección administra, incluidos Familia y Bibliotecario), correo y estado.
+//
+// El correo es la cuenta con la que la persona entra, así que es obligatorio
+// (Error 6.B.3). La "asignación" (curso, cátedra) no se escribe acá: se deriva
+// de la base, y aparece sola en la tabla una vez que la persona está inscripta.
+//
+// `onGuardar` es asíncrono y devuelve un mensaje de error del servidor (o null
+// si salió bien): así una alta rechazada —por ejemplo un correo repetido— deja
+// el modal abierto mostrando el motivo, en vez de tragarse el problema.
 
 import { useEffect, useState } from "react";
-import { META_ROL, ROLES, type Perfil, type PerfilEditable, type RolPerfil } from "./tipos";
+import { META_ROL, ROLES, type Perfil, type PerfilEditable, type Rol } from "./tipos";
 
 interface ModalPerfilProps {
   abierto: boolean;
   // Si se pasa un perfil, el modal entra en modo edición; si es null, modo alta.
   perfilEnEdicion: Perfil | null;
   onCerrar: () => void;
-  onGuardar: (datos: PerfilEditable, idEnEdicion: string | null) => void;
+  onGuardar: (datos: PerfilEditable, idEnEdicion: string | null) => Promise<string | null>;
 }
 
 const VACIO: PerfilEditable = {
   nombre: "",
   rol: "estudiante",
-  asignacion: "",
   email: "",
   estado: "activo",
 };
@@ -31,6 +36,7 @@ export default function ModalPerfil({
 }: ModalPerfilProps) {
   const [datos, setDatos] = useState<PerfilEditable>(VACIO);
   const [error, setError] = useState("");
+  const [guardando, setGuardando] = useState(false);
 
   // Precarga el formulario al abrir en modo edición; lo resetea en modo alta.
   useEffect(() => {
@@ -38,7 +44,6 @@ export default function ModalPerfil({
       setDatos({
         nombre: perfilEnEdicion.nombre,
         rol: perfilEnEdicion.rol,
-        asignacion: perfilEnEdicion.asignacion,
         email: perfilEnEdicion.email ?? "",
         estado: perfilEnEdicion.estado === "papelera" ? "activo" : perfilEnEdicion.estado,
       });
@@ -58,30 +63,27 @@ export default function ModalPerfil({
     setError("");
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (datos.nombre.trim() === "") {
       setError("El nombre es obligatorio.");
       return;
     }
-    // Para estudiantes no se puede crear sin curso asignado (regla de arquitectura).
-    if (datos.asignacion.trim() === "") {
-      setError(`Debés completar el campo "${meta.labelAsignacion}".`);
+    // El correo es la cuenta: sin él la persona no puede entrar (Error 6.B.3).
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.email.trim())) {
+      setError("Escribí un correo válido: es la cuenta con la que la persona va a entrar.");
       return;
     }
-    if (datos.email && datos.email.trim() !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.email)) {
-      setError("El email no tiene un formato válido.");
-      return;
-    }
-    onGuardar(
-      {
-        ...datos,
-        nombre: datos.nombre.trim(),
-        asignacion: datos.asignacion.trim(),
-        email: datos.email?.trim() ?? "",
-      },
+
+    setGuardando(true);
+    const fallo = await onGuardar(
+      { ...datos, nombre: datos.nombre.trim(), email: datos.email.trim().toLowerCase() },
       perfilEnEdicion?.id ?? null,
     );
+    setGuardando(false);
+    // Si el servidor rechazó (correo repetido, etc.), se muestra y el modal
+    // sigue abierto. Si salió bien, la página cierra el modal.
+    if (fallo) setError(fallo);
   };
 
   return (
@@ -102,7 +104,7 @@ export default function ModalPerfil({
             <p className="text-slate-400 text-sm mt-1">
               {esEdicion
                 ? "Modificá los datos del perfil académico."
-                : "Al crear, se generan credenciales de acceso automáticamente."}
+                : "Al crear se genera una contraseña inicial para entregarle a la persona."}
             </p>
           </div>
           <button
@@ -134,7 +136,7 @@ export default function ModalPerfil({
             <span className="text-xs text-on-surface-variant uppercase tracking-wider">Rol</span>
             <select
               value={datos.rol}
-              onChange={(e) => actualizar("rol", e.target.value as RolPerfil)}
+              onChange={(e) => actualizar("rol", e.target.value as Rol)}
               className="bg-surface-container border border-outline-variant/40 rounded-lg px-3 py-2 text-white focus:border-primary outline-none"
             >
               {ROLES.map((rol) => (
@@ -159,24 +161,10 @@ export default function ModalPerfil({
           </label>
         </div>
 
-        {/* Asignación (label dinámico por rol) */}
-        <label className="flex flex-col gap-1 mb-4">
-          <span className="text-xs text-on-surface-variant uppercase tracking-wider">
-            {meta.labelAsignacion}
-          </span>
-          <input
-            type="text"
-            value={datos.asignacion}
-            onChange={(e) => actualizar("asignacion", e.target.value)}
-            placeholder={meta.placeholderAsignacion}
-            className="bg-surface-container border border-outline-variant/40 rounded-lg px-3 py-2 text-white placeholder:text-on-surface-variant/50 focus:border-primary outline-none"
-          />
-        </label>
-
-        {/* Email */}
+        {/* Correo — la cuenta con la que entra */}
         <label className="flex flex-col gap-1 mb-2">
           <span className="text-xs text-on-surface-variant uppercase tracking-wider">
-            Email (opcional)
+            Correo (cuenta de acceso)
           </span>
           <input
             type="email"
@@ -185,6 +173,9 @@ export default function ModalPerfil({
             placeholder="nombre@colegio.edu.ar"
             className="bg-surface-container border border-outline-variant/40 rounded-lg px-3 py-2 text-white placeholder:text-on-surface-variant/50 focus:border-primary outline-none"
           />
+          <span className="text-[11px] text-on-surface-variant/60">
+            El {meta.labelAsignacion.toLowerCase()} se asigna después, desde Gestión de Cursos.
+          </span>
         </label>
 
         {error && <p className="text-error text-sm mb-2">{error}</p>}
@@ -199,9 +190,10 @@ export default function ModalPerfil({
           </button>
           <button
             type="submit"
-            className="flex-1 bg-[#C548F5] hover:bg-[#C548F5]/90 text-white py-3 rounded-xl font-bold transition-all active:scale-95"
+            disabled={guardando}
+            className="flex-1 bg-[#C548F5] hover:bg-[#C548F5]/90 text-white py-3 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-60"
           >
-            {esEdicion ? "Guardar cambios" : "Crear perfil"}
+            {guardando ? "Guardando…" : esEdicion ? "Guardar cambios" : "Crear perfil"}
           </button>
         </div>
       </form>

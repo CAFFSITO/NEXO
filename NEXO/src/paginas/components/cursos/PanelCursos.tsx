@@ -1,28 +1,37 @@
 // src/paginas/components/cursos/PanelCursos.tsx
 // Contenido (sin chrome: sidebar/header) de la pestaña "Cursos" de Gestión Institucional.
 // Concentra la lógica: estado de cursos, búsqueda, alta vía modal, métricas derivadas y reporte.
-// Reutilizado tanto por CursosActivosPage (vista standalone) como por GestionInstitucionalPage (tabs).
+// Reutilizado por CursosActivosPage (Gestión de Cursos de la dirección).
+//
+// Etapa 2: los cursos y todos sus números vienen de `/api/cursos`. Antes había
+// cuatro cursos escritos a mano con "28 estudiantes" y "12 materias" que no se
+// movían aunque se inscribiera gente, y con preceptores que no eran los de la
+// base ("Preceptor López", "Preceptor Suárez", que no existen — Error 13.4).
 
 import { useMemo, useState } from "react";
-import TarjetaCurso, { type Curso } from "./TarjetaCurso";
+import TarjetaCurso from "./TarjetaCurso";
 import EstadoCicloLectivo from "./EstadoCicloLectivo";
 import ReporteSemanalCard from "./ReporteSemanalCard";
 import ModalNuevoCurso from "./ModalNuevoCurso";
-
-const CURSOS_INICIALES: Curso[] = [
-  { id: "c1", anio: 4, division: "A", preceptor: "Preceptor López", estudiantes: 28, materias: 12, activo: true },
-  { id: "c2", anio: 4, division: "B", preceptor: "Preceptora Martínez", estudiantes: 30, materias: 11, activo: true },
-  { id: "c3", anio: 3, division: "A", preceptor: "Preceptor Suárez", estudiantes: 25, materias: 10, activo: true },
-  { id: "c4", anio: 3, division: "B", preceptor: null, estudiantes: 22, materias: 10, activo: true },
-];
-
-const REPORTE_HIGHLIGHTS = ["Optimización de horarios", "Asistencia: 92% global"];
+import ModalDetalleCurso from "./ModalDetalleCurso";
+import { usarCursos, type Curso } from "../../../servicios/perfiles";
+import { Cargando, Fallo } from "../shared/EstadoCarga";
 
 export default function PanelCursos() {
-  const [cursos, setCursos] = useState<Curso[]>(CURSOS_INICIALES);
+  const { datos, cargando, error, recargar } = usarCursos();
   const [busqueda, setBusqueda] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [detalleId, setDetalleId] = useState<string | null>(null);
   const [generandoPDF, setGenerandoPDF] = useState(false);
+
+  // Alta en memoria hasta la Etapa 3, igual que en Perfiles: lo que se crea acá
+  // todavía no llega a la base y se pierde al recargar.
+  const [creadosLocalmente, setCreadosLocalmente] = useState<Curso[]>([]);
+
+  const cursos = useMemo(
+    () => [...(datos?.cursos ?? []), ...creadosLocalmente],
+    [datos, creadosLocalmente],
+  );
 
   // ── Filtro por año/división/preceptor ──
   const cursosFiltrados = useMemo(() => {
@@ -35,25 +44,26 @@ export default function PanelCursos() {
     });
   }, [cursos, busqueda]);
 
-  // ── Métricas derivadas del estado real ──
-  const totalEstudiantes = useMemo(
-    () => cursos.reduce((sum, c) => sum + c.estudiantes, 0),
-    [cursos]
-  );
   const cursosSinPreceptor = useMemo(
     () => cursos.filter((c) => c.preceptor === null).length,
     [cursos]
   );
-  const progreso = 65;
 
   // ── Handlers ──
   const handleCrearCurso = (nuevo: Omit<Curso, "id" | "activo">) => {
-    setCursos((prev) => [...prev, { ...nuevo, id: `c${Date.now()}`, activo: true }]);
+    setCreadosLocalmente((prev) => [
+      ...prev,
+      { ...nuevo, id: `nuevo-${Date.now()}`, activo: true },
+    ]);
     setModalAbierto(false);
   };
 
+  // "Ver detalle" abre la vista de solo lectura del curso. Los cursos creados en
+  // memoria (id "nuevo-...") todavía no están en la base, así que no tienen
+  // detalle que pedir: se ignora el clic hasta que se persistan (Etapa 3).
   const handleVerDetalle = (id: string) => {
-    console.log("Ver detalle del curso:", id);
+    if (id.startsWith("nuevo-")) return;
+    setDetalleId(id);
   };
 
   const handleGenerarPDF = () => {
@@ -61,6 +71,19 @@ export default function PanelCursos() {
     // Simula la generación asíncrona del reporte (servicio de archivos / backend).
     setTimeout(() => setGenerandoPDF(false), 1500);
   };
+
+  if (cargando) return <Cargando que="los cursos del colegio" />;
+  if (error) return <Fallo error={error} onReintentar={recargar} />;
+  if (!datos) return null;
+
+  // Lo que de verdad pasó en los últimos 7 días. La tarjeta de reporte tenía
+  // dos titulares fijos ("Optimización de horarios", "Asistencia: 92% global")
+  // que no salían de ningún lado y no cambiaban nunca.
+  const highlights = [
+    `${datos.semana.entregas} entregas`,
+    `${datos.semana.correcciones} correcciones`,
+    `${datos.semana.eventos} eventos nuevos en el calendario`,
+  ];
 
   return (
     <>
@@ -113,20 +136,22 @@ export default function PanelCursos() {
       ) : (
         <div className="text-center py-16 text-on-surface-variant mb-12">
           <span className="material-symbols-outlined text-5xl mb-2 block">search_off</span>
-          No se encontraron cursos para “{busqueda}”.
+          {busqueda
+            ? `No se encontraron cursos para “${busqueda}”.`
+            : "Todavía no hay cursos cargados."}
         </div>
       )}
 
       {/* ── Dashboard inferior ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <EstadoCicloLectivo
-          progreso={progreso}
-          inscripciones={totalEstudiantes}
-          docentes={86}
-          aulas={cursos.length * 6}
+          avanceCronograma={datos.ciclo.avanceCronograma}
+          inscripciones={datos.ciclo.inscripciones}
+          docentes={datos.ciclo.docentes}
+          materias={datos.ciclo.materias}
         />
         <ReporteSemanalCard
-          highlights={REPORTE_HIGHLIGHTS}
+          highlights={highlights}
           generando={generandoPDF}
           onGenerarPDF={handleGenerarPDF}
         />
@@ -138,6 +163,8 @@ export default function PanelCursos() {
         onCerrar={() => setModalAbierto(false)}
         onCrear={handleCrearCurso}
       />
+
+      <ModalDetalleCurso cursoId={detalleId} onCerrar={() => setDetalleId(null)} />
     </>
   );
 }

@@ -35,7 +35,9 @@ export default function TarjetaCompetencia({
             </div>
             <h3 className="text-xl font-bold font-headline text-white">{competencia.nombre}</h3>
           </div>
-          <p className={`text-xs ml-13 ${paleta.descText}`}>{competencia.descripcion}</p>
+          {competencia.descripcion && (
+            <p className={`text-xs ml-13 ${paleta.descText}`}>{competencia.descripcion}</p>
+          )}
         </div>
         <span
           className={`px-4 py-1.5 rounded-full text-xs font-bold border whitespace-nowrap ${paleta.badgeBg} ${paleta.badgeText} ${paleta.badgeBorder}`}
@@ -64,7 +66,7 @@ export default function TarjetaCompetencia({
                 className="flex items-center gap-2 bg-[#1C1030] border border-purple-500/30 px-3 py-2 rounded-full group/chip"
               >
                 <span className={`material-symbols-outlined text-[16px] ${paleta.iconoText}`}>
-                  {ev.icono}
+                  {ev.icono ?? "description"}
                 </span>
                 <span className="text-xs font-medium text-slate-200">{ev.titulo}</span>
                 <button

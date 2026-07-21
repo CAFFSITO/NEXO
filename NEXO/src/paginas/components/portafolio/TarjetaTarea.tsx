@@ -1,12 +1,10 @@
 import {
   colorMateria,
-  colorVencimiento,
-  diasHasta,
   ESTADO_META,
   estadoEfectivo,
-  textoVencimiento,
   type TareaAcademica,
 } from "./tiposTareas";
+import { colorVencimiento, textoVencimiento } from "../../../servicios/fechas";
 
 interface TarjetaTareaProps {
   tarea: TareaAcademica;
@@ -23,7 +21,6 @@ export default function TarjetaTarea({
   onVerFeedback,
 }: TarjetaTareaProps) {
   const estado = estadoEfectivo(tarea);
-  const dias = diasHasta(tarea.fechaLimite);
   const entregada = estado === "entregada";
   const vencida = estado === "vencida";
 
@@ -68,14 +65,16 @@ export default function TarjetaTarea({
           {entregada ? (
             <div className="flex items-center gap-1.5 text-sm text-green-500 font-semibold">
               <span className="material-symbols-outlined text-lg">check_circle</span>
+              {/* La nota sale de `correcciones`. null = el profesor todavía no
+                  corrigió, que no es lo mismo que un cero. */}
               <span>
-                {tarea.nota !== undefined ? `Calificada ${tarea.nota}/10` : "Entregada"}
+                {tarea.nota !== null ? `Calificada ${tarea.nota}/10` : "Entregada"}
               </span>
             </div>
           ) : vencida ? (
             <div className="flex items-center gap-1.5 text-sm text-red-500">
               <span className="material-symbols-outlined text-lg">warning</span>
-              <span>{textoVencimiento(dias)}</span>
+              <span>{textoVencimiento(tarea.fechaLimite)}</span>
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-6 text-sm text-slate-400">
@@ -83,9 +82,9 @@ export default function TarjetaTarea({
                 <span className="material-symbols-outlined text-lg">person</span>
                 <span>{tarea.profesor}</span>
               </div>
-              <div className={`flex items-center gap-1.5 ${colorVencimiento(dias)}`}>
+              <div className={`flex items-center gap-1.5 ${colorVencimiento(tarea.fechaLimite)}`}>
                 <span className="material-symbols-outlined text-lg">schedule</span>
-                <span>{textoVencimiento(dias)}</span>
+                <span>{textoVencimiento(tarea.fechaLimite)}</span>
               </div>
               {tarea.metodoEstudio && (
                 <div className="flex items-center gap-1.5">

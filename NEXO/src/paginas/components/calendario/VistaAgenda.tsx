@@ -1,5 +1,5 @@
 import { ABREV_MES, NOMBRES_MES, formatearRangoHorario } from "./fechas";
-import { PALETA_EVENTO, type EventoCalendario } from "./tipos";
+import { PALETA_EVENTO, familiaDeTipo, type EventoCalendario } from "./tipos";
 
 interface VistaAgendaProps {
   titulo: string;
@@ -20,7 +20,7 @@ export default function VistaAgenda({ titulo, eventos, onSeleccionarEvento }: Vi
         )}
 
         {eventos.map((ev) => {
-          const paleta = PALETA_EVENTO[ev.tipo];
+          const paleta = PALETA_EVENTO[familiaDeTipo(ev.tipo)];
           const [anio, mes, dia] = ev.fecha.split("-").map(Number);
           const horario = formatearRangoHorario(ev.horaInicio, ev.horaFin);
 

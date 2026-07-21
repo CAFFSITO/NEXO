@@ -5,58 +5,20 @@ import TopBar from "./components/shared/TopBar";
 import TarjetaCalificacion from "./components/portafolio/TarjetaCalificacion";
 import ResumenCalificaciones from "./components/portafolio/ResumenCalificaciones";
 import ModalDevolucion from "./components/portafolio/ModalDevolucion";
+import ModalDetalleTarea from "./components/portafolio/ModalDetalleTarea";
 import {
-  calcularPromedio,
-  estadoDeNota,
+  estiloMateria,
   type Calificacion,
   type EstadoCalificacion,
 } from "./components/portafolio/tiposCalificaciones";
+import { calcularPromedio, estadoDeNota, usarPortafolio } from "../servicios/portafolio";
+import { textoRelativo } from "../servicios/fechas";
+import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 
-// ─── DATOS DE EJEMPLO ───────────────────────────────────
-
-const CALIFICACIONES_INICIALES: Calificacion[] = [
-  {
-    id: "matematica",
-    materia: "Matemática",
-    icono: "functions",
-    acento: "primary",
-    nota: 9.5,
-    actualizado: "Hace 2 días",
-    devolucion:
-      "Excelente resolución de los sistemas de ecuaciones. Prestá atención a la prolijidad en el desarrollo, pero el razonamiento fue impecable.",
-  },
-  {
-    id: "historia",
-    materia: "Historia",
-    icono: "history_edu",
-    acento: "error",
-    nota: 4.0,
-    actualizado: "Ayer",
-    devolucion:
-      "El trabajo evidencia falta de lectura de las fuentes primarias. Repasá las causas de la Revolución de Mayo y volvé a entregar la actividad complementaria.",
-  },
-  {
-    id: "biologia",
-    materia: "Biología",
-    detalle: "Células procariotas",
-    icono: "biotech",
-    acento: "tertiary",
-    nota: 8.0,
-    actualizado: "Hace 1 semana",
-    devolucion:
-      "Muy buena descripción de la estructura celular. Podés profundizar en las diferencias con las células eucariotas para el próximo informe.",
-  },
-  {
-    id: "lengua",
-    materia: "Lengua",
-    detalle: "Ensayo argumentativo",
-    icono: "menu_book",
-    acento: "secondary",
-    nota: null,
-    actualizado: "Entregado ayer",
-    devolucion: "",
-  },
-];
+// Las cuatro materias inventadas que vivían acá se fueron. Esta pantalla pide
+// `/api/portafolio`, exactamente la misma ventanilla que Mis Tareas, y arma sus
+// tarjetas con esas filas. Ese es todo el arreglo del Error 13.1: no hay dos
+// listas que puedan discrepar, hay una.
 
 // Sub-navegación del módulo Portafolio (estudiante)
 const SUBNAV = [
@@ -76,19 +38,50 @@ const FILTROS: { label: string; valor: EstadoCalificacion | "todas" }[] = [
 // ─── PÁGINA ─────────────────────────────────────────────
 
 export default function CalificacionesPage() {
-  const [calificaciones] = useState<Calificacion[]>(CALIFICACIONES_INICIALES);
+  const { datos, cargando, error, recargar } = usarPortafolio();
   const [filtro, setFiltro] = useState<EstadoCalificacion | "todas">("todas");
   const [devolucionActivaId, setDevolucionActivaId] = useState<string | null>(null);
+  // La tarea que se abre al tocar "Correcciones en camino" (Error 2.C.7).
+  const [tareaDetalleId, setTareaDetalleId] = useState<string | null>(null);
 
-  const [usuario] = useState({
-    nombre: "Julieta Rossi",
-    rol: "estudiante" as const,
-    curso: "4° B",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Julieta",
-  });
+  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } =
+    useNavegacion();
+
+  // Las calificaciones SON las tareas del portafolio: cada trabajo entregado es
+  // una fila con su nota (o sin ella, si el profesor todavía no corrigió). Solo
+  // se muestran las entregadas: una tarea que ni siquiera se entregó no es una
+  // calificación pendiente, es una tarea pendiente y vive en Mis Tareas.
+  const calificaciones = useMemo<Calificacion[]>(() => {
+    if (!datos) return [];
+    return datos.tareas
+      .filter((t) => t.estado === "entregada")
+      .map((t) => {
+        const estilo = estiloMateria(t.materia);
+        return {
+          id: t.id,
+          materia: t.materia,
+          detalle: t.titulo,
+          icono: estilo.icono,
+          acento: estilo.acento,
+          nota: t.nota,
+          // "Hace 2 días" se calcula de la fecha real de la corrección (o de la
+          // entrega, si todavía no la corrigieron). Antes era texto escrito a
+          // mano: decía "Ayer" para siempre.
+          actualizado: t.corregidoEn
+            ? textoRelativo(t.corregidoEn)
+            : `Entregado ${textoRelativo(t.entregadoEn).toLowerCase()}`,
+          devolucion: t.devolucion,
+        };
+      });
+  }, [datos]);
 
   // ── Lógica derivada ──
-  const promedio = useMemo(() => calcularPromedio(calificaciones), [calificaciones]);
+  // El promedio se calcula con la misma función que usa el resto del
+  // portafolio, sobre las mismas notas.
+  const promedio = useMemo(
+    () => calcularPromedio(datos?.tareas.filter((t) => t.estado === "entregada") ?? []),
+    [datos]
+  );
 
   const materiasPendientes = useMemo(
     () => calificaciones.filter((c) => c.nota === null).length,
@@ -106,14 +99,20 @@ export default function CalificacionesPage() {
   const devolucionActiva =
     calificaciones.find((c) => c.id === devolucionActivaId) ?? null;
 
-  // ── Acciones ──
-  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion } = useNavegacion();
+  // La primera entrega que sigue esperando corrección (entregada, sin nota):
+  // es a donde lleva "Correcciones en camino".
+  const primeraPendiente = useMemo(
+    () =>
+      datos?.tareas.find((t) => t.estado === "entregada" && t.nota === null) ?? null,
+    [datos]
+  );
+
+  if (!usuario) return null;
 
   return (
     <div className="flex bg-[#1C1030] min-h-screen">
       <Sidebar
         usuario={usuario}
-        rutaActiva="/portafolio/mis-tareas"
         onNavegar={handleNavegar}
         onCerrarSesion={handleCerrarSesion}
       />
@@ -180,28 +179,42 @@ export default function CalificacionesPage() {
             </div>
 
             {/* Lista de calificaciones */}
-            <div className="grid grid-cols-1 gap-4">
-              {calificacionesVisibles.length > 0 ? (
-                calificacionesVisibles.map((c) => (
-                  <TarjetaCalificacion
-                    key={c.id}
-                    calificacion={c}
-                    onVerDevolucion={setDevolucionActivaId}
-                  />
-                ))
-              ) : (
-                <div className="bg-surface-container rounded-lg p-10 border border-white/5 text-center text-on-surface-variant">
-                  No hay materias en esta categoría.
+            {cargando ? (
+              <Cargando que="tus calificaciones" />
+            ) : error ? (
+              <Fallo error={error} onReintentar={recargar} />
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-4">
+                  {calificacionesVisibles.length > 0 ? (
+                    calificacionesVisibles.map((c) => (
+                      <TarjetaCalificacion
+                        key={c.id}
+                        calificacion={c}
+                        onVerDevolucion={setDevolucionActivaId}
+                      />
+                    ))
+                  ) : (
+                    <div className="bg-surface-container rounded-lg p-10 border border-white/5 text-center text-on-surface-variant">
+                      {filtro === "todas"
+                        ? "Todavía no entregaste ningún trabajo."
+                        : "No hay materias en esta categoría."}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Resumen (promedio calculado + pendientes) */}
-            <ResumenCalificaciones
-              promedio={promedio}
-              tendencia="+0.5 este mes"
-              materiasPendientes={materiasPendientes}
-            />
+                {/* Resumen (promedio calculado + pendientes) */}
+                <ResumenCalificaciones
+                  promedio={promedio}
+                  materiasPendientes={materiasPendientes}
+                  onIrACorreccion={
+                    primeraPendiente
+                      ? () => setTareaDetalleId(primeraPendiente.id)
+                      : undefined
+                  }
+                />
+              </>
+            )}
           </div>
         </div>
       </main>
@@ -211,6 +224,15 @@ export default function CalificacionesPage() {
         <ModalDevolucion
           calificacion={devolucionActiva}
           onCerrar={() => setDevolucionActivaId(null)}
+        />
+      )}
+
+      {/* Detalle de la tarea al tocar "Correcciones en camino" */}
+      {tareaDetalleId && (
+        <ModalDetalleTarea
+          tareaId={tareaDetalleId}
+          onCerrar={() => setTareaDetalleId(null)}
+          onCambio={recargar}
         />
       )}
     </div>

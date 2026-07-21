@@ -1,37 +1,27 @@
 import { useState } from "react";
-import {
-  FRECUENCIA_LABELS,
-  type FrecuenciaHabito,
-  type HabitoDetallado,
-} from "./tiposDashboard";
+import { FRECUENCIA_LABELS } from "./tiposDashboard";
 
 interface ModalNuevoHabitoProps {
-  onGuardar: (habito: HabitoDetallado) => void;
+  onGuardar: (nombre: string, frecuencia: "diario" | "semanal") => Promise<void> | void;
   onCerrar: () => void;
 }
 
-// Cantidad de días que se muestran en el historial de cada hábito nuevo.
-const DIAS_HISTORIAL = 10;
+// Las frecuencias que acepta la base (`habitos.frecuencia`): diario o semanal.
+// La pantalla ofrecía además "días específicos", que la base rechaza — era una
+// opción que nunca podría haberse guardado.
+const FRECUENCIAS = ["diario", "semanal"] as const;
 
-const FRECUENCIAS: FrecuenciaHabito[] = ["diario", "semanal", "dias-especificos"];
-
-// Modal "Crear Hábito": nombre + frecuencia → genera un HabitoDetallado vacío.
+// Modal "Crear Hábito" (Etapa 5): el hábito viaja a la base y aparece al instante
+// en Hábitos y en el Dashboard, que leen la misma tabla.
 export default function ModalNuevoHabito({ onGuardar, onCerrar }: ModalNuevoHabitoProps) {
   const [nombre, setNombre] = useState<string>("");
-  const [frecuencia, setFrecuencia] = useState<FrecuenciaHabito>("diario");
+  const [frecuencia, setFrecuencia] = useState<(typeof FRECUENCIAS)[number]>("diario");
 
   const puedeGuardar = nombre.trim().length > 0;
 
   const handleGuardar = () => {
     if (!puedeGuardar) return;
-    onGuardar({
-      id: crypto.randomUUID(),
-      nombre: nombre.trim(),
-      frecuencia,
-      rachaDias: 0,
-      cumplidoHoy: false,
-      historial: Array<boolean>(DIAS_HISTORIAL).fill(false),
-    });
+    onGuardar(nombre.trim(), frecuencia);
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -97,7 +87,7 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar }: ModalNuevoHabi
           <select
             id="frecuencia-habito"
             value={frecuencia}
-            onChange={(e) => setFrecuencia(e.target.value as FrecuenciaHabito)}
+            onChange={(e) => setFrecuencia(e.target.value as (typeof FRECUENCIAS)[number])}
             className="w-full bg-[#1C1030] text-white text-sm rounded-lg px-4 py-3 border border-purple-900/30 focus:ring-2 focus:ring-[#C548F5]/50 focus:border-[#C548F5]/50 outline-none"
           >
             {FRECUENCIAS.map((f) => (

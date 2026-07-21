@@ -11,25 +11,37 @@ interface ConversationListProps {
   conversaciones: Conversation[];
   conversacionActiva?: string;
   onSelectConversacion?: (id: string) => void;
+  /** Texto del buscador. Ahora es controlado: antes era decorativo (Error 2.F.1). */
+  busqueda: string;
+  onBuscar: (texto: string) => void;
 }
 
 export default function ConversationList({
   conversaciones,
   conversacionActiva,
   onSelectConversacion,
+  busqueda,
+  onBuscar,
 }: ConversationListProps) {
   return (
     <div className="w-64 border-r border-[#3b2f50] overflow-y-auto bg-[#1C1030] h-full">
       <div className="p-4 border-b border-[#3b2f50]">
         <h2 className="font-headline font-bold text-white mb-4">Mensajes</h2>
+        {/* El buscador ahora filtra de verdad. Antes era un campo de adorno:
+            escribir no encontraba nada (Error 2.F.1). */}
         <input
           type="text"
+          value={busqueda}
+          onChange={(e) => onBuscar(e.target.value)}
           placeholder="Buscar conversación..."
           className="w-full bg-[#2D1B4E] text-white text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/50 border border-[#3b2f50] placeholder-gray-500"
         />
       </div>
 
       <div className="space-y-1 p-2">
+        {conversaciones.length === 0 && (
+          <p className="text-gray-500 text-xs text-center py-6">Sin conversaciones.</p>
+        )}
         {conversaciones.map((conv) => (
           <button
             key={conv.id}

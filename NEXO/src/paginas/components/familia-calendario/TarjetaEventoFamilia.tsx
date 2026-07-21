@@ -4,28 +4,23 @@ import { PALETA_FAMILIA, type EventoFamilia } from "./tipos";
 interface TarjetaEventoFamiliaProps {
   evento: EventoFamilia;
   onAbrir: (evento: EventoFamilia) => void;
-  onConfirmarAsistencia: (id: string) => void;
 }
 
 // Tarjeta de evento para la lista "Próximos eventos" / "Agenda".
-// Muestra estado de lectura y, en reuniones, botón de confirmar asistencia.
+// Se quitó el botón "Confirmar asistencia": no existe esa función en la base
+// (ninguna tabla la respalda) y el botón nunca llegaba a dibujarse — era una
+// promesa muerta (Error 12.8 / etapa 10, limpieza de código muerto).
 export default function TarjetaEventoFamilia({
   evento,
   onAbrir,
-  onConfirmarAsistencia,
 }: TarjetaEventoFamiliaProps) {
   const paleta = PALETA_FAMILIA[evento.tipo];
   const [, mesStr, diaStr] = evento.fecha.split("-");
 
-  // La reunión pendiente de confirmar se destaca con borde reforzado.
-  const destacado = evento.requiereConfirmacion && !evento.confirmado;
-
   return (
     <div
       className={`bg-[#2D1B4E] p-4 rounded-xl flex items-center justify-between transition-all group
-        ${destacado
-          ? "border-2 border-[#C548F5]/20 hover:border-[#C548F5]/40"
-          : "border border-white/5 hover:border-[#C548F5]/30"}
+        border border-white/5 hover:border-[#C548F5]/30
         ${evento.leido ? "opacity-80" : ""}
       `}
     >
@@ -59,20 +54,6 @@ export default function TarjetaEventoFamilia({
       </div>
 
       <div className="flex items-center gap-3">
-        {evento.requiereConfirmacion &&
-          (evento.confirmado ? (
-            <span className="px-4 py-1.5 rounded-full text-xs font-bold text-green-400 flex items-center gap-1">
-              <span className="material-symbols-outlined text-[16px]">task_alt</span>
-              Asistencia confirmada
-            </span>
-          ) : (
-            <button
-              onClick={() => onConfirmarAsistencia(evento.id)}
-              className="px-4 py-1.5 rounded-full border border-[#C548F5] text-[#C548F5] text-xs font-bold hover:bg-[#C548F5] hover:text-white transition-all"
-            >
-              Confirmar asistencia
-            </button>
-          ))}
         <button
           onClick={() => onAbrir(evento)}
           aria-label="Ver detalle"

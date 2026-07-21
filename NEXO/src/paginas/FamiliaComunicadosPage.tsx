@@ -1,85 +1,84 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import TarjetaComunicado from "./components/familia-comunicados/TarjetaComunicado";
 import type { Comunicado } from "./components/familia-comunicados/tipos";
 import { useNavegacion } from "../navegacion";
+import {
+  usarComunicados,
+  marcarComunicadoLeido,
+  responderComunicado,
+} from "../servicios/calendario";
+import { subtituloInstitucional, usarInstitucion } from "../servicios/institucion";
+import { Cargando, Fallo } from "./components/shared/EstadoCarga";
+import { urlDescarga } from "../servicios/archivos";
 
-// dd/MM del día actual, para registrar cuándo se marcó como leído
-const HOY_CORTO = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
-
-// Comunicados semilla (replican el mock del Portal de Familia)
-const COMUNICADOS_INICIALES: Comunicado[] = [
-  {
-    id: "c1",
-    titulo: "Reunión de padres — 4° B",
-    fecha: "14/05/2025",
-    fechaISO: "2025-05-14",
-    emisor: "Administración Académica",
-    emisorTipo: "admin-academico",
-    adjunto: { nombre: "circular_reunion_mayo.pdf", icono: "attachment" },
-    leido: false,
-  },
-  {
-    id: "c2",
-    titulo: "Aviso: cambio de horario martes 20/05",
-    fecha: "12/05/2025",
-    fechaISO: "2025-05-12",
-    emisor: "Preceptor — Carlos Pereyra",
-    emisorTipo: "preceptor",
-    leido: false,
-  },
-  {
-    id: "c3",
-    titulo: "Acto del 25 de Mayo — Información",
-    fecha: "05/05/2025",
-    fechaISO: "2025-05-05",
-    emisor: "Administración Académica",
-    emisorTipo: "admin-academico",
-    leido: true,
-    fechaLeido: "06/05",
-  },
-  {
-    id: "c4",
-    titulo: "Bienvenida al segundo trimestre",
-    fecha: "28/04/2025",
-    fechaISO: "2025-04-28",
-    emisor: "Preceptor — Carlos Pereyra",
-    emisorTipo: "preceptor",
-    leido: true,
-    fechaLeido: "29/04",
-  },
-];
+// Se fueron los cuatro comunicados inventados (todos de mayo de 2025). Los
+// reales viven en la tabla `comunicados` y le llegan a la familia según su
+// destino (toda la institución o el curso de su hijo/a). "Leído" es una fila en
+// `comunicado_lecturas` por persona, así que el globito de no leídos ya no
+// miente (Error 10.A.3).
 
 export default function FamiliaComunicadosPage() {
-  const [usuario] = useState({
-    nombre: "Fam. Rossi",
-    rol: "familia" as const,
-    avatarUrl: "https://api.dicebear.com/7.x/initials/svg?seed=Rossi",
-  });
+  const { navegar, cerrarSesion, usuario } = useNavegacion();
+  const { comunicados: datos, cargando, error, recargar } = usarComunicados();
+  const { institucion } = usarInstitucion();
 
-  const [comunicados, setComunicados] = useState<Comunicado[]>(COMUNICADOS_INICIALES);
-  const { navegar, cerrarSesion } = useNavegacion();
+  // Marcar como leído escribe una fila en `comunicado_lecturas` (Error 10.A.3):
+  // el comunicado pasa a "Anteriores" y el globito de no leídos baja. Se recarga
+  // para que se vea sin refrescar la página.
+  const marcarLeido = async (id: string) => {
+    try {
+      await marcarComunicadoLeido(id);
+    } finally {
+      recargar();
+    }
+  };
 
-  // ── Marcar como leído: registra la fecha del día ──
-  const marcarLeido = (id: string) =>
-    setComunicados((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, leido: true, fechaLeido: HOY_CORTO } : c)),
-    );
+  // "Responder" no escribe en el comunicado (Error 10.A.2): abre/retoma el chat
+  // privado con quien lo emitió y lo marca como leído. Se lleva a la familia a
+  // su mensajería con la conversación ya asegurada en el servidor.
+  // El chat de la familia es el chat compartido real: "/familia/chat" no
+  // existe en el mapa de rutas y navegar ahí era un clic muerto (Error 12.8).
+  const responder = async (id: string) => {
+    try {
+      await responderComunicado(id);
+    } finally {
+      navegar("/chat");
+    }
+  };
 
-  // ── Derivados: separa nuevos de anteriores, ordenando por fecha desc ──
+  // Descargar el adjunto descarga de verdad: /api/archivos/:id, con el
+  // permiso validado por el servidor antes de entregar el archivo.
+  const descargarAdjunto = (id: string) => {
+    const c = (datos ?? []).find((x) => x.id === id);
+    if (c?.archivoId) window.open(urlDescarga(c.archivoId), "_blank");
+  };
+
+  // Adapta los comunicados del servidor a lo que dibuja la tarjeta.
   const { nuevos, anteriores } = useMemo(() => {
-    const ordenados = [...comunicados].sort((a, b) => b.fechaISO.localeCompare(a.fechaISO));
+    const lista: Comunicado[] = (datos ?? []).map((c) => ({
+      id: c.id,
+      titulo: c.titulo,
+      fecha: new Date(c.enviadoEn).toLocaleDateString("es-AR"),
+      fechaISO: c.enviadoEn.slice(0, 10),
+      emisor: c.emisor,
+      emisorTipo: c.emisorRol === "preceptor" ? "preceptor" : "admin-academico",
+      adjunto: c.archivo ? { nombre: c.archivo, icono: "attachment" } : undefined,
+      leido: c.leido,
+    }));
+    const ordenados = lista.sort((a, b) => b.fechaISO.localeCompare(a.fechaISO));
     return {
       nuevos: ordenados.filter((c) => !c.leido),
       anteriores: ordenados.filter((c) => c.leido),
     };
-  }, [comunicados]);
+  }, [datos]);
+
+  if (!usuario) return null;
 
   return (
     <div className="flex bg-[#1C1030] min-h-screen text-on-surface">
       <Sidebar
         usuario={usuario}
-        rutaActiva="/comunicados"
         onNavegar={navegar}
         onCerrarSesion={cerrarSesion}
       />
@@ -91,8 +90,10 @@ export default function FamiliaComunicadosPage() {
             <h1 className="text-fuchsia-500 font-headline font-extrabold text-xl tracking-tight">
               Comunicados
             </h1>
+            {/* Decía "Colegio San Martín — Familia de Julieta Rossi, 4° B" a
+                mano. El colegio sale de la base; el nombre, de la sesión. */}
             <p className="text-[11px] text-slate-400 font-medium">
-              Colegio San Martín — Familia de Julieta Rossi, 4° B
+              {[subtituloInstitucional(institucion), usuario.nombre].filter(Boolean).join(" — ")}
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -118,17 +119,21 @@ export default function FamiliaComunicadosPage() {
 
         {/* Content Area */}
         <section className="p-8 max-w-5xl mx-auto space-y-6">
+          {cargando && <Cargando que="tus comunicados" />}
+          {error && <Fallo error={error} onReintentar={recargar} />}
+
           {/* Comunicados nuevos (no leídos) */}
-          {nuevos.map((c) => (
+          {!cargando && !error && nuevos.map((c) => (
             <TarjetaComunicado
               key={c.id}
               comunicado={c}
               onMarcarLeido={marcarLeido}
-              onDescargarAdjunto={(id) => console.log("Descargar adjunto de:", id)}
+              onResponder={responder}
+              onDescargarAdjunto={descargarAdjunto}
             />
           ))}
 
-          {nuevos.length === 0 && (
+          {!cargando && !error && nuevos.length === 0 && (
             <div className="bg-surface-container-low/40 rounded-xl p-8 text-center text-slate-400 text-sm">
               No tenés comunicados nuevos.
             </div>
@@ -146,20 +151,21 @@ export default function FamiliaComunicadosPage() {
 
           {/* Comunicados anteriores (leídos) */}
           {anteriores.map((c) => (
-            <TarjetaComunicado key={c.id} comunicado={c} onMarcarLeido={marcarLeido} />
+            <TarjetaComunicado
+              key={c.id}
+              comunicado={c}
+              onMarcarLeido={marcarLeido}
+              onResponder={responder}
+              onDescargarAdjunto={descargarAdjunto}
+            />
           ))}
         </section>
 
-        {/* Tarjeta flotante — Próximo Evento */}
-        <div className="fixed bottom-8 right-8 bg-surface-container-highest p-4 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-4 max-w-xs animate-pulse hover:animate-none">
-          <div className="w-12 h-12 bg-fuchsia-500/20 rounded-full flex items-center justify-center text-fuchsia-400">
-            <span className="material-symbols-outlined">event_upcoming</span>
-          </div>
-          <div>
-            <p className="text-xs font-bold text-fuchsia-300">Próximo Evento</p>
-            <p className="text-xs text-slate-300">Entrega de Boletines: Viernes 23 de Mayo</p>
-          </div>
-        </div>
+        {/* Acá había una tarjeta flotante con un "Próximo Evento: Entrega de
+            Boletines, Viernes 23 de Mayo" escrito a mano, que se mostraba
+            siempre igual. El próximo evento real de la familia vive en su
+            calendario (que ya lee de la base); repetirlo acá inventado solo
+            podía contradecirlo, así que se saca. */}
       </main>
     </div>
   );

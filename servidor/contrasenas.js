@@ -29,6 +29,33 @@ const P = 1;
 const LARGO_CLAVE = 32; // bytes del hash resultante
 const LARGO_SAL = 16;   // bytes de sal aleatoria, distinta para cada usuario
 
+// Reglas mínimas de una contraseña. El tope existe por seguridad, no por
+// capricho: scrypt trabaja sobre todo lo que le mandan, así que sin límite
+// alguien podría mandar diez megabytes de texto y tener al servidor moliendo.
+const LARGO_MINIMO = 8;
+const LARGO_MAXIMO = 200;
+
+/**
+ * ¿Sirve esta contraseña? Devuelve el motivo del rechazo, o null si está bien.
+ * Vive acá para que el cambio de contraseña, la recuperación y el alta de
+ * perfiles (Etapa 3) exijan lo mismo, en vez de tener cada uno su propia regla.
+ */
+export function validarContrasena(contrasenaPlana) {
+  if (typeof contrasenaPlana !== "string" || contrasenaPlana.length === 0) {
+    return "Escribí una contraseña nueva.";
+  }
+  if (contrasenaPlana.length < LARGO_MINIMO) {
+    return `La contraseña tiene que tener al menos ${LARGO_MINIMO} caracteres.`;
+  }
+  if (contrasenaPlana.length > LARGO_MAXIMO) {
+    return `La contraseña no puede pasar de ${LARGO_MAXIMO} caracteres.`;
+  }
+  if (contrasenaPlana.trim().length === 0) {
+    return "La contraseña no puede ser solamente espacios.";
+  }
+  return null;
+}
+
 /**
  * Cifra una contraseña en texto plano. Devuelve el texto listo para guardar
  * en la columna usuarios.hash_contrasena.

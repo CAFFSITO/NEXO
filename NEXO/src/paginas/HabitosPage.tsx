@@ -1,48 +1,21 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
 import TarjetaHabito from "./components/objetivos/TarjetaHabito";
 import ModalNuevoHabito from "./components/objetivos/ModalNuevoHabito";
-import type { HabitoDetallado } from "./components/objetivos/tiposDashboard";
+import { useState } from "react";
+import {
+  usarObjetivos,
+  registrarHabito,
+  crearHabito,
+} from "../servicios/objetivos";
+import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 
-// ─── DATOS DE EJEMPLO ───────────────────────────────────
-
-// historial: últimos 10 días (true = cumplido). El último elemento es "hoy".
-const HABITOS_INICIALES: HabitoDetallado[] = [
-  {
-    id: "lectura",
-    nombre: "Lectura diaria",
-    frecuencia: "diario",
-    rachaDias: 8,
-    cumplidoHoy: true,
-    historial: [true, true, false, true, true, true, true, true, true, false],
-  },
-  {
-    id: "repaso",
-    nombre: "Repaso de notas",
-    frecuencia: "diario",
-    rachaDias: 3,
-    cumplidoHoy: true,
-    historial: [false, true, false, true, false, false, true, true, true, false],
-  },
-  {
-    id: "meditacion",
-    nombre: "Meditación",
-    frecuencia: "diario",
-    rachaDias: 0,
-    cumplidoHoy: false,
-    historial: Array<boolean>(10).fill(false),
-  },
-  {
-    id: "ejercicio",
-    nombre: "Ejercicio físico",
-    frecuencia: "diario",
-    rachaDias: 12,
-    cumplidoHoy: true,
-    historial: [true, true, true, true, false, true, true, true, true, true],
-  },
-];
+// Se fueron los cuatro hábitos inventados. Eran, además, distintos de los tres
+// que mostraba el Dashboard: la misma "Lectura diaria" tenía racha 8 acá y 7
+// allá (Error 13.5). Ahora las dos pantallas piden `/api/objetivos` y muestran
+// lo mismo.
 
 // Sub-navegación del módulo Objetivos (igual que el resto de la sección)
 const SUBNAV = [
@@ -57,51 +30,57 @@ const RUTA_ACTIVA = "/objetivos/habitos";
 // ─── PÁGINA ─────────────────────────────────────────────
 
 export default function HabitosPage() {
-  const [habitos, setHabitos] = useState<HabitoDetallado[]>(HABITOS_INICIALES);
+  const { datos, cargando, error, recargar } = usarObjetivos();
   const [modalAbierto, setModalAbierto] = useState(false);
 
-  const [usuario] = useState({
-    nombre: "Julieta Rossi",
-    rol: "estudiante" as const,
-    curso: "4° B",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Julieta",
-  });
+  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } =
+    useNavegacion();
 
-  // Hábitos con racha activa esta semana (para la tarjeta de insight del pie)
-  const habitosActivos = useMemo(
-    () => habitos.filter((h) => h.rachaDias > 0).length,
+  const habitos = useMemo(() => datos?.habitos ?? [], [datos]);
+
+  // Cuántos hábitos se registraron de verdad esta semana. La tarjeta del pie
+  // decía "mantuviste N hábitos activos esta semana" contando hábitos con racha
+  // mayor a cero, sin mirar ninguna semana: un hábito con una racha vieja
+  // contaba igual (Error 2.D.16). Ahora cuenta los que tienen al menos un
+  // registro en los últimos 7 días, que es lo que la frase promete.
+  const habitosDeLaSemana = useMemo(
+    () => habitos.filter((h) => h.registrosUltimaSemana > 0).length,
     [habitos]
   );
 
-  // ── Acciones ──
+  const [aviso, setAviso] = useState<string | null>(null);
 
-  // Check-in de hoy: invierte el cumplimiento, refleja el cambio en el último
-  // punto del historial y ajusta la racha (suma si cumple, resta si lo deshace).
-  const toggleHabito = (id: string) => {
-    setHabitos((prev) =>
-      prev.map((h) => {
-        if (h.id !== id) return h;
-        const cumplidoHoy = !h.cumplidoHoy;
-        const rachaDias = cumplidoHoy ? h.rachaDias + 1 : Math.max(0, h.rachaDias - 1);
-        const historial = [...h.historial];
-        if (historial.length > 0) historial[historial.length - 1] = cumplidoHoy;
-        return { ...h, cumplidoHoy, rachaDias, historial };
-      })
-    );
+  // ── Acciones (Etapa 5, 14.9) ──
+  // Marcar el hábito de hoy inserta/borra el registro de hoy; la racha se
+  // recalcula sola de `habito_registros`. Dashboard y Hábitos leen la misma
+  // tabla, así que ya no se contradicen (Error 13.5).
+  const toggleHabito = async (id: string) => {
+    const h = habitos.find((x) => x.id === id);
+    if (!h) return;
+    try {
+      await registrarHabito(id, !h.cumplidoHoy);
+      recargar();
+    } catch (e) {
+      setAviso(e instanceof Error ? e.message : "No se pudo registrar el hábito.");
+    }
   };
 
-  const agregarHabito = (habito: HabitoDetallado) => {
-    setHabitos((prev) => [...prev, habito]);
-    setModalAbierto(false);
+  const agregarHabito = async (nombre: string, frecuencia: "diario" | "semanal") => {
+    try {
+      await crearHabito(nombre, frecuencia);
+      setModalAbierto(false);
+      recargar();
+    } catch (e) {
+      setAviso(e instanceof Error ? e.message : "No se pudo crear el hábito.");
+    }
   };
 
-  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion } = useNavegacion();
+  if (!usuario) return null;
 
   return (
     <div className="flex bg-[#1C1030] min-h-screen text-on-surface">
       <Sidebar
         usuario={usuario}
-        rutaActiva="/objetivos"
         onNavegar={handleNavegar}
         onCerrarSesion={handleCerrarSesion}
       />
@@ -150,8 +129,18 @@ export default function HabitosPage() {
               </button>
             </div>
 
+            {aviso && (
+              <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">
+                {aviso}
+              </div>
+            )}
+
             {/* Grilla de hábitos */}
-            {habitos.length > 0 ? (
+            {cargando ? (
+              <Cargando que="tus hábitos" />
+            ) : error ? (
+              <Fallo error={error} onReintentar={recargar} />
+            ) : habitos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {habitos.map((habito) => (
                   <TarjetaHabito key={habito.id} habito={habito} onToggle={toggleHabito} />
@@ -163,26 +152,31 @@ export default function HabitosPage() {
               </div>
             )}
 
-            {/* Tarjeta de insight (pie) */}
-            <footer className="mt-12">
-              <div className="bg-[#1C1030] border border-[#C548F5]/20 p-5 rounded-2xl flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-[#C548F5]/20 flex items-center justify-center text-[#C548F5] shrink-0">
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
-                    star
-                  </span>
+            {/* Tarjeta de insight (pie): ahora el texto y el número coinciden.
+                Cuenta los hábitos con al menos un registro en los últimos 7
+                días — de verdad "esta semana" (Error 2.D.16). */}
+            {!cargando && !error && habitos.length > 0 && (
+              <footer className="mt-12">
+                <div className="bg-[#1C1030] border border-[#C548F5]/20 p-5 rounded-2xl flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#C548F5]/20 flex items-center justify-center text-[#C548F5] shrink-0">
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      star
+                    </span>
+                  </div>
+                  <p className="text-white/80 font-medium">
+                    Registraste{" "}
+                    <span className="text-[#C548F5] font-bold">
+                      {habitosDeLaSemana}{" "}
+                      {habitosDeLaSemana === 1 ? "hábito" : "hábitos"}
+                    </span>{" "}
+                    esta semana. {habitosDeLaSemana > 0 ? "¡Vas muy bien!" : "¡Empezá hoy!"}
+                  </p>
                 </div>
-                <p className="text-white/80 font-medium">
-                  Mantuviste{" "}
-                  <span className="text-[#C548F5] font-bold">
-                    {habitosActivos} {habitosActivos === 1 ? "hábito activo" : "hábitos activos"}
-                  </span>{" "}
-                  esta semana. {habitosActivos > 0 ? "¡Vas muy bien!" : "¡Empezá hoy!"}
-                </p>
-              </div>
-            </footer>
+              </footer>
+            )}
           </section>
         </div>
       </main>

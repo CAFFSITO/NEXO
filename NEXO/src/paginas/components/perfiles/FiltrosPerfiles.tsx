@@ -2,9 +2,9 @@
 // Barra de búsqueda + filtros por rol y estado. Componente controlado: el estado
 // vive en la página, acá solo se emiten cambios.
 
-import { META_ROL, ROLES, type EstadoPerfil, type RolPerfil } from "./tipos";
+import { META_ROL, ROLES, type EstadoPerfil, type Rol } from "./tipos";
 
-export type FiltroRol = RolPerfil | "todos";
+export type FiltroRol = Rol | "todos";
 export type FiltroEstado = EstadoPerfil | "todos";
 
 interface FiltrosPerfilesProps {

@@ -56,6 +56,21 @@ CREATE TABLE sesiones (
     expira_en   TEXT NOT NULL
 );
 
+-- Códigos de un solo uso de "olvidé mi contraseña" (Error 12.5, sección 14.1
+-- punto 6). El código se guarda CIFRADO, igual que una contraseña: quien llegue
+-- a leer la base no puede usarlo para apropiarse de una cuenta. Se cuentan los
+-- intentos fallidos para poder cortar la adivinación: seis dígitos se adivinan
+-- solos si se permiten intentos infinitos.
+CREATE TABLE codigos_recuperacion (
+    id          INTEGER PRIMARY KEY,
+    usuario_id  INTEGER NOT NULL REFERENCES usuarios(id),
+    hash_codigo TEXT NOT NULL,
+    creado_en   TEXT NOT NULL DEFAULT (datetime('now')),
+    expira_en   TEXT NOT NULL,
+    usado_en    TEXT,                            -- un solo uso: se marca al canjearlo
+    intentos    INTEGER NOT NULL DEFAULT 0
+);
+
 -- Divisiones del colegio (4°A, 4°B...). El preceptor a cargo lo asigna
 -- la dirección (Error 7.A.4): esta columna es LA única fuente de verdad.
 CREATE TABLE cursos (
@@ -322,11 +337,12 @@ CREATE TABLE debate_participantes (
 );
 
 -- Voto único y privado por usuario y objeto (Error 2.B.1).
--- objeto_tipo + objeto_id apuntan a una publicación, debate o comentario.
+-- objeto_tipo + objeto_id apuntan a una publicación, debate, comentario o
+-- recurso de biblioteca (voto de recurso: reutiliza esta misma tabla).
 CREATE TABLE votos (
     id          INTEGER PRIMARY KEY,
     usuario_id  INTEGER NOT NULL REFERENCES usuarios(id),
-    objeto_tipo TEXT NOT NULL CHECK (objeto_tipo IN ('publicacion','debate','comentario')),
+    objeto_tipo TEXT NOT NULL CHECK (objeto_tipo IN ('publicacion','debate','comentario','recurso')),
     objeto_id   INTEGER NOT NULL,
     valor       INTEGER NOT NULL CHECK (valor IN (1, -1)),
     creado_en   TEXT NOT NULL DEFAULT (datetime('now')),
@@ -659,6 +675,19 @@ CREATE TABLE reportes_generados (
     generado_en     TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Historial de la Asistencia IA por estudiante (sección 14.16, Error 2.G.1).
+-- Es la conversación con el tutor: un renglón por mensaje. La CLAVE de la API
+-- NO vive acá (vive en una variable de entorno del servidor); esto solo guarda
+-- lo que se dijeron. El servidor la crea con CREATE TABLE IF NOT EXISTS al
+-- arrancar, así una base ya existente la suma sin regenerarse.
+CREATE TABLE ia_mensajes (
+    id         INTEGER PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+    rol        TEXT NOT NULL CHECK (rol IN ('user','ai')),
+    contenido  TEXT NOT NULL,
+    creado_en  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Logs técnicos SIN datos sensibles: lo único que ve el Administrador
 -- de plataforma en "Actividad" (Error 5.A.2).
 CREATE TABLE logs_sistema (
@@ -667,6 +696,81 @@ CREATE TABLE logs_sistema (
     mensaje   TEXT NOT NULL,
     contexto  TEXT NOT NULL DEFAULT '',
     creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ============================================================================
+-- 14.B. DETALLE DE MATERIA: HORARIOS Y AVISOS DE CÁTEDRA (detalles finales)
+-- ----------------------------------------------------------------------------
+-- Lo que el alumno ve al entrar a una materia y el profesor usa para comunicarse
+-- con su curso: los días/horas en que se dicta, los avisos del docente y las
+-- reacciones y respuestas de los alumnos a esos avisos.
+-- ============================================================================
+
+-- Días y horas en que se dicta cada cátedra (materia + curso).
+CREATE TABLE catedra_horarios (
+    id          INTEGER PRIMARY KEY,
+    catedra_id  INTEGER NOT NULL REFERENCES catedras(id),
+    dia_semana  TEXT NOT NULL CHECK (dia_semana IN
+                    ('lunes','martes','miercoles','jueves','viernes','sabado')),
+    hora_inicio TEXT NOT NULL,                    -- "08:30"
+    hora_fin    TEXT NOT NULL,                    -- "10:00"
+    aula        TEXT,
+    CHECK (hora_fin > hora_inicio),               -- la base rechaza bloques incoherentes
+    UNIQUE (catedra_id, dia_semana, hora_inicio)  -- sin repetir el mismo bloque
+);
+
+-- Aviso/mensaje que el profesor publica para su cátedra. Lo ven los alumnos
+-- inscriptos en ese curso. Editable y borrable (borrado suave).
+CREATE TABLE catedra_avisos (
+    id           INTEGER PRIMARY KEY,
+    catedra_id   INTEGER NOT NULL REFERENCES catedras(id),
+    autor_id     INTEGER NOT NULL REFERENCES usuarios(id),
+    titulo       TEXT,
+    contenido    TEXT NOT NULL,
+    archivo_id   INTEGER REFERENCES archivos(id),          -- adjunto opcional
+    creado_en    TEXT NOT NULL DEFAULT (datetime('now')),
+    editado_en   TEXT,
+    eliminado_en TEXT
+);
+
+-- Reacción de un alumno a un aviso, con un set FIJO de emojis. Una por
+-- persona y aviso (se puede cambiar de emoji, no acumular).
+CREATE TABLE aviso_reacciones (
+    id         INTEGER PRIMARY KEY,
+    aviso_id   INTEGER NOT NULL REFERENCES catedra_avisos(id),
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+    emoji      TEXT NOT NULL CHECK (emoji IN ('👍','❤️','🎉','😮','✅')),
+    creado_en  TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (aviso_id, usuario_id)
+);
+
+-- Respuestas de texto a un aviso (tabla propia para no tocar el CHECK de
+-- comentarios de la comunidad). Borrado suave.
+CREATE TABLE aviso_respuestas (
+    id           INTEGER PRIMARY KEY,
+    aviso_id     INTEGER NOT NULL REFERENCES catedra_avisos(id),
+    usuario_id   INTEGER NOT NULL REFERENCES usuarios(id),
+    contenido    TEXT NOT NULL,
+    creado_en    TEXT NOT NULL DEFAULT (datetime('now')),
+    eliminado_en TEXT
+);
+
+-- Auditoría de la papelera de perfiles (Error 6.B.5): historial completo de
+-- quién mandó a papelera, quién restauró y qué purgó el sistema.
+-- realizado_por_id es NULL cuando la purga la hace la rutina automática.
+--
+-- El punto fino: una purga BORRA de verdad al usuario (sección 14.17). Para que
+-- el rastro sobreviva a ese borrado, la referencia es ON DELETE SET NULL (no
+-- bloquea el DELETE ni deja una fila huérfana) y se guarda `afectado_desc` con
+-- el nombre y correo de la persona al momento del movimiento: así el historial
+-- de un perfil purgado sigue diciendo A QUIÉN se purgó aunque su fila ya no exista.
+CREATE TABLE papelera_movimientos (
+    id                  INTEGER PRIMARY KEY,
+    usuario_afectado_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+    afectado_desc       TEXT NOT NULL,
+    accion              TEXT NOT NULL CHECK (accion IN ('a-papelera','restaurado','purgado')),
+    realizado_por_id    INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+    realizado_en        TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- ============================================================================
@@ -741,3 +845,8 @@ CREATE INDEX idx_eventos_fecha          ON eventos(fecha);
 CREATE INDEX idx_notificaciones_usuario ON notificaciones(usuario_id, leida_en);
 CREATE INDEX idx_habito_registros_fecha ON habito_registros(habito_id, fecha);
 CREATE INDEX idx_cola_revision_orden    ON cola_revision(estado, presentado_en);
+CREATE INDEX idx_catedra_horarios       ON catedra_horarios(catedra_id);
+CREATE INDEX idx_catedra_avisos_catedra ON catedra_avisos(catedra_id, creado_en);
+CREATE INDEX idx_aviso_reacciones_aviso ON aviso_reacciones(aviso_id);
+CREATE INDEX idx_aviso_respuestas_aviso ON aviso_respuestas(aviso_id);
+CREATE INDEX idx_papelera_mov_afectado  ON papelera_movimientos(usuario_afectado_id, realizado_en);

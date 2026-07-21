@@ -23,6 +23,25 @@ const PUNTO_ESTADO: Record<EstadoPerfil, { color: string; label: string }> = {
   papelera: { color: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]", label: "En papelera" },
 };
 
+const DIAS_EN_PAPELERA = 7;
+
+// Cuántos días le quedan a un perfil en la papelera antes del borrado definitivo
+// (sección 14.17). El mismo plazo que aplica el servidor, mostrado a la persona.
+function diasRestantes(eliminadoEn?: string | null): number | null {
+  if (!eliminadoEn) return null;
+  const borrado = new Date(eliminadoEn).getTime();
+  if (Number.isNaN(borrado)) return null;
+  const transcurridos = (Date.now() - borrado) / (1000 * 60 * 60 * 24);
+  return Math.max(0, Math.ceil(DIAS_EN_PAPELERA - transcurridos));
+}
+
+function textoPapelera(eliminadoEn?: string | null): string {
+  const dias = diasRestantes(eliminadoEn);
+  if (dias === null) return "En papelera";
+  if (dias === 0) return "En papelera · se borra hoy";
+  return `En papelera · ${dias} ${dias === 1 ? "día" : "días"}`;
+}
+
 export default function TablaPerfiles({
   perfiles,
   totalFiltrados,
@@ -94,7 +113,9 @@ export default function TablaPerfiles({
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${estado.color}`} />
-                        <span className="text-xs text-white font-medium">{estado.label}</span>
+                        <span className="text-xs text-white font-medium">
+                          {enPapelera ? textoPapelera(perfil.eliminadoEn) : estado.label}
+                        </span>
                       </div>
                     </td>
                     <td className="px-8 py-4 text-right">

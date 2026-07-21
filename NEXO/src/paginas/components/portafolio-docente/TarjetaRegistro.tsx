@@ -18,6 +18,7 @@ interface TarjetaRegistroProps {
   registro: Registro;
   destacado?: boolean; // resalta el borde (registro más reciente)
   onEditar?: (id: string) => void;
+  onEliminar?: (id: string) => void;
 }
 
 // Formatea "2026-03-19" → "19/03"
@@ -26,7 +27,7 @@ function formatearFechaCorta(iso: string): string {
   return `${dia}/${mes}`;
 }
 
-export default function TarjetaRegistro({ registro, destacado = false, onEditar }: TarjetaRegistroProps) {
+export default function TarjetaRegistro({ registro, destacado = false, onEditar, onEliminar }: TarjetaRegistroProps) {
   const [expandido, setExpandido] = useState<boolean>(false);
 
   return (
@@ -50,8 +51,18 @@ export default function TarjetaRegistro({ registro, destacado = false, onEditar 
             <button
               onClick={() => onEditar(registro.id)}
               className="flex items-center gap-1 text-slate-400 font-bold hover:text-[#C548F5] px-3 py-2 rounded-full transition-colors font-label"
+              title="Editar registro"
             >
               <span className="material-symbols-outlined text-sm">edit</span>
+            </button>
+          )}
+          {onEliminar && (
+            <button
+              onClick={() => onEliminar(registro.id)}
+              className="flex items-center gap-1 text-slate-400 font-bold hover:text-[#EF4444] px-3 py-2 rounded-full transition-colors font-label"
+              title="Borrar registro"
+            >
+              <span className="material-symbols-outlined text-sm">delete</span>
             </button>
           )}
           <button

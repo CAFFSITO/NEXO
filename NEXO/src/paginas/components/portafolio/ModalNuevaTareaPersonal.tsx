@@ -1,16 +1,20 @@
 import { useState } from "react";
 
 interface ModalNuevaTareaPersonalProps {
+  /** Si viene con texto, el modal está editando una tarea existente (2.C.8). */
+  tituloInicial?: string;
   onGuardar: (titulo: string) => void;
   onCerrar: () => void;
 }
 
-// Modal para crear una tarea personal (recordatorio del estudiante).
+// Modal para crear o editar una tarea personal (recordatorio del estudiante).
 export default function ModalNuevaTareaPersonal({
+  tituloInicial = "",
   onGuardar,
   onCerrar,
 }: ModalNuevaTareaPersonalProps) {
-  const [titulo, setTitulo] = useState<string>("");
+  const [titulo, setTitulo] = useState<string>(tituloInicial);
+  const editando = tituloInicial.length > 0;
 
   const puedeGuardar = titulo.trim().length > 0;
 
@@ -31,7 +35,7 @@ export default function ModalNuevaTareaPersonal({
       >
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-extrabold text-white font-headline">
-            Nueva tarea personal
+            {editando ? "Editar tarea personal" : "Nueva tarea personal"}
           </h3>
           <button
             onClick={onCerrar}
@@ -72,7 +76,7 @@ export default function ModalNuevaTareaPersonal({
               disabled={!puedeGuardar}
               className="px-6 py-2.5 bg-[#C548F5] text-black font-bold rounded-full hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Agregar
+              {editando ? "Guardar" : "Agregar"}
             </button>
           </div>
         </form>

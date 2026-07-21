@@ -1,7 +1,8 @@
-import { FRECUENCIA_LABELS, type HabitoDetallado } from "./tiposDashboard";
+import { FRECUENCIA_LABELS } from "./tiposDashboard";
+import type { Habito } from "../../../servicios/objetivos";
 
 interface TarjetaHabitoProps {
-  habito: HabitoDetallado;
+  habito: Habito;
   onToggle: (id: string) => void;
 }
 
@@ -24,13 +25,15 @@ export default function TarjetaHabito({ habito, onToggle }: TarjetaHabitoProps) 
           <span className="text-sm text-white/40">{FRECUENCIA_LABELS[frecuencia]}</span>
         </div>
 
-        {/* Historial de cumplimiento (últimos días) */}
+        {/* Historial de cumplimiento (últimos días). Cada punto es un día real
+            y lleva su fecha: son los días que hay en `habito_registros`. */}
         <div className="flex gap-1.5">
-          {historial.map((cumplido, i) => (
+          {historial.map((dia) => (
             <div
-              key={i}
+              key={dia.fecha}
+              title={dia.fecha}
               className={`w-2.5 h-2.5 rounded-full ${
-                cumplido ? "bg-emerald-500" : "bg-[#1C1030]"
+                dia.cumplido ? "bg-emerald-500" : "bg-[#1C1030]"
               }`}
             />
           ))}

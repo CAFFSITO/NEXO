@@ -1,16 +1,13 @@
 // src/paginas/components/cursos/TarjetaCurso.tsx
 // Tarjeta de un curso dentro de la grilla de Cursos Activos.
 // Maneja el estado visual de alerta cuando el curso no tiene preceptor asignado.
+//
+// La forma de un curso la define el servidor (`servicios/perfiles.ts`), que es
+// quien lo lee de la base. Acá se re-exporta para no romper a quien ya lo
+// importaba de este archivo, pero la definición es una sola.
 
-export interface Curso {
-  id: string;
-  anio: number; // 1..7
-  division: string; // "A", "B", ...
-  preceptor: string | null; // null => sin preceptor (estado de alerta)
-  estudiantes: number;
-  materias: number;
-  activo: boolean;
-}
+export type { Curso } from "../../../servicios/perfiles";
+import type { Curso } from "../../../servicios/perfiles";
 
 interface TarjetaCursoProps {
   curso: Curso;

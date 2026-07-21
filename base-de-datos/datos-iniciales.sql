@@ -366,11 +366,60 @@ INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, objeto_tipo, objet
 INSERT INTO config_ia (id, institucion_id, system_prompt, proveedor, modelo, temperatura, activo) VALUES
   (1, NULL,
    'Sos el tutor académico de NEXO para estudiantes de secundaria. Explicá paso a paso, con ejemplos simples y en español rioplatense. Guiá al estudiante para que llegue solo a la respuesta: no resuelvas la tarea por él. Si te piden hacer la tarea completa, proponé en cambio un plan de estudio. Adaptá la dificultad al nivel que muestre el estudiante.',
-   'google-ai-studio', 'gemini-flash', 0.7, 1);
+   'groq', 'llama-3.1-8b-instant', 0.7, 1);
 
 -- ── Logs del sistema (lo ÚNICO que ve el Administrador de plataforma) ───────
 INSERT INTO logs_sistema (nivel, mensaje, contexto, creado_en) VALUES
   ('info',  'Institución creada: Colegio San Martín', 'alta-institucion', '2026-03-01T09:00:00'),
   ('info',  'Copia de seguridad diaria completada',   'respaldo',         '2026-07-03T03:00:00'),
   ('aviso', 'Se registraron 3 intentos de inicio de sesión fallidos', 'seguridad', '2026-07-02T21:14:00');
+
+-- ============================================================================
+-- DETALLES FINALES — datos de ejemplo (usan SOLO ids ya existentes)
+-- ============================================================================
+
+-- ── Horarios de cátedra ─────────────────────────────────────────────────────
+-- Cátedras de García (1: Mate 4°B, 2: Mate 4°A) y del curso de Julieta / 4°B
+-- (1: Mate, 3: Historia, 4: Biología, 5: Lengua). 2-3 bloques por materia.
+INSERT INTO catedra_horarios (catedra_id, dia_semana, hora_inicio, hora_fin, aula) VALUES
+  (1, 'lunes',     '08:30', '10:00', 'Aula 12'),      -- Matemática 4°B (García)
+  (1, 'miercoles', '10:15', '11:45', 'Aula 12'),
+  (1, 'viernes',   '08:30', '09:15', 'Aula 12'),
+  (2, 'martes',    '08:30', '10:00', 'Aula 8'),       -- Matemática 4°A (García)
+  (2, 'jueves',    '10:15', '11:45', 'Aula 8'),
+  (3, 'martes',    '10:15', '11:45', 'Aula 12'),      -- Historia 4°B (Lombardi)
+  (3, 'jueves',    '08:30', '10:00', 'Aula 12'),
+  (4, 'lunes',     '10:15', '11:45', 'Laboratorio 1'),-- Biología 4°B (Méndez)
+  (4, 'miercoles', '08:30', '10:00', 'Aula 12'),
+  (5, 'martes',    '08:30', '10:00', 'Aula 12'),      -- Lengua 4°B (Sosa)
+  (5, 'viernes',   '10:15', '11:45', 'Aula 12');
+
+-- ── Avisos de cátedra (los publica el profesor dueño; los ve el curso 4°B) ──
+INSERT INTO catedra_avisos (id, catedra_id, autor_id, titulo, contenido, archivo_id, creado_en) VALUES
+  (1, 1, 2, 'Parcial de ecuaciones el 21/07',
+      'Recuerden que el parcial cubre fórmula general y factoreo. Subí la guía de repaso como adjunto; háganla antes de la clase del viernes.', 6, '2026-07-14T09:00:00'),
+  (2, 3, 3, 'Entrega de la línea de tiempo',
+      'La línea de tiempo de la Revolución de Mayo se entrega el miércoles. No olviden citar una fuente por hecho.', NULL, '2026-07-15T18:30:00'),
+  (3, 4, 4, NULL,
+      'Buen trabajo con los informes de células. La semana que viene arrancamos Genética: repasen la unidad 1.', NULL, '2026-07-16T11:00:00');
+
+-- ── Reacciones de alumnos reales del curso 4°B (8, 9, 10, 11) ───────────────
+INSERT INTO aviso_reacciones (aviso_id, usuario_id, emoji, creado_en) VALUES
+  (1, 8,  '👍', '2026-07-14T09:30:00'),
+  (1, 10, '✅', '2026-07-14T10:05:00'),
+  (1, 11, '❤️', '2026-07-14T10:40:00'),
+  (2, 8,  '🎉', '2026-07-15T19:00:00'),
+  (2, 9,  '👍', '2026-07-15T19:20:00'),
+  (3, 9,  '😮', '2026-07-16T12:00:00');
+
+-- ── Respuestas de alumnos a los avisos ──────────────────────────────────────
+INSERT INTO aviso_respuestas (aviso_id, usuario_id, contenido, creado_en) VALUES
+  (1, 8, '¿Entra también factoreo o solo fórmula general?', '2026-07-14T12:10:00'),
+  (2, 9, 'Ya casi termino la línea de tiempo, gracias profe.', '2026-07-15T20:00:00');
+
+-- ── Votos de recurso (reutiliza la tabla votos, objeto_tipo='recurso') ──────
+-- Recurso 5 = "Antología de cuentos de Julio Cortázar" (alcance nacional).
+INSERT INTO votos (usuario_id, objeto_tipo, objeto_id, valor, creado_en) VALUES
+  (8,  'recurso', 5, 1, '2026-07-14T16:00:00'),
+  (10, 'recurso', 5, 1, '2026-07-15T10:30:00');
 

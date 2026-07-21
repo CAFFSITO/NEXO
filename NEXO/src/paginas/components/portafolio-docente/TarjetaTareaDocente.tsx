@@ -3,16 +3,10 @@
 // Muestra materia (ícono), curso, fecha de entrega y el estado de las entregas
 // (al día / tarde / pendiente), más acciones de editar y eliminar.
 
-export interface TareaDocente {
-  id: string;
-  titulo: string;
-  materia: string;
-  curso: string;
-  fechaVence: string; // ISO: "2026-05-24"
-  alDia: number;
-  tarde: number;
-  pendiente: number;
-}
+// La forma de una tarea del profesor vive en el servicio (sale del servidor),
+// no acá: antes esta tarjeta traía su propio tipo y sus propios datos de ejemplo.
+import type { TareaDocente } from "../../../servicios/tareas";
+export type { TareaDocente };
 
 // Ícono y color por materia (fallback genérico si no está mapeada)
 const ICONO_POR_MATERIA: Record<string, string> = {
@@ -30,6 +24,7 @@ function iconoMateria(materia: string): string {
 
 interface TarjetaTareaDocenteProps {
   tarea: TareaDocente;
+  onCorregir: (id: string) => void;
   onEditar: (id: string) => void;
   onEliminar: (id: string) => void;
 }
@@ -42,17 +37,17 @@ const CIRCULOS = [
 
 export default function TarjetaTareaDocente({
   tarea,
+  onCorregir,
   onEditar,
   onEliminar,
 }: TarjetaTareaDocenteProps) {
   const total = tarea.alDia + tarea.tarde + tarea.pendiente;
   const entregadas = tarea.alDia + tarea.tarde;
 
-  const fechaLegible = new Date(tarea.fechaVence).toLocaleDateString("es-AR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const fechaLegible = new Date(tarea.fechaLimite + "T00:00:00").toLocaleDateString(
+    "es-AR",
+    { day: "2-digit", month: "short", year: "numeric" }
+  );
 
   return (
     <div className="bg-[#2D1B4E] p-6 rounded-xl border border-outline-variant/20 hover:border-primary/40 transition-all group flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -98,11 +93,18 @@ export default function TarjetaTareaDocente({
             {entregadas}/{total} entregadas
           </span>
           <button
+            onClick={() => onCorregir(tarea.id)}
+            className="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold hover:opacity-90 transition-opacity active:scale-95"
+          >
+            <span className="material-symbols-outlined text-lg">grading</span>
+            <span>Corregir</span>
+          </button>
+          <button
             onClick={() => onEditar(tarea.id)}
-            className="flex items-center gap-2 bg-surface-container-high text-white px-5 py-2.5 rounded-full font-bold hover:bg-surface-bright transition-colors active:scale-95"
+            aria-label="Editar tarea"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-white hover:bg-surface-bright transition-colors active:scale-95"
           >
             <span className="material-symbols-outlined text-lg">edit</span>
-            <span>Editar</span>
           </button>
           <button
             onClick={() => onEliminar(tarea.id)}

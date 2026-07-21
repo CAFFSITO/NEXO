@@ -2,6 +2,7 @@
 // Página principal de inicio de sesión — ensambla todos los componentes
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import BackgroundGlow from "./components/shared/BackgroundGlow";
 import NexoLogo from "./components/shared/NexoLogo";
 import LoginForm from "./components/moduloLogin/LoginForm";
@@ -10,6 +11,7 @@ import { useNavegacion } from "../navegacion";
 
 export default function LoginPage() {
   const { login } = useNavegacion();
+  const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [ingresando, setIngresando] = useState(false);
 
@@ -28,10 +30,10 @@ export default function LoginPage() {
     }
   };
 
-  const handleForgotPassword = () => {
-    // TODO: navegar a recuperación de contraseña
-    console.log("Forgot password clicked");
-  };
+  // Este botón escribía una línea en la consola del navegador y nada más: para
+  // el usuario, no hacía absolutamente nada (Error 12.5). Ahora abre el flujo
+  // real de recuperación.
+  const handleForgotPassword = () => navigate("/recuperar-contrasena");
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
@@ -66,15 +68,17 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Link de ayuda externo */}
+        {/* Ayuda de acceso. Era un <a href="#">: un enlace a ninguna parte que
+            solo movía la página al tope (Error 12.5). Ahora lleva a la página
+            de ayuda, que sí existe. */}
         <div className="mt-8 text-center">
-          <a
-            href="#"
+          <button
+            onClick={() => navigate("/ayuda-de-acceso")}
             className="text-sm font-medium text-on-surface-variant/70 hover:text-primary transition-colors duration-200 inline-flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-lg">help_outline</span>
             ¿Problemas para ingresar?
-          </a>
+          </button>
         </div>
       </main>
 

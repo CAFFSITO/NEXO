@@ -1,52 +1,18 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
 import TarjetaMeta from "./components/objetivos/TarjetaMeta";
 import TarjetaRacha from "./components/objetivos/TarjetaRacha";
 import ResumenCompetenciasCard from "./components/objetivos/ResumenCompetenciasCard";
-import type {
-  CompetenciaResumen,
-  Habito,
-  Meta,
-} from "./components/objetivos/tiposDashboard";
+import { usarObjetivos, registrarHabito } from "../servicios/objetivos";
+import { usarPortafolio } from "../servicios/portafolio";
+import { diaDeHoy, saludoSegunLaHora } from "../servicios/fechas";
+import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 
-// ─── DATOS DE EJEMPLO ───────────────────────────────────
-
-const METAS_INICIALES: Meta[] = [
-  {
-    id: "historia",
-    materia: "HISTORIA",
-    titulo: "Preparar examen de Historia",
-    vence: "15 ABR",
-    progreso: 60,
-    subtareasHechas: 3,
-    subtareasTotal: 5,
-    iconoDetalle: "checklist",
-  },
-  {
-    id: "frances",
-    materia: "IDIOMAS",
-    titulo: "Avanzar nivel B2 de Francés",
-    vence: "30 MAY",
-    progreso: 25,
-    subtareasHechas: 2,
-    subtareasTotal: 8,
-    iconoDetalle: "menu_book",
-  },
-];
-
-const HABITOS_INICIALES: Habito[] = [
-  { id: "lectura", nombre: "Lectura diaria", rachaDias: 7, cumplidoHoy: true, diasVisibles: 9 },
-  { id: "repaso", nombre: "Repaso de notas", rachaDias: 3, cumplidoHoy: false, diasVisibles: 9 },
-  { id: "meditacion", nombre: "Meditación", rachaDias: 0, cumplidoHoy: false, diasVisibles: 7 },
-];
-
-const COMPETENCIAS: CompetenciaResumen[] = [
-  { id: "critico", nombre: "Pensamiento Crítico", nivel: "en-desarrollo" },
-  { id: "colaboracion", nombre: "Colaboración", nivel: "avanzado" },
-  { id: "autogestion", nombre: "Autogestión", nivel: "en-desarrollo" },
-];
+// Se fueron de acá: dos metas, tres hábitos y tres competencias inventados. Los
+// tres hábitos eran, además, una versión distinta de los cuatro que mostraba la
+// sección Hábitos, con rachas distintas para el mismo hábito (Error 13.5).
 
 // Sub-navegación del módulo Objetivos
 const SUBNAV = [
@@ -61,15 +27,24 @@ const RUTA_ACTIVA = "/objetivos";
 // ─── PÁGINA ─────────────────────────────────────────────
 
 export default function DashboardObjetivosPage() {
-  const [metas] = useState<Meta[]>(METAS_INICIALES);
-  const [habitos, setHabitos] = useState<Habito[]>(HABITOS_INICIALES);
+  const { datos, cargando, error, recargar } = usarObjetivos();
 
-  const [usuario] = useState({
-    nombre: "Julieta Rossi",
-    rol: "estudiante" as const,
-    curso: "4° B",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Julieta",
-  });
+  // El Dashboard pide TAMBIÉN el portafolio, que es de donde salen las tareas
+  // pendientes del saludo. Es la misma ventanilla que usa Mis Tareas: por eso
+  // el número del saludo y el de Mis Tareas no pueden discrepar, que es lo que
+  // pide el Error 2.D.13 ("leída de la misma información que usa Mis Tareas").
+  const { datos: portafolio } = usarPortafolio();
+
+  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } =
+    useNavegacion();
+
+  const metas = useMemo(
+    // El Dashboard muestra las metas ACTIVAS: una meta ya completada no es algo
+    // que haya que seguir mirando en la portada.
+    () => (datos?.metas ?? []).filter((m) => m.estado === "en-curso"),
+    [datos]
+  );
+  const habitos = useMemo(() => datos?.habitos ?? [], [datos]);
 
   // Métricas derivadas para el panel diario
   const habitosPendientes = useMemo(
@@ -77,31 +52,41 @@ export default function DashboardObjetivosPage() {
     [habitos]
   );
 
-  // ── Acciones ──
+  // Todo lo que todavía no entregaste. El panel decía "3 tareas pendientes"
+  // con el 3 escrito a mano.
+  const tareasPendientes = useMemo(
+    () => (portafolio?.tareas ?? []).filter((t) => t.estado !== "entregada").length,
+    [portafolio]
+  );
 
-  // Check-in diario: suma/resta un día a la racha del hábito.
-  const toggleHabito = (id: string) => {
-    setHabitos((prev) =>
-      prev.map((h) => {
-        if (h.id !== id) return h;
-        const cumplidoHoy = !h.cumplidoHoy;
-        const rachaDias = cumplidoHoy ? h.rachaDias + 1 : Math.max(0, h.rachaDias - 1);
-        return { ...h, cumplidoHoy, rachaDias };
-      })
-    );
+  // ── Acciones ──
+  // El check de "Mis rachas" registra el hábito con el MISMO servicio que usa
+  // la sección Hábitos (registrarHabito → /api/objetivos): marcarlo acá o allá
+  // es exactamente lo mismo, así que las dos pantallas no pueden discrepar
+  // (Errores 2.D.1 y 13.5).
+  const toggleHabito = async (id: string) => {
+    const h = habitos.find((x) => x.id === id);
+    if (!h) return;
+    try {
+      await registrarHabito(id, !h.cumplidoHoy);
+      recargar();
+    } catch {
+      // El estado real lo dice el servidor: recargar muestra lo que quedó.
+      recargar();
+    }
   };
 
-  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion } = useNavegacion();
-  const abrirMeta = (id: string) => console.log("Abrir meta:", id);
+  // Abrir una meta = ir a Mis Metas, donde vive su detalle y edición.
+  const abrirMeta = () => handleNavegar("/objetivos/metas");
   const registrarHabitosHoy = () => handleNavegar("/objetivos/habitos");
   const verTareasPendientes = () => handleNavegar("/portafolio/mis-tareas");
-  const crearObjetivo = () => console.log("Abrir modal: Crear Objetivo");
+
+  if (!usuario) return null;
 
   return (
     <div className="flex bg-[#1C1030] min-h-screen text-on-surface">
       <Sidebar
         usuario={usuario}
-        rutaActiva={RUTA_ACTIVA}
         onNavegar={handleNavegar}
         onCerrarSesion={handleCerrarSesion}
       />
@@ -148,11 +133,20 @@ export default function DashboardObjetivosPage() {
                       Panel diario
                     </span>
                   </div>
+                  {/* El saludo decía "Buenos días" a las diez de la noche y
+                      "Hoy es martes" los siete días de la semana, y las "3
+                      tareas pendientes" eran un 3 escrito a mano (Error
+                      2.D.13). Ahora las cuatro cosas son ciertas: el saludo
+                      mira la hora, el día es el día, y las tareas se cuentan
+                      del portafolio — el mismo que muestra Mis Tareas. */}
                   <h2 className="text-2xl font-headline font-bold mb-4">
-                    Buenos días, {usuario.nombre.split(" ")[0]} 👋
+                    {saludoSegunLaHora()}, {usuario.nombre.split(" ")[0]} 👋
                   </h2>
                   <p className="text-on-surface-variant max-w-md mb-8 leading-relaxed">
-                    Hoy es martes. Tenés <span className="text-white font-bold">3 tareas pendientes</span>{" "}
+                    Hoy es {diaDeHoy()}. Tenés{" "}
+                    <span className="text-white font-bold">
+                      {tareasPendientes} {tareasPendientes === 1 ? "tarea pendiente" : "tareas pendientes"}
+                    </span>{" "}
                     y{" "}
                     <span className="text-white font-bold">
                       {habitosPendientes} {habitosPendientes === 1 ? "hábito" : "hábitos"}
@@ -187,52 +181,60 @@ export default function DashboardObjetivosPage() {
                     VER TODAS
                   </button>
                 </div>
-                <div className="grid grid-cols-1 gap-4">
-                  {metas.map((meta) => (
-                    <TarjetaMeta key={meta.id} meta={meta} onAbrir={abrirMeta} />
-                  ))}
-                </div>
+                {cargando ? (
+                  <Cargando que="tus metas" />
+                ) : error ? (
+                  <Fallo error={error} onReintentar={recargar} />
+                ) : metas.length === 0 ? (
+                  <p className="text-slate-400 text-sm">No tenés metas en curso.</p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4">
+                    {metas.map((meta) => (
+                      <TarjetaMeta key={meta.id} meta={meta} onAbrir={abrirMeta} />
+                    ))}
+                  </div>
+                )}
               </section>
             </div>
 
             {/* Columna derecha: rachas + competencias */}
             <aside className="w-full lg:w-[350px] space-y-6">
-              {/* Mis rachas */}
+              {/* Mis rachas. Muestra los MISMOS hábitos que la sección Hábitos,
+                  traídos de la misma ventanilla: es la vista resumida de lo que
+                  pasa ahí, no una isla aparte (Errores 2.D.1 y 13.5). */}
               <div className="bg-surface-container rounded-lg p-6 border border-white/5">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="font-headline font-bold flex items-center">
                     Mis rachas <span className="ml-2">🔥</span>
                   </h3>
-                  <span className="material-symbols-outlined text-slate-400 text-lg">
-                    more_horiz
-                  </span>
+                  <button
+                    onClick={registrarHabitosHoy}
+                    className="text-xs font-bold text-[#C548F5] hover:underline tracking-tighter"
+                  >
+                    VER TODOS
+                  </button>
                 </div>
                 <div className="space-y-6">
-                  {habitos.map((habito) => (
-                    <TarjetaRacha key={habito.id} habito={habito} onToggle={toggleHabito} />
-                  ))}
+                  {habitos.length === 0 && !cargando ? (
+                    <p className="text-slate-400 text-sm">Todavía no tenés hábitos.</p>
+                  ) : (
+                    habitos.map((habito) => (
+                      <TarjetaRacha key={habito.id} habito={habito} onToggle={toggleHabito} />
+                    ))
+                  )}
                 </div>
               </div>
 
               {/* Competencias */}
-              <ResumenCompetenciasCard competencias={COMPETENCIAS} />
+              <ResumenCompetenciasCard competencias={datos?.competencias ?? []} />
             </aside>
           </div>
         </div>
 
-        {/* FAB: nuevo objetivo */}
-        <button
-          onClick={crearObjetivo}
-          aria-label="Crear nuevo objetivo"
-          className="fixed bottom-8 right-8 w-14 h-14 bg-[#C548F5] text-white rounded-full flex items-center justify-center shadow-[0_8px_24px_rgba(197,72,245,0.4)] hover:scale-105 active:scale-95 transition-all z-50"
-        >
-          <span
-            className="material-symbols-outlined text-2xl"
-            style={{ fontVariationSettings: "'wght' 600" }}
-          >
-            add
-          </span>
-        </button>
+        {/* Acá vivía un botón flotante "+" que no hacía absolutamente nada: su
+            único efecto era escribir una línea invisible en la consola. Se
+            elimina, como pide el Error 2.D.4 — crear metas ya vive en Mis
+            Metas, así que el botón no tenía ni siquiera un lugar al que ir. */}
       </main>
     </div>
   );

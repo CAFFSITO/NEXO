@@ -5,57 +5,29 @@ import TopBar from "./components/shared/TopBar";
 import TarjetaTarea from "./components/portafolio/TarjetaTarea";
 import TarjetaTareaPersonal from "./components/portafolio/TarjetaTareaPersonal";
 import ModalNuevaTareaPersonal from "./components/portafolio/ModalNuevaTareaPersonal";
+import ModalDetalleTarea from "./components/portafolio/ModalDetalleTarea";
 import {
-  diasHasta,
   estadoEfectivo,
   FILTROS,
   type FiltroTarea,
-  type TareaAcademica,
   type TareaPersonal,
 } from "./components/portafolio/tiposTareas";
+import { usarPortafolio } from "../servicios/portafolio";
+import {
+  crearPersonal,
+  editarPersonal,
+  completarPersonal,
+  eliminarPersonal as eliminarPersonalServidor,
+} from "../servicios/tareas";
+import { diasHasta } from "../servicios/fechas";
+import { subtituloInstitucional, usarInstitucion } from "../servicios/institucion";
+import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 
-// ─── DATOS DE EJEMPLO ───────────────────────────────────
-
-const TAREAS_INICIALES: TareaAcademica[] = [
-  {
-    id: "mate-ecuaciones",
-    materia: "Matemática",
-    titulo: "Ecuaciones de Segundo Grado",
-    profesor: "Prof. Gómez",
-    fechaLimite: "15 ABR",
-    estado: "pendiente",
-    metodoEstudio: "Práctica espaciada",
-  },
-  {
-    id: "historia-mayo",
-    materia: "Historia",
-    titulo: "Revolución de Mayo",
-    profesor: "Prof. García",
-    fechaLimite: "10 MAR",
-    estado: "pendiente",
-  },
-  {
-    id: "lengua-ensayo",
-    materia: "Lengua",
-    titulo: "Ensayo argumentativo sobre Cortázar",
-    profesor: "Prof. Méndez",
-    fechaLimite: "20 ABR",
-    estado: "en-progreso",
-  },
-  {
-    id: "bio-celulas",
-    materia: "Biología",
-    titulo: "Células Procariontes",
-    profesor: "Prof. López",
-    fechaLimite: "05 MAR",
-    estado: "entregada",
-    nota: 9.5,
-  },
-];
-
-const TAREAS_PERSONALES_INICIALES: TareaPersonal[] = [
-  { id: "personal-ingles", titulo: "Repasar vocabulario Inglés", completada: false },
-];
+// Los datos de ejemplo que vivían acá se fueron a la base. Eran cuatro tareas
+// con profesores que no las dan (la Revolución de Mayo figuraba a nombre del
+// Prof. García, que da Matemática — Error 13.2), fechas sin año ("15 ABR",
+// Error 2.C.9) y una nota de Biología de 9.5 que contradecía el 8.0 que
+// mostraba Calificaciones sobre el MISMO trabajo (Error 13.1).
 
 // Sub-navegación del módulo Portafolio (Estudiante)
 const SUBNAV = [
@@ -71,28 +43,38 @@ type Orden = "fecha" | "materia";
 // ─── PÁGINA ─────────────────────────────────────────────
 
 export default function MisTareasEstudiantePage() {
-  const [tareas, setTareas] = useState<TareaAcademica[]>(TAREAS_INICIALES);
-  const [personales, setPersonales] = useState<TareaPersonal[]>(
-    TAREAS_PERSONALES_INICIALES
-  );
+  const { datos, cargando, error, recargar } = usarPortafolio();
+  const { institucion } = usarInstitucion();
+
   const [busqueda, setBusqueda] = useState<string>("");
   const [filtro, setFiltro] = useState<FiltroTarea>("todas");
   const [orden, setOrden] = useState<Orden>("fecha");
   const [modalAbierto, setModalAbierto] = useState<boolean>(false);
+  // La tarea personal que se está editando (null = el modal crea una nueva).
+  const [personalEditando, setPersonalEditando] = useState<TareaPersonal | null>(null);
+  // Qué tarea académica se abrió en detalle. Es la misma vista para "Ver
+  // detalle", "Entregar" y "Ver feedback": el modal muestra el flujo que
+  // corresponde según el estado real de la entrega.
+  const [tareaDetalleId, setTareaDetalleId] = useState<string | null>(null);
 
-  const [usuario] = useState({
-    nombre: "Julieta Rossi",
-    rol: "estudiante" as const,
-    curso: "4° B",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Julieta",
-  });
+  // Quién sos sale de la sesión. Esta página tenía escrita a Julieta Rossi con
+  // su curso y su avatar: entrara quien entrara, el menú decía Julieta.
+  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } =
+    useNavegacion();
+
+  const tareas = useMemo(() => datos?.tareas ?? [], [datos]);
+
+  // Las tareas personales ahora se guardan de verdad en `tareas_personales`
+  // (Etapa 4): crear, marcar, editar y borrar pasan por el servidor y después se
+  // recarga la lista. Antes vivían solo en la memoria de esta pantalla y crear
+  // una y recargar la borraba.
+  const personales = useMemo(() => datos?.personales ?? [], [datos]);
 
   // ── Conteo por filtro (para los pills) ──
   const conteos = useMemo(() => {
     const base: Record<FiltroTarea, number> = {
       todas: tareas.length,
       pendiente: 0,
-      "en-progreso": 0,
       entregada: 0,
       vencida: 0,
     };
@@ -128,42 +110,52 @@ export default function MisTareasEstudiantePage() {
   // Las personales solo se muestran en "Todas".
   const personalesVisibles = filtro === "todas" ? personales : [];
 
-  // ── Acciones de navegación ──
-  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion } = useNavegacion();
-
   // ── Acciones de tareas académicas ──
-  const entregar = (id: string) => {
-    setTareas((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, estado: "entregada" } : t))
-    );
-  };
-  const verDetalle = (id: string) => console.log("Ver detalle de tarea:", id);
-  const verFeedback = (id: string) => console.log("Ver feedback de tarea:", id);
+  // "Ver detalle", "Entregar" y "Ver feedback" abren la MISMA vista de detalle:
+  // el modal decide qué mostrar (formulario de entrega, entrega hecha con opción
+  // de anular, o la devolución) según el estado real. Antes cada uno era un
+  // console.log que no abría nada.
+  const abrirDetalle = (id: string) => setTareaDetalleId(id);
 
-  // ── Acciones de tareas personales ──
-  const togglePersonal = (id: string) => {
-    setPersonales((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completada: !t.completada } : t))
-    );
+  // ── Acciones de tareas personales (ahora persistidas) ──
+  const togglePersonal = async (id: string) => {
+    const actual = personales.find((t) => t.id === id);
+    if (!actual) return;
+    await completarPersonal(id, !actual.completada);
+    recargar();
   };
-  const eliminarPersonal = (id: string) => {
-    setPersonales((prev) => prev.filter((t) => t.id !== id));
+  const eliminarPersonal = async (id: string) => {
+    await eliminarPersonalServidor(id);
+    recargar();
   };
-  const agregarPersonal = (titulo: string) => {
-    setPersonales((prev) => [
-      { id: `personal-${Date.now()}`, titulo, completada: false },
-      ...prev,
-    ]);
+  const guardarPersonal = async (titulo: string) => {
+    if (personalEditando) {
+      await editarPersonal(
+        personalEditando.id,
+        titulo,
+        personalEditando.descripcion,
+        personalEditando.fechaLimite
+      );
+    } else {
+      await crearPersonal(titulo, "", null);
+    }
     setModalAbierto(false);
+    setPersonalEditando(null);
+    recargar();
+  };
+  const abrirEdicionPersonal = (tarea: TareaPersonal) => {
+    setPersonalEditando(tarea);
+    setModalAbierto(true);
   };
 
   const sinResultados = tareasVisibles.length === 0 && personalesVisibles.length === 0;
+
+  if (!usuario) return null;
 
   return (
     <div className="flex bg-[#1C1030] min-h-screen text-on-surface overflow-hidden">
       <Sidebar
         usuario={usuario}
-        rutaActiva="/portafolio"
         onNavegar={handleNavegar}
         onCerrarSesion={handleCerrarSesion}
       />
@@ -199,12 +191,19 @@ export default function MisTareasEstudiantePage() {
                 <h1 className="text-[30px] font-extrabold text-white font-headline leading-tight">
                   Mis Tareas
                 </h1>
+                {/* Decía "Ciclo 2025" escrito a mano (Error 13.7). El curso ya
+                    salía de la sesión; el ciclo ahora sale de la base. */}
                 <p className="text-slate-400 font-body">
-                  {usuario.curso} — Ciclo 2025
+                  {[usuario.curso, subtituloInstitucional(institucion)]
+                    .filter(Boolean)
+                    .join(" — ")}
                 </p>
               </div>
               <button
-                onClick={() => setModalAbierto(true)}
+                onClick={() => {
+                  setPersonalEditando(null);
+                  setModalAbierto(true);
+                }}
                 className="px-6 py-2.5 border-2 border-[#C548F5] text-[#C548F5] font-bold rounded-full hover:bg-[#C548F5]/10 transition-colors flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-sm">add</span>
@@ -258,13 +257,19 @@ export default function MisTareasEstudiantePage() {
             </div>
 
             {/* Lista de tareas */}
-            {sinResultados ? (
+            {cargando ? (
+              <Cargando que="tus tareas" />
+            ) : error ? (
+              <Fallo error={error} onReintentar={recargar} />
+            ) : sinResultados ? (
               <div className="bg-[#2D1B4E]/40 border border-white/5 rounded-[14px] p-12 text-center">
                 <span className="material-symbols-outlined text-4xl text-slate-500 mb-2">
                   task_alt
                 </span>
                 <p className="text-slate-400 text-sm">
-                  No hay tareas que coincidan con tu búsqueda.
+                  {busqueda || filtro !== "todas"
+                    ? "No hay tareas que coincidan con tu búsqueda."
+                    : "No tenés tareas asignadas."}
                 </p>
               </div>
             ) : (
@@ -273,9 +278,9 @@ export default function MisTareasEstudiantePage() {
                   <TarjetaTarea
                     key={tarea.id}
                     tarea={tarea}
-                    onVerDetalle={verDetalle}
-                    onEntregar={entregar}
-                    onVerFeedback={verFeedback}
+                    onVerDetalle={abrirDetalle}
+                    onEntregar={abrirDetalle}
+                    onVerFeedback={abrirDetalle}
                   />
                 ))}
                 {personalesVisibles.map((tarea) => (
@@ -283,6 +288,7 @@ export default function MisTareasEstudiantePage() {
                     key={tarea.id}
                     tarea={tarea}
                     onToggle={togglePersonal}
+                    onEditar={abrirEdicionPersonal}
                     onEliminar={eliminarPersonal}
                   />
                 ))}
@@ -300,8 +306,20 @@ export default function MisTareasEstudiantePage() {
 
       {modalAbierto && (
         <ModalNuevaTareaPersonal
-          onGuardar={agregarPersonal}
-          onCerrar={() => setModalAbierto(false)}
+          tituloInicial={personalEditando?.titulo ?? ""}
+          onGuardar={guardarPersonal}
+          onCerrar={() => {
+            setModalAbierto(false);
+            setPersonalEditando(null);
+          }}
+        />
+      )}
+
+      {tareaDetalleId && (
+        <ModalDetalleTarea
+          tareaId={tareaDetalleId}
+          onCerrar={() => setTareaDetalleId(null)}
+          onCambio={recargar}
         />
       )}
     </div>

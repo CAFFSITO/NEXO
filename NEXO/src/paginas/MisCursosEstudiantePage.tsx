@@ -1,102 +1,77 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
-import TarjetaCurso, { type Curso } from "./components/portafolio/TarjetaCurso";
-import ReproductorClaseVivo from "./components/portafolio/ReproductorClaseVivo";
-import PanelInteraccionClase, { type Comprension } from "./components/portafolio/PanelInteraccionClase";
-import TrayectoriaClase, {
-    type PasoClase,
-    type RecursoClase,
-} from "./components/portafolio/TrayectoriaClase";
+import TarjetaCurso, { type Curso, type TemaCurso } from "./components/portafolio/TarjetaCurso";
+import { usarMisClases, type ClaseEstudiante } from "../servicios/aula";
+import { usarPortafolio, type TareaAcademica } from "../servicios/portafolio";
+import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
+import { fechaCorta } from "../servicios/fechas";
 
-const CURSOS: Curso[] = [
-    {
-        id: "mate",
-        titulo: "Matemática Avanzada",
-        profesor: "Prof. Dr. Ricardo Méndez",
-        categoria: "Ciencias Exactas",
-        icono: "functions",
-        progreso: 75,
-        tema: "fuchsia",
-        labelBoton: "Continuar",
-        iconoBoton: "arrow_forward",
-    },
-    {
-        id: "historia",
-        titulo: "Historia Universal",
-        profesor: "Prof. Elena Vásquez",
-        categoria: "Humanidades",
-        icono: "history_edu",
-        progreso: 32,
-        tema: "indigo",
-        labelBoton: "Ver unidad",
-        iconoBoton: "visibility",
-    },
-    {
-        id: "biologia",
-        titulo: "Biología Celular",
-        profesor: "Prof. Carlos Iturri",
-        categoria: "Biología",
-        icono: "biotech",
-        progreso: 58,
-        tema: "emerald",
-        labelBoton: "Continuar",
-        iconoBoton: "arrow_forward",
-    },
-];
+// Los cursos salen del MISMO /api/portafolio que usa Mis Tareas: la materia,
+// el profesor y el avance son los de las tareas reales de la cátedra. Antes
+// acá vivían tres cursos escritos a mano con profesores que no existían en
+// ningún otro lado ("Prof. Elena Vásquez", "Prof. Carlos Iturri" — Error 13.2).
+const TEMAS: TemaCurso[] = ["fuchsia", "indigo", "emerald"];
 
-const PASOS_CLASE: PasoClase[] = [
-    {
-        id: "p1",
-        titulo: "Introducción a Integrales",
-        descripcion: "Conceptos básicos y áreas bajo la curva.",
-        estado: "completado",
-    },
-    {
-        id: "p2",
-        titulo: "Métodos de Integración",
-        descripcion: "Sustitución y fracciones parciales.",
-        estado: "activo",
-        objetivo: "Resolver 3 ejercicios prácticos de integración por partes",
-    },
-    {
-        id: "p3",
-        titulo: "Práctica Dirigida",
-        descripcion: "Resolución de dudas en vivo.",
-        estado: "pendiente",
-    },
-];
-
-const RECURSOS_CLASE: RecursoClase[] = [
-    { id: "material", label: "Material de Clase.pdf", icono: "description" },
-    { id: "quiz", label: "Quiz Rápido #4", icono: "quiz", bloqueado: true },
-];
-
-const USUARIO = {
-    nombre: "Julieta Rossi",
-    rol: "estudiante" as const,
-    curso: "4° B",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Julieta",
-};
+function cursosDesdeTareas(tareas: TareaAcademica[]): Curso[] {
+    const porMateria = new Map<string, TareaAcademica[]>();
+    for (const t of tareas) {
+        const lista = porMateria.get(t.materia) ?? [];
+        lista.push(t);
+        porMateria.set(t.materia, lista);
+    }
+    return [...porMateria.entries()].map(([materia, lista], i) => {
+        const entregadas = lista.filter((t) => t.estado === "entregada").length;
+        return {
+            id: materia,
+            titulo: materia,
+            profesor: lista[0].profesor,
+            categoria: `${lista.length} ${lista.length === 1 ? "tarea" : "tareas"}`,
+            icono: "menu_book",
+            progreso: Math.round((entregadas / lista.length) * 100),
+            tema: TEMAS[i % TEMAS.length],
+            labelBoton: "Ver tareas",
+            iconoBoton: "arrow_forward",
+        };
+    });
+}
 
 type Vista = "grid" | "lista";
 
 export default function MisCursosEstudiantePage() {
     const [vista, setVista] = useState<Vista>("grid");
 
-    const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion } = useNavegacion();
+    // El usuario del menú sale de la sesión: antes era una constante "Julieta
+    // Rossi", así que el menú saludaba a Julieta entrara quien entrara.
+    const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } = useNavegacion();
 
-    const handleAccionCurso = (id: string) => console.log("Abrir curso:", id);
-    const handleComprension = (valor: Comprension) => console.log("Comprensión:", valor);
-    const handlePregunta = (texto: string) => console.log("Pregunta al docente:", texto);
-    const handleRecurso = (id: string) => console.log("Abrir recurso:", id);
+    // La "clase en vivo" ya no es una maqueta (Error 2.C.1): sale de nexo.db, y
+    // el aula virtual real vive en su propia pantalla, adonde se entra desde acá.
+    const { clases, cargando, error, recargar } = usarMisClases();
+
+    // Misma ventanilla que Mis Tareas y Calificaciones (/api/portafolio).
+    const {
+        datos: portafolio,
+        cargando: cargandoCursos,
+        error: errorCursos,
+        recargar: recargarCursos,
+    } = usarPortafolio();
+
+    const cursos = useMemo(
+        () => cursosDesdeTareas(portafolio?.tareas ?? []),
+        [portafolio]
+    );
+
+    if (!usuario) return null;
+
+    // "Continuar" un curso = ir a las tareas reales de esa materia.
+    const handleAccionCurso = () => handleNavegar("/portafolio/mis-tareas");
 
     return (
         <div className="flex bg-[#1C1030] min-h-screen">
             <Sidebar
-                usuario={USUARIO}
-                rutaActiva="/portafolio/mis-tareas"
+                usuario={usuario}
                 onNavegar={handleNavegar}
                 onCerrarSesion={handleCerrarSesion}
             />
@@ -151,6 +126,12 @@ export default function MisCursosEstudiantePage() {
                                 </div>
                             </div>
 
+                            {cargandoCursos && <Cargando que="tus cursos" />}
+                            {errorCursos && <Fallo error={errorCursos} onReintentar={recargarCursos} />}
+                            {portafolio && cursos.length === 0 && (
+                                <Vacio icono="school" mensaje="Todavía no tenés materias con tareas asignadas." />
+                            )}
+
                             <div
                                 className={
                                     vista === "grid"
@@ -158,7 +139,7 @@ export default function MisCursosEstudiantePage() {
                                         : "flex flex-col gap-4"
                                 }
                             >
-                                {CURSOS.map((curso) => (
+                                {cursos.map((curso) => (
                                     <TarjetaCurso
                                         key={curso.id}
                                         curso={curso}
@@ -171,52 +152,69 @@ export default function MisCursosEstudiantePage() {
 
                         <hr className="border-slate-800" />
 
-                        {/* ── SECCIÓN 2: AULA VIRTUAL ── */}
-                        <section className="space-y-8 pb-20" id="aula-virtual">
+                        {/* ── SECCIÓN 2: AULA VIRTUAL (real, Error 2.C.1) ── */}
+                        <section className="space-y-6 pb-20" id="aula-virtual">
                             <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2 bg-red-500/10 text-red-500 px-3 py-1 rounded-full text-xs font-bold animate-pulse">
-                                    <span className="w-2 h-2 bg-red-500 rounded-full" />
-                                    EN VIVO
-                                </div>
-                                <h2 className="text-3xl font-black text-white">Clase en Vivo ahora</h2>
+                                <h2 className="text-3xl font-black text-white">Aula Virtual</h2>
                             </div>
 
-                            <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-                                <div className="xl:col-span-3 space-y-6">
-                                    <ReproductorClaseVivo
-                                        titulo="Unidad 4: Derivadas e Integrales Complejas"
-                                        profesor="Prof. Dr. Ricardo Méndez"
-                                        espectadores={124}
-                                        progreso={66}
-                                    />
-                                    <PanelInteraccionClase
-                                        onComprension={handleComprension}
-                                        onPregunta={handlePregunta}
-                                    />
-                                </div>
+                            {cargando && <Cargando que="tus clases" />}
+                            {error && <Fallo error={error} onReintentar={recargar} />}
+                            {clases && clases.length === 0 && (
+                                <Vacio icono="event_busy" mensaje="No hay clases en vivo ni próximas por ahora." />
+                            )}
 
-                                <div className="xl:col-span-1 space-y-6">
-                                    <TrayectoriaClase
-                                        pasos={PASOS_CLASE}
-                                        recursos={RECURSOS_CLASE}
-                                        onRecurso={handleRecurso}
+                            <div className="flex flex-col gap-3">
+                                {clases?.map((c) => (
+                                    <TarjetaClaseVivo
+                                        key={c.id}
+                                        clase={c}
+                                        onEntrar={() => handleNavegar(`/aula-virtual?clase=${c.id}`)}
                                     />
-                                </div>
+                                ))}
                             </div>
                         </section>
                     </div>
                 </div>
             </main>
+        </div>
+    );
+}
 
-            {/* Botón flotante de soporte */}
-            <div className="fixed bottom-6 right-6 z-50">
-                <button
-                    aria-label="Soporte"
-                    className="w-14 h-14 bg-fuchsia-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
-                >
-                    <span className="material-symbols-outlined">support_agent</span>
-                </button>
+function TarjetaClaseVivo({
+    clase,
+    onEntrar,
+}: {
+    clase: ClaseEstudiante;
+    onEntrar: () => void;
+}) {
+    return (
+        <div className="bg-surface-container-low/60 rounded-2xl border border-white/5 p-4 flex items-center gap-4">
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                    <h3 className="text-white font-bold truncate">{clase.titulo}</h3>
+                    {clase.enVivo && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 animate-pulse">
+                            En vivo
+                        </span>
+                    )}
+                </div>
+                <p className="text-sm text-slate-400 mt-0.5">
+                    {clase.materiaCurso} · {clase.docente} · {fechaCorta(clase.fechaHora)}{" "}
+                    {new Date(clase.fechaHora).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                </p>
             </div>
+            {clase.enVivo ? (
+                <button
+                    onClick={onEntrar}
+                    className="px-4 py-2 bg-red-500 text-white rounded-full font-bold flex items-center gap-2 hover:opacity-90 active:scale-95"
+                >
+                    <span className="material-symbols-outlined">videocam</span>
+                    Entrar
+                </button>
+            ) : (
+                <span className="text-xs text-slate-500">Aún no empezó</span>
+            )}
         </div>
     );
 }

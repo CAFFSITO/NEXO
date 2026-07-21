@@ -5,79 +5,57 @@ import TarjetaEventoFamilia from "./components/familia-calendario/TarjetaEventoF
 import LeyendaCalendario from "./components/familia-calendario/LeyendaCalendario";
 import ModalDetalleEvento from "./components/familia-calendario/ModalDetalleEvento";
 import { toISO } from "./components/calendario/fechas";
-import type { EventoFamilia } from "./components/familia-calendario/tipos";
+import {
+  familiaEvento,
+  PALETA_FAMILIA,
+  type EventoFamilia,
+} from "./components/familia-calendario/tipos";
 import { useNavegacion } from "../navegacion";
+import { usarCalendario } from "../servicios/calendario";
+import { subtituloInstitucional, usarInstitucion } from "../servicios/institucion";
+import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 
 type Vista = "mes" | "agenda";
 
 const HOY = new Date();
 const HOY_ISO = toISO(HOY.getFullYear(), HOY.getMonth(), HOY.getDate());
 
-// Eventos semilla (Mayo 2025, replican el mock de Familia)
-const EVENTOS_INICIALES: EventoFamilia[] = [
-  {
-    id: "e1",
-    titulo: "Jornada de capacitación docente",
-    fecha: "2025-05-20",
-    tipo: "aviso",
-    etiqueta: "Aviso",
-    leido: true,
-  },
-  {
-    id: "e2",
-    titulo: "Acto del 25 de Mayo",
-    fecha: "2025-05-23",
-    tipo: "aviso",
-    etiqueta: "Acto escolar",
-    leido: false,
-    lugar: "Patio central",
-  },
-  {
-    id: "e3",
-    titulo: "Reunión de padres — 4° B",
-    fecha: "2025-05-28",
-    tipo: "reunion",
-    etiqueta: "Reunión",
-    leido: false,
-    requiereConfirmacion: true,
-    confirmado: false,
-    lugar: "Aula 4° B",
-    horaInicio: "18:00",
-    horaFin: "19:30",
-  },
-  {
-    id: "e4",
-    titulo: "Inicio período de exámenes",
-    fecha: "2025-06-02",
-    tipo: "examen",
-    etiqueta: "Exámenes",
-    leido: false,
-  },
-  {
-    id: "e5",
-    titulo: "Festival de fin de trimestre",
-    fecha: "2025-06-06",
-    tipo: "especial",
-    etiqueta: "Evento especial",
-    leido: false,
-    lugar: "Salón de actos",
-  },
-];
+// Se fueron los cinco eventos inventados de mayo/junio de 2025 y el mes de
+// arranque clavado en mayo de 2025. La familia ve los mismos eventos que le
+// llegan por `/api/calendario` (el servidor ya aplica quién puede ver qué), y
+// el calendario abre en el mes de hoy (Error 6.E.10).
 
 export default function FamiliaCalendarioPage() {
-  const [usuario] = useState({
-    nombre: "Fam. Rossi",
-    rol: "familia" as const,
-    avatarUrl: "https://api.dicebear.com/7.x/initials/svg?seed=Rossi",
-  });
+  const { navegar, cerrarSesion, usuario } = useNavegacion();
+  const { datos, cargando, error, recargar } = usarCalendario();
+  const { institucion } = usarInstitucion();
 
-  // Mes mostrado: arranca en Mayo 2025 (donde viven los eventos semilla)
-  const [anio, setAnio] = useState(2025);
-  const [mes, setMes] = useState(4); // 0-11, 4 = Mayo
+  // Abre en el mes actual, no en un mes fijo del pasado.
+  const [anio, setAnio] = useState(HOY.getFullYear());
+  const [mes, setMes] = useState(HOY.getMonth());
   const [vista, setVista] = useState<Vista>("mes");
 
-  const [eventos, setEventos] = useState<EventoFamilia[]>(EVENTOS_INICIALES);
   const [eventoDetalle, setEventoDetalle] = useState<EventoFamilia | null>(null);
+
+  // Los eventos de la base, vestidos para esta vista. "leído" y "confirmar
+  // asistencia" son estados por familia que todavía no se guardan (Etapa 7): se
+  // muestran como no leídos, sin inventar un estado que no existe.
+  const eventos = useMemo<EventoFamilia[]>(() => {
+    return (datos?.eventos ?? []).map((e) => {
+      const tipo = familiaEvento(e.tipo);
+      return {
+        id: e.id,
+        titulo: e.titulo,
+        fecha: e.fecha,
+        tipo,
+        etiqueta: PALETA_FAMILIA[tipo].label,
+        leido: false,
+        lugar: e.lugar,
+        horaInicio: e.horaInicio,
+        horaFin: e.horaFin,
+      };
+    });
+  }, [datos]);
 
   // ── Navegación de meses ──
   const irMesAnterior = () => {
@@ -98,25 +76,7 @@ export default function FamiliaCalendarioPage() {
     }
   };
 
-  // ── Acciones de solo lectura ──
-  const marcarLeido = (id: string) =>
-    setEventos((prev) => prev.map((ev) => (ev.id === id ? { ...ev, leido: true } : ev)));
-
-  const confirmarAsistencia = (id: string) => {
-    setEventos((prev) =>
-      prev.map((ev) => (ev.id === id ? { ...ev, confirmado: true, leido: true } : ev)),
-    );
-    // Mantiene sincronizado el modal abierto, si corresponde
-    setEventoDetalle((det) =>
-      det && det.id === id ? { ...det, confirmado: true, leido: true } : det,
-    );
-  };
-
-  // Abrir detalle marca el evento como leído
-  const abrirDetalle = (evento: EventoFamilia) => {
-    marcarLeido(evento.id);
-    setEventoDetalle({ ...evento, leido: true });
-  };
+  const abrirDetalle = (evento: EventoFamilia) => setEventoDetalle(evento);
 
   // ── Eventos derivados ──
   const eventosOrdenados = useMemo(
@@ -131,13 +91,12 @@ export default function FamiliaCalendarioPage() {
     return (futuros.length > 0 ? futuros : eventosOrdenados).slice(0, 4);
   }, [eventosOrdenados]);
 
-  const { navegar, cerrarSesion } = useNavegacion();
+  if (!usuario) return null;
 
   return (
     <div className="flex bg-[#1C1030] min-h-screen text-on-surface">
       <Sidebar
         usuario={usuario}
-        rutaActiva="/comunidad/calendario"
         onNavegar={navegar}
         onCerrarSesion={cerrarSesion}
       />
@@ -147,7 +106,8 @@ export default function FamiliaCalendarioPage() {
         <header className="flex justify-between items-center w-full px-6 py-4 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] sticky top-0 z-40">
           <div>
             <h1 className="text-lg font-black text-white font-headline">Calendario Institucional</h1>
-            <p className="text-xs text-gray-400 font-medium">Colegio San Martín — Ciclo 2025</p>
+            {/* Decía "Colegio San Martín — Ciclo 2025" a mano (Error 13.7). */}
+            <p className="text-xs text-gray-400 font-medium">{subtituloInstitucional(institucion)}</p>
           </div>
 
           <div className="flex items-center gap-6">
@@ -184,8 +144,11 @@ export default function FamiliaCalendarioPage() {
         </header>
 
         <div className="p-6 max-w-7xl mx-auto space-y-8">
+          {cargando && <Cargando que="el calendario" />}
+          {error && <Fallo error={error} onReintentar={recargar} />}
+
           {/* Vista Mensual: grilla + próximos eventos */}
-          {vista === "mes" && (
+          {!cargando && !error && vista === "mes" && (
             <>
               <GrillaMensual
                 anio={anio}
@@ -210,7 +173,6 @@ export default function FamiliaCalendarioPage() {
                       key={ev.id}
                       evento={ev}
                       onAbrir={abrirDetalle}
-                      onConfirmarAsistencia={confirmarAsistencia}
                     />
                   ))}
                 </div>
@@ -219,7 +181,7 @@ export default function FamiliaCalendarioPage() {
           )}
 
           {/* Vista Agenda: todos los eventos ordenados por fecha */}
-          {vista === "agenda" && (
+          {!cargando && !error && vista === "agenda" && (
             <section className="space-y-4">
               <h3 className="text-lg font-bold text-white flex items-center gap-2 font-headline">
                 <span className="material-symbols-outlined text-[#C548F5]">calendar_view_day</span>
@@ -231,7 +193,6 @@ export default function FamiliaCalendarioPage() {
                     key={ev.id}
                     evento={ev}
                     onAbrir={abrirDetalle}
-                    onConfirmarAsistencia={confirmarAsistencia}
                   />
                 ))}
               </div>
@@ -245,7 +206,6 @@ export default function FamiliaCalendarioPage() {
       {eventoDetalle && (
         <ModalDetalleEvento
           evento={eventoDetalle}
-          onConfirmarAsistencia={confirmarAsistencia}
           onCerrar={() => setEventoDetalle(null)}
         />
       )}

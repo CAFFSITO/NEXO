@@ -1,5 +1,5 @@
 import { ABREV_MES } from "./fechas";
-import { PALETA_EVENTO, type EventoCalendario } from "./tipos";
+import { PALETA_EVENTO, ICONO_FAMILIA, familiaDeTipo, type EventoCalendario } from "./tipos";
 
 interface PanelProximosEventosProps {
   eventos: EventoCalendario[];
@@ -25,7 +25,7 @@ export default function PanelProximosEventos({
         )}
 
         {eventos.map((ev) => {
-          const paleta = PALETA_EVENTO[ev.tipo];
+          const paleta = PALETA_EVENTO[familiaDeTipo(ev.tipo)];
           const [, mesStr, diaStr] = ev.fecha.split("-");
           const detalle = ev.horaInicio
             ? `${ev.horaInicio}${ev.horaFin ? ` - ${ev.horaFin}` : ""}`
@@ -49,7 +49,9 @@ export default function PanelProximosEventos({
                 </h4>
                 {detalle && (
                   <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                    <span className="material-symbols-outlined text-[14px]">{ev.icono}</span>
+                    <span className="material-symbols-outlined text-[14px]">
+                      {ICONO_FAMILIA[familiaDeTipo(ev.tipo)]}
+                    </span>
                     <span>{detalle}</span>
                   </div>
                 )}

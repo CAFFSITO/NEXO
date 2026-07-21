@@ -8,79 +8,66 @@ import FiltrosNacional, {
 } from "./components/biblioteca/FiltrosNacional";
 import PanelTendencias, { type Tendencia } from "./components/biblioteca/PanelTendencias";
 import WidgetNovedades from "./components/biblioteca/WidgetNovedades";
-import type { RecursoNacional, Voto } from "./components/biblioteca/tiposNacional";
+import type { RecursoNacional, TipoRecurso } from "./components/biblioteca/tiposNacional";
+import { normalizar, usarBiblioteca, type Recurso } from "../servicios/biblioteca";
+import { Cargando, Fallo } from "./components/shared/EstadoCarga";
+import { urlDescarga } from "../servicios/archivos";
 
-// ─── Datos de ejemplo (español rioplatense) ──────────────
-const RECURSOS: RecursoNacional[] = [
-  {
-    id: "1",
-    titulo: "Guía completa de Funciones Cuadráticas",
-    materia: "Matemática",
-    escuela: "Colegio San Martín",
-    tipo: "pdf",
-    votosPositivos: 142,
-    votosNegativos: 4,
-    fechaPublicacion: "2026-06-22",
-  },
-  {
-    id: "2",
-    titulo: "Video: El eje intestino-cerebro explicado",
-    materia: "Biología",
-    escuela: "Escuela Técnica Nº5",
-    tipo: "video",
-    votosPositivos: 89,
-    votosNegativos: 2,
-    fechaPublicacion: "2026-06-18",
-  },
-  {
-    id: "3",
-    titulo: "Línea de tiempo Revolución de Mayo",
-    materia: "Historia",
-    escuela: "Instituto Belgrano",
-    tipo: "linea-tiempo",
-    votosPositivos: 76,
-    votosNegativos: 9,
-    fechaPublicacion: "2026-05-30",
-  },
-  {
-    id: "4",
-    titulo: "Simulador de parábolas interactivo",
-    materia: "Matemática",
-    escuela: "Colegio San Martín",
-    tipo: "simulador",
-    votosPositivos: 61,
-    votosNegativos: 3,
-    fechaPublicacion: "2026-02-10",
-  },
-];
+// Se fueron los cuatro recursos inventados (uno "de la Escuela Técnica Nº5",
+// otro "del Instituto Belgrano", escuelas que no existen). La Biblioteca
+// Nacional muestra ahora los recursos reales que el bibliotecario aprobó para
+// alcance nacional (Error 2.E.7): la consulta ya trae lo institucional que pasó
+// a nacional, no dos bibliotecas separadas.
 
 // Días entre dos fechas (positivo si la fecha es pasada)
 const diasDesde = (iso: string) =>
   Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24));
 
+// El tipo de la base (documento/guia/video/enlace/libro) traducido al del
+// módulo nacional, que es solo presentación.
+const TIPO_NACIONAL: Record<Recurso["tipo"], TipoRecurso> = {
+  documento: "articulo",
+  guia: "pdf",
+  video: "video",
+  enlace: "articulo",
+  libro: "articulo",
+};
+
 export default function BibliotecaNacionalPage() {
-  // Voto del usuario por recurso (un solo voto por recurso, anónimo)
-  const [votos, setVotos] = useState<Record<string, Voto>>({});
   const [filtros, setFiltros] = useState<EstadoFiltros>(FILTROS_INICIALES);
+  const { recursos, cargando, error, recargar } = usarBiblioteca("nacional");
 
-
-  // VotarRecurso: alterna el voto. Si ya estaba ese tipo, lo quita; si era otro, lo cambia.
-  const handleVotar = (id: string, tipo: "positivo" | "negativo") => {
-    setVotos((prev) => ({
-      ...prev,
-      [id]: prev[id] === tipo ? null : tipo,
+  // Cada recurso de la base, vestido para este módulo. Los votos van en cero:
+  // votar recursos de biblioteca no existe todavía en NEXO (la tabla `votos`
+  // es de la comunidad, no de la biblioteca), así que mostrar cualquier otro
+  // número sería inventarlo. El día que se agregue, saldrá de acá.
+  const nacionales = useMemo<RecursoNacional[]>(() => {
+    return (recursos ?? []).map((r) => ({
+      id: r.id,
+      titulo: r.titulo,
+      materia: r.categoria,
+      escuela: r.institucion ?? "Nacional",
+      tipo: TIPO_NACIONAL[r.tipo],
+      votosPositivos: 0,
+      votosNegativos: 0,
+      fechaPublicacion: r.creadoEn,
     }));
-  };
+  }, [recursos]);
 
-  // Opciones de filtro derivadas de los datos (sin duplicados)
-  const materias = useMemo(() => [...new Set(RECURSOS.map((r) => r.materia))], []);
-  const escuelas = useMemo(() => [...new Set(RECURSOS.map((r) => r.escuela))], []);
+  // Votar recursos es escritura y no existe como dato: se deja el gesto pero no
+  // altera nada (Etapa 5).
+  const handleVotar = (id: string, tipo: "positivo" | "negativo") =>
+    console.log("Votar recurso", id, tipo);
 
-  // BuscarRecursos: aplica texto + materia + tipo + escuela + fecha
+  // Opciones de filtro derivadas de los datos reales (sin duplicados)
+  const materias = useMemo(() => [...new Set(nacionales.map((r) => r.materia))], [nacionales]);
+  const escuelas = useMemo(() => [...new Set(nacionales.map((r) => r.escuela))], [nacionales]);
+
+  // BuscarRecursos: texto (sin distinguir tildes, Error 2.E.3) + filtros
   const recursosVisibles = useMemo(() => {
-    const q = filtros.query.trim().toLowerCase();
-    return RECURSOS.filter((r) => {
-      if (q && !`${r.titulo} ${r.materia} ${r.escuela}`.toLowerCase().includes(q)) return false;
+    const q = normalizar(filtros.query.trim());
+    return nacionales.filter((r) => {
+      if (q && !normalizar(`${r.titulo} ${r.materia} ${r.escuela}`).includes(q)) return false;
       if (filtros.materia !== "todos" && r.materia !== filtros.materia) return false;
       if (filtros.tipo !== "todos" && r.tipo !== filtros.tipo) return false;
       if (filtros.escuela !== "todos" && r.escuela !== filtros.escuela) return false;
@@ -93,36 +80,39 @@ export default function BibliotecaNacionalPage() {
       }
       return true;
     });
-  }, [filtros]);
+  }, [nacionales, filtros]);
 
-  // Tendencias: materias ordenadas por puntaje neto de votos (proxy de "más votado reciente")
+  // Tendencias por materia: cuántos recursos hay de cada una. Antes se calculaba
+  // sobre votos inventados; ahora es un conteo real de lo publicado.
   const tendencias = useMemo<Tendencia[]>(() => {
     const acum = new Map<string, number>();
-    for (const r of RECURSOS) {
-      const neto = r.votosPositivos - r.votosNegativos;
-      acum.set(r.materia, (acum.get(r.materia) ?? 0) + neto);
-    }
+    for (const r of nacionales) acum.set(r.materia, (acum.get(r.materia) ?? 0) + 1);
     const total = [...acum.values()].reduce((a, b) => a + b, 0) || 1;
     return [...acum.entries()]
-      .map(([materia, neto]) => ({ materia, variacion: Math.round((neto / total) * 100) }))
+      .map(([materia, cant]) => ({ materia, variacion: Math.round((cant / total) * 100) }))
       .sort((a, b) => b.variacion - a.variacion);
-  }, []);
+  }, [nacionales]);
 
-  // Recursos nuevos esta semana (últimos 7 días)
   const nuevosEstaSemana = useMemo(
-    () => RECURSOS.filter((r) => diasDesde(r.fechaPublicacion) <= 7).length,
-    [],
+    () => nacionales.filter((r) => diasDesde(r.fechaPublicacion) <= 7).length,
+    [nacionales],
   );
 
   const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } = useNavegacion();
   const rol = usuario?.rol ?? "estudiante";
-  const handleAbrir = (id: string) => console.log("Abrir recurso:", id);
+  // Abrir un recurso abre de verdad (Error 2.E.4): el enlace tal cual, o la
+  // descarga vía /api/archivos/:id con el permiso validado en el servidor.
+  const handleAbrir = (id: string) => {
+    const r = (recursos ?? []).find((x) => x.id === id);
+    if (!r) return;
+    if (r.enlaceUrl) window.open(r.enlaceUrl, "_blank", "noopener");
+    else if (r.archivoId) window.open(urlDescarga(r.archivoId), "_blank");
+  };
 
   return (
     <div className="bg-[#1C1030] min-h-screen text-[#ecdcff] font-body">
       <Sidebar
         usuario={usuario ?? { nombre: "", rol }}
-        rutaActiva="/biblioteca/nacional"
         onNavegar={handleNavegar}
         onCerrarSesion={handleCerrarSesion}
       />
@@ -166,12 +156,16 @@ export default function BibliotecaNacionalPage() {
         <div className="grid grid-cols-10 gap-8">
           {/* Feed principal (70%) */}
           <div className="col-span-7 flex flex-col gap-4">
-            {recursosVisibles.length > 0 ? (
+            {cargando ? (
+              <Cargando que="la biblioteca nacional" />
+            ) : error ? (
+              <Fallo error={error} onReintentar={recargar} />
+            ) : recursosVisibles.length > 0 ? (
               recursosVisibles.map((r) => (
                 <TarjetaRecursoNacional
                   key={r.id}
                   recurso={r}
-                  voto={votos[r.id] ?? null}
+                  voto={null}
                   onVotar={handleVotar}
                   onAbrir={handleAbrir}
                 />

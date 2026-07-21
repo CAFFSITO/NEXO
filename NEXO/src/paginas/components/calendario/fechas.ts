@@ -58,6 +58,41 @@ export function construirGrillaMes(anio: number, mes: number): CeldaDia[] {
   return celdas;
 }
 
+// Los 7 días (Lunes a Domingo) de la semana que contiene a `fechaISO`.
+// Se calcula con fechas locales (new Date(y,m,d)) para no cruzar por UTC.
+export function construirSemana(fechaISO: string): CeldaDia[] {
+  const [a, m, d] = fechaISO.split("-").map(Number);
+  const base = new Date(a, m - 1, d);
+  const offsetALunes = (base.getDay() + 6) % 7; // 0 = ya es lunes
+  const lunes = new Date(a, m - 1, d - offsetALunes);
+
+  const dias: CeldaDia[] = [];
+  for (let i = 0; i < 7; i++) {
+    const fecha = new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + i);
+    dias.push({
+      dia: fecha.getDate(),
+      fechaISO: toISO(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()),
+      esDelMes: true,
+    });
+  }
+  return dias;
+}
+
+// Corre una fecha ISO N días (positivo o negativo), respetando fin/inicio de mes.
+export function sumarDiasISO(fechaISO: string, dias: number): string {
+  const [a, m, d] = fechaISO.split("-").map(Number);
+  const f = new Date(a, m - 1, d + dias);
+  return toISO(f.getFullYear(), f.getMonth(), f.getDate());
+}
+
+// La hora de un evento como número entero (para ubicarlo en la fila horaria).
+// "08:30" → 8. Sin hora → null (va a la franja "sin horario").
+export function horaEntera(hora?: string): number | null {
+  if (!hora) return null;
+  const n = Number(hora.split(":")[0]);
+  return Number.isInteger(n) ? n : null;
+}
+
 // "08:30 - 10:00" si hay rango, "08:30" si solo inicio, "" si no hay hora.
 export function formatearRangoHorario(inicio?: string, fin?: string): string {
   if (inicio && fin) return `${inicio} - ${fin}`;

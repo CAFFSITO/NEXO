@@ -1,9 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
 import ChatContainer from "./components/asistencia-ia/ChatContainer";
 import MessageInput from "./components/asistencia-ia/MessageInput";
+import {
+  traerHistorialIa,
+  enviarMensajeIa,
+  borrarHistorialIa,
+  usarEstadoIa,
+} from "../servicios/asistenciaIa";
+
+// Asistencia IA real (sección 14.16, Errores 2.G.1 y 2.G.2). Ya no hay respuesta
+// fija: el servidor arma el pedido con el system prompt de config_ia + la
+// conversación y llama al proveedor gratuito. La clave vive en el servidor.
 
 interface Message {
   id: string;
@@ -11,99 +21,174 @@ interface Message {
   content: string;
 }
 
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: "1",
-    role: "ai",
-    content:
-      "¡Hola Julieta! Soy tu asistente NEXO. ¿En qué te puedo ayudar hoy? Puedo explicarte conceptos, darte ejercicios de práctica, ayudarte a organizar tus tareas o revisar tus textos.",
-  },
-  {
-    id: "2",
-    role: "user",
-    content: "No entiendo cómo funciona el discriminante en la fórmula cuadrática",
-  },
-  {
-    id: "3",
-    role: "ai",
-    content: `¡Claro! El <strong class="text-primary">discriminante</strong> es la parte de la fórmula cuadrática que está dentro de la raíz cuadrada. Se representa con el símbolo griego Delta (<strong class="text-primary">Δ</strong>).<br><br>
-<div class="bg-surface-container-low p-4 rounded-xl border border-primary/20 flex flex-col items-center justify-center my-4">
-  <p class="text-primary font-headline text-2xl font-black tracking-widest">Δ = b² - 4ac</p>
-</div>
-<div class="space-y-4">
-  <p class="font-headline font-bold text-sm text-primary uppercase tracking-wider">¿Qué nos dice el discriminante?</p>
-  <div class="grid grid-cols-1 gap-3">
-    <div class="flex items-start gap-3 bg-background/50 p-3 rounded-lg border border-white/5">
-      <div class="w-6 h-6 rounded bg-green-500/20 text-green-400 flex items-center justify-center text-xs font-bold">1</div>
-      <p class="text-sm">Si <strong class="text-white">Δ &gt; 0</strong>: La ecuación tiene <span class="text-green-400 font-medium">2 soluciones reales</span> distintas.</p>
-    </div>
-    <div class="flex items-start gap-3 bg-background/50 p-3 rounded-lg border border-white/5">
-      <div class="w-6 h-6 rounded bg-yellow-500/20 text-yellow-400 flex items-center justify-center text-xs font-bold">2</div>
-      <p class="text-sm">Si <strong class="text-white">Δ = 0</strong>: La ecuación tiene <span class="text-yellow-400 font-medium">1 solución real</span> única (repetida).</p>
-    </div>
-    <div class="flex items-start gap-3 bg-background/50 p-3 rounded-lg border border-white/5">
-      <div class="w-6 h-6 rounded bg-red-500/20 text-red-400 flex items-center justify-center text-xs font-bold">3</div>
-      <p class="text-sm">Si <strong class="text-white">Δ &lt; 0</strong>: La ecuación <span class="text-red-400 font-medium">no tiene soluciones reales</span> (son complejas).</p>
-    </div>
-  </div>
-</div>
-<div class="pt-2 border-t border-white/5">
-  <p class="text-xs text-gray-400 italic">Ejemplo: Para x² + 5x + 6 = 0</p>
-  <p class="text-sm mt-1">Δ = 5² - 4(1)(6) = 25 - 24 = 1. Como 1 &gt; 0, tiene 2 soluciones reales.</p>
-</div>`,
-  },
-];
+// El contenido del tutor es texto plano: se escapa para no inyectar HTML y se
+// respetan los saltos de línea (ChatMessage lo pinta con dangerouslySetInnerHTML).
+function aHtmlSeguro(texto: string): string {
+  const escapado = texto
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return escapado.replace(/\n/g, "<br>");
+}
 
 export default function AsistenciaIAPage() {
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-  const [usuario] = useState({
-    nombre: "Julieta Smith",
-    rol: "estudiante" as const,
-    avatarUrl:
-      "https://api.dicebear.com/7.x/avataaars/svg?seed=Julieta",
-  });
+  const { usuario, navegar, cerrarSesion } = useNavegacion();
+  const { estado } = usarEstadoIa();
 
-  const handleSendMessage = (content: string) => {
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content,
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [pensando, setPensando] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState("");
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [faqAbierto, setFaqAbierto] = useState(false);
+
+  // Cargar el historial real al entrar.
+  useEffect(() => {
+    let vigente = true;
+    traerHistorialIa()
+      .then((hist) => {
+        if (!vigente) return;
+        setMessages(
+          hist.map((m) => ({
+            id: m.id,
+            role: m.rol,
+            content: aHtmlSeguro(m.contenido),
+          }))
+        );
+      })
+      .catch(() => {
+        /* si falla, se queda vacío: el banner de estado explica */
+      });
+    return () => {
+      vigente = false;
     };
-    setMessages([...messages, newMessage]);
+  }, []);
 
-    // Simular respuesta del AI (en la implementación real, llamar a la API)
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "ai",
-        content: "Entiendo tu pregunta. Esa es una excelente observación. Permíteme ayudarte con eso...",
-      };
-      setMessages((prev) => [...prev, aiResponse]);
-    }, 1000);
+  const handleSendMessage = async (content: string) => {
+    setErrorEnvio("");
+    const propio: Message = {
+      id: `local-${Date.now()}`,
+      role: "user",
+      content: aHtmlSeguro(content),
+    };
+    setMessages((prev) => [...prev, propio]);
+    setPensando(true);
+    try {
+      const respuesta = await enviarMensajeIa(content);
+      setMessages((prev) => [
+        ...prev,
+        { id: `ai-${Date.now()}`, role: "ai", content: aHtmlSeguro(respuesta) },
+      ]);
+    } catch (fallo) {
+      setErrorEnvio(
+        fallo instanceof Error ? fallo.message : "No se pudo obtener la respuesta."
+      );
+    } finally {
+      setPensando(false);
+    }
   };
 
-  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion } = useNavegacion();
+  const handleBorrar = async () => {
+    setMenuAbierto(false);
+    try {
+      await borrarHistorialIa();
+      setMessages([]);
+    } catch {
+      setErrorEnvio("No se pudo borrar la conversación.");
+    }
+  };
+
+  if (!usuario) return null;
+
+  const claveFalta = estado && (!estado.configurada || !estado.clavePresente);
+
+  const mensajesVista: Message[] =
+    messages.length === 0
+      ? [
+          {
+            id: "bienvenida",
+            role: "ai",
+            content: aHtmlSeguro(
+              `¡Hola ${usuario.nombre.split(" ")[0]}! Soy tu tutor de NEXO. ` +
+                "Preguntame lo que quieras: te explico conceptos, te doy ejercicios y te " +
+                "ayudo a organizar el estudio. No hago la tarea por vos, pero te guío para que la resuelvas."
+            ),
+          },
+        ]
+      : messages;
 
   return (
     <div className="flex bg-[#1C1030] h-screen">
-      <Sidebar
-        usuario={usuario}
-        rutaActiva="/asistencia-academica"
-        onNavegar={handleNavegar}
-        onCerrarSesion={handleCerrarSesion}
-      />
+      <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col h-full">
+      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col h-full relative">
         <TopBar
           title="Asistencia Académica"
-          subtitle="Nexus AI 2.0"
-          onHelpClick={() => console.log("Help")}
-          onMenuClick={() => console.log("Menu")}
+          subtitle={estado?.proveedor ? `Tutor NEXO · ${estado.proveedor}` : "Tutor NEXO"}
+          onHelpClick={() => setFaqAbierto(true)}
+          onMenuClick={() => setMenuAbierto((v) => !v)}
         />
 
-        <ChatContainer messages={messages} />
+        {/* Menú de tres puntos — ahora hace algo real (Error 2.G.2) */}
+        {menuAbierto && (
+          <div className="absolute right-6 top-16 z-50 bg-[#2D1B4E] border border-purple-800/40 rounded-xl shadow-xl py-1 w-56">
+            <button
+              onClick={handleBorrar}
+              className="w-full text-left px-4 py-2.5 text-sm text-red-300 hover:bg-white/5 flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-base">delete</span>
+              Borrar conversación
+            </button>
+          </div>
+        )}
+
+        {claveFalta && (
+          <div className="mx-6 mt-4 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-sm text-amber-200 flex items-start gap-2">
+            <span className="material-symbols-outlined text-base">info</span>
+            <span>
+              La asistencia todavía no está lista para responder: falta cargar la clave
+              del proveedor de IA en el servidor (variable de entorno{" "}
+              <code>NEXO_IA_CLAVE</code>). Avisale a quien administra NEXO.
+            </span>
+          </div>
+        )}
+
+        <ChatContainer messages={mensajesVista} />
+
+        {pensando && (
+          <p className="px-8 pb-2 text-xs text-slate-400 flex items-center gap-2">
+            <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+            El tutor está pensando…
+          </p>
+        )}
+        {errorEnvio && <p className="px-8 pb-2 text-xs text-error">{errorEnvio}</p>}
 
         <MessageInput onSendMessage={handleSendMessage} />
+
+        {/* FAQ / ayuda — ahora abre contenido real (Error 2.G.2) */}
+        {faqAbierto && (
+          <div
+            className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-6"
+            onClick={() => setFaqAbierto(false)}
+          >
+            <div
+              className="bg-[#2D1B4E] border border-purple-800/40 rounded-2xl p-6 max-w-lg w-full space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-white font-bold text-lg">Ayuda de la Asistencia IA</h2>
+                <button onClick={() => setFaqAbierto(false)} className="text-slate-400 hover:text-white">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <div className="space-y-3 text-sm text-slate-300">
+                <p><strong className="text-white">¿Qué puede hacer?</strong> Explicarte conceptos, darte ejercicios y ayudarte a organizar el estudio.</p>
+                <p><strong className="text-white">¿Hace la tarea por mí?</strong> No. Está pensada para guiarte a que la resuelvas vos; si le pedís que la haga entera, te propone un plan.</p>
+                <p><strong className="text-white">¿Guarda lo que escribo?</strong> Sí, tu conversación queda en tu cuenta. Podés borrarla desde el menú de los tres puntos.</p>
+                <p><strong className="text-white">¿De dónde salen las respuestas?</strong> De un proveedor de IA; la clave de acceso vive en el servidor, nunca en tu navegador.</p>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

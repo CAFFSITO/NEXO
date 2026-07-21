@@ -1,5 +1,5 @@
 import { construirGrillaMes, DIAS_SEMANA, NOMBRES_MES } from "./fechas";
-import { PALETA_EVENTO, type EventoCalendario } from "./tipos";
+import { PALETA_EVENTO, familiaDeTipo, type EventoCalendario } from "./tipos";
 
 interface GrillaCalendarioProps {
   anio: number;
@@ -105,7 +105,7 @@ export default function GrillaCalendario({
                       onSeleccionarEvento(ev);
                     }
                   }}
-                  className={`block mt-2 px-2 py-1 rounded-lg text-[10px] leading-tight cursor-pointer ${PALETA_EVENTO[ev.tipo].chip}`}
+                  className={`block mt-2 px-2 py-1 rounded-lg text-[10px] leading-tight cursor-pointer ${PALETA_EVENTO[familiaDeTipo(ev.tipo)].chip}`}
                 >
                   {ev.titulo}
                 </span>

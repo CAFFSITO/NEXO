@@ -1,74 +1,37 @@
 import { useMemo, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
-import TarjetaDebate, { type Debate, type PosturaVoto } from "./components/comunidad/TarjetaDebate";
-import PanelLateralDebates, {
-  type DebateReciente,
-  type Tendencia,
-} from "./components/comunidad/PanelLateralDebates";
+import TarjetaDebate, { type PosturaVoto } from "./components/comunidad/TarjetaDebate";
+import PanelLateralDebates from "./components/comunidad/PanelLateralDebates";
+import ModalDetalleComunidad from "./components/comunidad/ModalDetalleComunidad";
+import ModalDenuncia from "./components/comunidad/ModalDenuncia";
+import {
+  usarDebates,
+  participar,
+  fijarPostura,
+  crearDebate,
+  denunciar,
+  eliminarContenido,
+  type ObjetoVotable,
+} from "../servicios/comunidad";
+import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 
-type Tab = "feed" | "debates" | "tendencias";
-
-const DEBATES_INICIALES: Debate[] = [
-  {
-    id: "1",
-    titulo: "¿Debería la salud mental ser obligatoria en la currícula?",
-    votosAFavor: 152,
-    votosEnContra: 14,
-    comentarios: 42,
-    tiempo: "Hace 2 horas",
-    abierto: true,
-  },
-  {
-    id: "2",
-    titulo: "¿Es la IA el fin de la creatividad humana?",
-    votosAFavor: 87,
-    votosEnContra: 53,
-    comentarios: 128,
-    tiempo: "Hace 5 horas",
-    abierto: true,
-  },
-  {
-    id: "3",
-    titulo: "¿Deberían eliminarse las calificaciones numéricas?",
-    votosAFavor: 201,
-    votosEnContra: 82,
-    comentarios: 315,
-    tiempo: "Hace 1 día",
-    abierto: true,
-  },
-];
-
-const TENDENCIAS: Tendencia[] = [
-  { hashtag: "#NeuroPlasticidad", detalle: "1.2k debates esta semana" },
-  { hashtag: "#HackathonNexo", detalle: "850 participantes" },
-  { hashtag: "#IAyEducacion", detalle: "530 debates activos" },
-];
-
-const RECIENTES: DebateReciente[] = [
-  {
-    iniciales: "MS",
-    resumen: '"El impacto de la gamificación..."',
-    autor: "Marco Solís",
-    tiempo: "15m",
-  },
-  {
-    iniciales: "LP",
-    resumen: '"Metodologías ágiles en el aula"',
-    autor: "Lucía Pérez",
-    tiempo: "45m",
-  },
-];
+// Se fueron tres debates inventados con "152 a favor" escritos a mano. Los
+// debates reales viven en la tabla `debates` y sus barras se cuentan de las
+// posturas reales de `debate_participantes`.
 
 export default function DebatesPage() {
-  const [debates, setDebates] = useState<Debate[]>(DEBATES_INICIALES);
-  const [tab, setTab] = useState<Tab>("debates");
+  const { debates, cargando, error, recargar } = usarDebates();
   const [busqueda, setBusqueda] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [nuevoTitulo, setNuevoTitulo] = useState("");
+  const [avisoError, setAvisoError] = useState<string | null>(null);
+  const [detalleId, setDetalleId] = useState<string | null>(null);
+  const [denunciaDe, setDenunciaDe] = useState<{ tipo: ObjetoVotable; id: string } | null>(null);
 
   const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } = useNavegacion();
   const rol = usuario?.rol ?? "estudiante";
+  const usuarioId = usuario?.id ?? 0;
   // Escritura de debates: perfiles participativos. Preceptor/bibliotecario solo leen.
   const puedeCrearDebate =
     rol === "estudiante" ||
@@ -77,67 +40,40 @@ export default function DebatesPage() {
     rol === "centro-estudiantes";
 
   const debatesFiltrados = useMemo(() => {
+    const lista = debates ?? [];
     const q = busqueda.trim().toLowerCase();
-    if (!q) return debates;
-    return debates.filter((d) => d.titulo.toLowerCase().includes(q));
+    if (!q) return lista;
+    return lista.filter((d) => d.titulo.toLowerCase().includes(q));
   }, [debates, busqueda]);
 
-  const handleVotar = (id: string, postura: PosturaVoto) => {
-    setDebates((prev) =>
-      prev.map((d) => {
-        if (d.id !== id || !d.abierto) return d;
-
-        let { votosAFavor, votosEnContra } = d;
-
-        // Quitar voto previo
-        if (d.miVoto === "a-favor") votosAFavor -= 1;
-        if (d.miVoto === "en-contra") votosEnContra -= 1;
-
-        // Toggle: re-clic en la misma postura = anular voto
-        if (d.miVoto === postura) {
-          return { ...d, votosAFavor, votosEnContra, miVoto: undefined };
-        }
-
-        if (postura === "a-favor") votosAFavor += 1;
-        else votosEnContra += 1;
-
-        return { ...d, votosAFavor, votosEnContra, miVoto: postura };
-      })
+  // Escritura real (Etapa 5). Fijar postura exige haber participado; el servidor
+  // lo rechaza si no, así que acá solo llamamos y refrescamos.
+  const conError = (accion: Promise<unknown>) =>
+    accion.then(recargar).catch((e) =>
+      setAvisoError(e instanceof Error ? e.message : "No se pudo completar la acción.")
     );
-  };
 
-  const handleParticipar = (id: string) => {
-    console.log("Participar en debate:", id);
-  };
+  const handleVotar = (id: string, postura: PosturaVoto) => conError(fijarPostura(id, postura));
+  const handleParticipar = (id: string) => conError(participar(id));
+  const abrirDebate = (id: string) => setDetalleId(id);
+  const handleEliminar = (tipo: ObjetoVotable, id: string) => conError(eliminarContenido(tipo, id));
 
-  const handleTendenciaClick = (hashtag: string) => {
-    setBusqueda(hashtag.replace("#", ""));
-  };
-
-  const handleCrearDebate = () => {
-    const titulo = nuevoTitulo.trim();
-    if (!titulo) return;
-
-    const nuevo: Debate = {
-      id: crypto.randomUUID(),
-      titulo,
-      votosAFavor: 0,
-      votosEnContra: 0,
-      comentarios: 0,
-      tiempo: "Recién",
-      abierto: true,
-    };
-
-    setDebates((prev) => [nuevo, ...prev]);
-    setNuevoTitulo("");
-    setModalAbierto(false);
+  const handleCrearDebate = async () => {
+    if (!nuevoTitulo.trim()) return;
+    try {
+      await crearDebate(nuevoTitulo.trim(), "", null);
+      setNuevoTitulo("");
+      setModalAbierto(false);
+      recargar();
+    } catch (e) {
+      setAvisoError(e instanceof Error ? e.message : "No se pudo crear el debate.");
+    }
   };
 
   return (
     <div className="flex bg-[#1C1030] min-h-screen">
       <Sidebar
         usuario={usuario ?? { nombre: "", rol }}
-        rutaActiva="/comunidad"
         onNavegar={handleNavegar}
         onCerrarSesion={handleCerrarSesion}
       />
@@ -178,20 +114,27 @@ export default function DebatesPage() {
           </div>
         </header>
 
-        {/* Tabs */}
+        {/* Tabs. Antes eran estado local (`setTab`) y no navegaban: al entrar a
+            Debates, tocar "Feed" o "Tendencias" no llevaba a ningún lado y el
+            usuario quedaba atrapado (Error 2.B.14). Ahora son navegación real a
+            las direcciones del módulo, así que se puede ir y volver siempre. */}
         <div className="px-8 border-b border-[#2D1B4E] bg-[#1C1030]/40">
           <div className="flex gap-8 pt-4">
-            {(["feed", "debates", "tendencias"] as Tab[]).map((t) => (
+            {[
+              { label: "Feed", ruta: "/comunidad" },
+              { label: "Debates", ruta: "/comunidad/debates" },
+              { label: "Tendencias", ruta: "/comunidad/tendencias" },
+            ].map((t) => (
               <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`pb-3 text-sm transition-all capitalize ${
-                  tab === t
+                key={t.ruta}
+                onClick={() => handleNavegar(t.ruta)}
+                className={`pb-3 text-sm transition-all ${
+                  t.ruta === "/comunidad/debates"
                     ? "text-[#C548F5] border-b-2 border-[#C548F5] font-bold"
                     : "text-white/60 hover:text-[#C548F5] font-medium"
                 }`}
               >
-                {t}
+                {t.label}
               </button>
             ))}
           </div>
@@ -200,6 +143,11 @@ export default function DebatesPage() {
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-8 flex gap-8">
           <div className="flex-1 space-y-6">
+            {avisoError && (
+              <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">
+                {avisoError}
+              </div>
+            )}
             {puedeCrearDebate && (
               <div className="flex justify-end">
                 <button
@@ -212,28 +160,33 @@ export default function DebatesPage() {
               </div>
             )}
 
-            {debatesFiltrados.length === 0 ? (
-              <div className="text-center text-white/40 py-20">
-                <span className="material-symbols-outlined text-4xl mb-2 block">forum</span>
-                No se encontraron debates.
-              </div>
+            {cargando ? (
+              <Cargando que="los debates" />
+            ) : error ? (
+              <Fallo error={error} onReintentar={recargar} />
+            ) : debatesFiltrados.length === 0 ? (
+              <Vacio
+                icono="forum"
+                mensaje={busqueda ? "No se encontraron debates." : "Todavía no hay debates."}
+              />
             ) : (
               debatesFiltrados.map((debate) => (
                 <TarjetaDebate
                   key={debate.id}
                   debate={debate}
+                  rolLector={rol}
+                  usuarioId={usuarioId}
                   onVotar={handleVotar}
                   onParticipar={handleParticipar}
+                  onAbrir={abrirDebate}
+                  onDenunciar={(tipo, id) => setDenunciaDe({ tipo, id })}
+                  onEliminar={handleEliminar}
                 />
               ))
             )}
           </div>
 
-          <PanelLateralDebates
-            tendencias={TENDENCIAS}
-            recientes={RECIENTES}
-            onTendenciaClick={handleTendenciaClick}
-          />
+          <PanelLateralDebates debates={debates ?? []} onAbrirDebate={abrirDebate} />
         </div>
       </main>
 
@@ -283,6 +236,27 @@ export default function DebatesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {detalleId && (
+        <ModalDetalleComunidad
+          tipo="debate"
+          id={detalleId}
+          rol={rol}
+          usuarioId={usuarioId}
+          onCerrar={() => setDetalleId(null)}
+          onCambio={recargar}
+        />
+      )}
+
+      {denunciaDe && (
+        <ModalDenuncia
+          onCerrar={() => setDenunciaDe(null)}
+          onEnviar={async (motivo) => {
+            await denunciar(denunciaDe.tipo, denunciaDe.id, motivo);
+            setDenunciaDe(null);
+          }}
+        />
       )}
     </div>
   );

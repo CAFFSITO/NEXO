@@ -1,212 +1,153 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Sidebar, { type Rol } from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import ConversationList from "./components/chat/ConversationList";
 import ChatWindow from "./components/chat/ChatWindow";
+import {
+  usarConversaciones,
+  usarMensajes,
+  enviarMensaje,
+  marcarConversacionLeida,
+  type Mensaje,
+} from "../servicios/chat";
+import { normalizar } from "../servicios/biblioteca";
+import { useTiempoReal } from "../servicios/tiempoReal";
+import { avisarCambioNotificaciones } from "../servicios/notificaciones";
 
-interface Message {
-  id: string;
-  sender: "user" | "other";
-  contenido: string;
-  timestamp: string;
-}
-
-interface Conversation {
-  id: string;
-  nombre: string;
-  ultimoMensaje: string;
-  timestamp: string;
-  avatarUrl?: string;
-  noLeidos?: number;
-  messages: Message[];
-}
-
-// Contactos de chat según el rol logueado: cada perfil conversa con su
-// círculo real (el estudiante con compañeros y su profe; el profe con
-// alumnos y dirección; el preceptor con familias; etc.).
-const CONVERSACIONES_ESTUDIANTE: Conversation[] = [
-  {
-    id: "1",
-    nombre: "Martín López",
-    ultimoMensaje: "¿Ya entendiste de la tarea de Historia?",
-    timestamp: "14:30",
-    noLeidos: 2,
-    messages: [
-      { id: "m1", sender: "other", contenido: "Hola, ¿cómo estás?", timestamp: "13:45" },
-      { id: "m2", sender: "user", contenido: "Bien, ¿y vos?", timestamp: "13:46" },
-      { id: "m3", sender: "other", contenido: "¿Ya entendiste de la tarea de Historia?", timestamp: "14:30" },
-    ],
-  },
-  {
-    id: "2",
-    nombre: "Sofia Chen",
-    ultimoMensaje: "Te paso los apuntes",
-    timestamp: "12:15",
-    messages: [{ id: "m4", sender: "other", contenido: "Te paso los apuntes", timestamp: "12:15" }],
-  },
-  {
-    id: "3",
-    nombre: "Prof. García",
-    ultimoMensaje: "Cualquier duda, consultame",
-    timestamp: "11:00",
-    messages: [
-      { id: "m5", sender: "other", contenido: "Hola, tengo una duda sobre el material", timestamp: "10:45" },
-      { id: "m6", sender: "user", contenido: "¿Cuál es tu pregunta?", timestamp: "10:46" },
-      { id: "m7", sender: "other", contenido: "Cualquier duda, consultame", timestamp: "11:00" },
-    ],
-  },
-];
-
-const CONVERSACIONES_PROFESOR: Conversation[] = [
-  {
-    id: "1",
-    nombre: "Julieta Rossi — 4° B",
-    ultimoMensaje: "Profe, ¿puedo entregar mañana?",
-    timestamp: "15:10",
-    noLeidos: 1,
-    messages: [
-      { id: "m1", sender: "other", contenido: "Profe, ¿puedo entregar mañana?", timestamp: "15:10" },
-    ],
-  },
-  {
-    id: "2",
-    nombre: "Martín López — 4° B",
-    ultimoMensaje: "Gracias por la devolución",
-    timestamp: "12:40",
-    messages: [{ id: "m2", sender: "other", contenido: "Gracias por la devolución", timestamp: "12:40" }],
-  },
-  {
-    id: "3",
-    nombre: "Dirección Académica",
-    ultimoMensaje: "Recordá cargar el parte de clase",
-    timestamp: "09:30",
-    messages: [{ id: "m3", sender: "other", contenido: "Recordá cargar el parte de clase", timestamp: "09:30" }],
-  },
-];
-
-const CONVERSACIONES_PRECEPTOR: Conversation[] = [
-  {
-    id: "1",
-    nombre: "Fam. Rossi",
-    ultimoMensaje: "Buenas, consulta por la inasistencia",
-    timestamp: "13:20",
-    noLeidos: 3,
-    messages: [{ id: "m1", sender: "other", contenido: "Buenas, consulta por la inasistencia", timestamp: "13:20" }],
-  },
-  {
-    id: "2",
-    nombre: "Dirección Académica",
-    ultimoMensaje: "Pasame el listado de 4° A",
-    timestamp: "10:05",
-    messages: [{ id: "m2", sender: "other", contenido: "Pasame el listado de 4° A", timestamp: "10:05" }],
-  },
-];
-
-const CONVERSACIONES_BIBLIOTECARIO: Conversation[] = [
-  {
-    id: "1",
-    nombre: "Prof. Méndez",
-    ultimoMensaje: "¿Aprobaste el recurso que presenté?",
-    timestamp: "11:50",
-    noLeidos: 1,
-    messages: [{ id: "m1", sender: "other", contenido: "¿Aprobaste el recurso que presenté?", timestamp: "11:50" }],
-  },
-  {
-    id: "2",
-    nombre: "Dirección Académica",
-    ultimoMensaje: "Sumá el reglamento 2025 a Institucional",
-    timestamp: "09:15",
-    messages: [{ id: "m2", sender: "other", contenido: "Sumá el reglamento 2025 a Institucional", timestamp: "09:15" }],
-  },
-];
-
-const CONVERSACIONES_FAMILIA: Conversation[] = [
-  {
-    id: "1",
-    nombre: "Preceptor Carlos Pereyra",
-    ultimoMensaje: "Buenas, le confirmo la reunión",
-    timestamp: "14:00",
-    noLeidos: 1,
-    messages: [{ id: "m1", sender: "other", contenido: "Buenas, le confirmo la reunión", timestamp: "14:00" }],
-  },
-  {
-    id: "2",
-    nombre: "Dirección Académica",
-    ultimoMensaje: "Circular de la reunión de padres",
-    timestamp: "08:45",
-    messages: [{ id: "m2", sender: "other", contenido: "Circular de la reunión de padres", timestamp: "08:45" }],
-  },
-];
-
-const CONVERSACIONES_POR_ROL: Partial<Record<Rol, Conversation[]>> = {
-  estudiante: CONVERSACIONES_ESTUDIANTE,
-  profesor: CONVERSACIONES_PROFESOR,
-  preceptor: CONVERSACIONES_PRECEPTOR,
-  bibliotecario: CONVERSACIONES_BIBLIOTECARIO,
-  familia: CONVERSACIONES_FAMILIA,
-};
+// Etapa 6: el chat pasa de ser una vitrina de lectura a mensajería real.
+//   • Enviar guarda en `mensajes` y le llega al otro al instante (Error 2.F.4).
+//   • Abrir una conversación la marca leída y borra su globito (Error 2.F.5).
+//   • El clip adjunta archivos de verdad (Error 2.F.3).
+//   • El buscador ya filtraba sin tildes desde la Etapa 2 (Error 2.F.1).
+// El botón de llamar se había quitado en la Etapa 2 (Error 2.F.2).
 
 export default function ChatPage() {
   const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } = useNavegacion();
   const rol: Rol = usuario?.rol ?? "estudiante";
 
-  const [conversaciones, setConversaciones] = useState<Conversation[]>(
-    () => CONVERSACIONES_POR_ROL[rol] ?? CONVERSACIONES_ESTUDIANTE
-  );
-  const [conversacionActiva, setConversacionActiva] = useState<string>("1");
+  const { conversaciones, recargar: recargarConversaciones } = usarConversaciones();
+  const [conversacionActiva, setConversacionActiva] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
 
-  const convActual = conversaciones.find((c) => c.id === conversacionActiva);
+  // La conversación abierta: la elegida, o la primera de la lista al entrar.
+  const activaId = conversacionActiva ?? conversaciones?.[0]?.id ?? null;
+  const { mensajes, recargar: recargarMensajes } = usarMensajes(activaId);
 
-  const handleSendMessage = (mensaje: string) => {
-    setConversaciones((prev) =>
-      prev.map((conv) => {
-        if (conv.id === conversacionActiva) {
-          return {
-            ...conv,
-            messages: [
-              ...conv.messages,
-              {
-                id: Date.now().toString(),
-                sender: "user",
-                contenido: mensaje,
-                timestamp: new Date().toLocaleTimeString("es-AR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-              },
-            ],
-            ultimoMensaje: mensaje,
-            noLeidos: 0,
-          };
-        }
-        return conv;
+  // Mensajes que llegaron en vivo mientras la conversación está abierta. Se
+  // suman a los que trajo el servidor, sin recargar toda la pantalla.
+  const [mensajesVivos, setMensajesVivos] = useState<Mensaje[]>([]);
+
+  // Al cambiar de conversación: limpiar los vivos (son de la anterior) y marcarla
+  // leída en el servidor. Marcarla leída borra su globito acá y en el menú.
+  useEffect(() => {
+    setMensajesVivos([]);
+    if (!activaId) return;
+    marcarConversacionLeida(activaId)
+      .then(() => {
+        recargarConversaciones();
+        avisarCambioNotificaciones();
       })
+      .catch(() => {
+        // Si falla (por ejemplo sin permiso), no rompemos la pantalla: el hilo
+        // igual se lee; solo no se baja el contador.
+      });
+  }, [activaId, recargarConversaciones]);
+
+  // El tubo en vivo: cuando llega un mensaje, si es de la conversación abierta se
+  // agrega al hilo al instante; en cualquier caso se refresca la lista para que
+  // el globito y el último mensaje queden al día.
+  useTiempoReal(
+    useCallback(
+      (evento) => {
+        if (evento.tipo !== "mensaje") return;
+        recargarConversaciones();
+        if (evento.conversacionId === activaId && evento.mensaje) {
+          const nuevo = evento.mensaje as Mensaje;
+          setMensajesVivos((previos) =>
+            previos.some((m) => m.id === nuevo.id) ? previos : [...previos, nuevo]
+          );
+          // Ya lo estoy viendo: marcar leído para que no quede como no leído.
+          if (activaId) void marcarConversacionLeida(activaId).then(avisarCambioNotificaciones);
+        }
+      },
+      [activaId, recargarConversaciones]
+    )
+  );
+
+  const conversacionesFiltradas = useMemo(() => {
+    const lista = conversaciones ?? [];
+    const q = normalizar(busqueda.trim());
+    if (!q) return lista;
+    return lista.filter((c) => normalizar(c.nombre).includes(q));
+  }, [conversaciones, busqueda]);
+
+  const convActual = (conversaciones ?? []).find((c) => c.id === activaId) ?? null;
+
+  // El hilo mostrado: lo que trajo el servidor + lo que llegó/mandé en vivo,
+  // sin duplicar por id.
+  const mensajesMostrados = useMemo(() => {
+    const base = mensajes ?? [];
+    const ids = new Set(base.map((m) => m.id));
+    return [...base, ...mensajesVivos.filter((m) => !ids.has(m.id))];
+  }, [mensajes, mensajesVivos]);
+
+  const handleSendMessage = async (texto: string, archivo?: File | null) => {
+    if (!activaId) return;
+    const enviado = await enviarMensaje(activaId, texto, archivo);
+    // Se pinta al instante y se actualiza la lista (último mensaje, orden).
+    setMensajesVivos((previos) =>
+      previos.some((m) => m.id === enviado.id) ? previos : [...previos, enviado]
     );
+    recargarConversaciones();
+    void recargarMensajes();
   };
 
   return (
     <div className="flex bg-[#1C1030] h-screen">
       <Sidebar
         usuario={usuario ?? { nombre: "", rol }}
-        rutaActiva="/chat"
         onNavegar={handleNavegar}
         onCerrarSesion={handleCerrarSesion}
       />
 
       <div className="ml-[220px] w-[calc(100%-220px)] flex h-full">
         <ConversationList
-          conversaciones={conversaciones}
-          conversacionActiva={conversacionActiva}
+          conversaciones={conversacionesFiltradas.map((c) => ({
+            id: c.id,
+            nombre: c.nombre,
+            ultimoMensaje: c.ultimoMensaje,
+            timestamp: "",
+            avatarUrl: c.avatarUrl,
+            noLeidos: c.noLeidos,
+          }))}
+          conversacionActiva={activaId ?? undefined}
           onSelectConversacion={setConversacionActiva}
+          busqueda={busqueda}
+          onBuscar={setBusqueda}
         />
 
-        {convActual && (
+        {convActual ? (
           <ChatWindow
             nombreContacto={convActual.nombre}
             avatarUrl={convActual.avatarUrl}
-            messages={convActual.messages}
+            messages={mensajesMostrados.map((m) => ({
+              id: m.id,
+              // "mío" o "de otro" lo decide el servidor comparando el autor con
+              // quien mira: la pantalla ya no lo adivina de un campo escrito a
+              // mano (que era la causa del diálogo cruzado del Error 2.F.6).
+              sender: m.mio ? "user" : "other",
+              contenido: m.archivo ? `📎 ${m.archivo}` : m.contenido,
+              timestamp: new Date(m.enviadoEn).toLocaleTimeString("es-AR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            }))}
             onSendMessage={handleSendMessage}
           />
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-[#190d2d] text-gray-400">
+            <p>Elegí una conversación para empezar.</p>
+          </div>
         )}
       </div>
     </div>

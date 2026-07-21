@@ -1,66 +1,62 @@
 // src/paginas/GestionTareasProfesorPage.tsx
 // VISTA: Gestión de Tareas (Profesor) — Portafolio Docente.
-// Conversión de gestionDeTareasProfesor.html → React + TS + Tailwind.
-// El profesor supervisa el progreso de entregas y gestiona (crear/editar/eliminar)
-// sus tareas. Foco en lógica y funcionalidad.
+//
+// Ahora todo sale de la base (Etapa 4). Antes esta pantalla traía tres tareas de
+// ejemplo escritas a mano, un profesor fijo ("Prof. García") y listas de
+// materias y cursos inventadas. Hoy:
+//   · quién sos sale de la sesión (useNavegacion),
+//   · tus tareas y cátedras salen del servidor (/api/tareas/*),
+//   · crear, editar y eliminar escriben de verdad,
+//   · "Corregir" abre el panel con la lista real del curso (14.7 paso 4).
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
-import TarjetaTareaDocente, {
+import TarjetaTareaDocente from "./components/portafolio-docente/TarjetaTareaDocente";
+import ModalTareaDocente from "./components/portafolio-docente/ModalTareaDocente";
+import ModalPanelCorreccion from "./components/portafolio-docente/ModalPanelCorreccion";
+import { Cargando, Fallo } from "./components/shared/EstadoCarga";
+import {
+  traerCatedras,
+  traerTareasDocente,
+  crearTarea,
+  editarTarea,
+  eliminarTarea,
+  type Catedra,
   type TareaDocente,
-} from "./components/portafolio-docente/TarjetaTareaDocente";
-import ModalTareaDocente, {
-  type DatosTarea,
-} from "./components/portafolio-docente/ModalTareaDocente";
-
-const MATERIAS = ["Matemática", "Historia", "Biología", "Lengua", "Inglés", "Física"];
-const CURSOS = ["4° Año B", "5° Año A", "5° Año C", "3° Año C", "6° Año B"];
-
-const TAREAS_INICIALES: TareaDocente[] = [
-  {
-    id: "1",
-    titulo: "Ecuaciones de 2° grado",
-    materia: "Matemática",
-    curso: "4° Año B",
-    fechaVence: "2026-05-24",
-    alDia: 24,
-    tarde: 3,
-    pendiente: 5,
-  },
-  {
-    id: "2",
-    titulo: "Revolución de Mayo",
-    materia: "Historia",
-    curso: "5° Año A",
-    fechaVence: "2026-05-28",
-    alDia: 18,
-    tarde: 7,
-    pendiente: 2,
-  },
-  {
-    id: "3",
-    titulo: "Práctica de Funciones",
-    materia: "Matemática",
-    curso: "4° Año B",
-    fechaVence: "2026-06-02",
-    alDia: 31,
-    tarde: 1,
-    pendiente: 0,
-  },
-];
+  type DatosNuevaTarea,
+} from "../servicios/tareas";
 
 export default function GestionTareasProfesorPage() {
-  const [usuario] = useState({
-    nombre: "Prof. García",
-    rol: "profesor" as const,
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Garcia",
-  });
+  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } =
+    useNavegacion();
 
-  const [tareas, setTareas] = useState<TareaDocente[]>(TAREAS_INICIALES);
+  const [catedras, setCatedras] = useState<Catedra[]>([]);
+  const [tareas, setTareas] = useState<TareaDocente[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [busqueda, setBusqueda] = useState<string>("");
   const [modalAbierto, setModalAbierto] = useState<boolean>(false);
   const [tareaEditando, setTareaEditando] = useState<TareaDocente | null>(null);
+  const [correccionId, setCorreccionId] = useState<string | null>(null);
+
+  const cargar = useCallback(() => {
+    setCargando(true);
+    setError(null);
+    Promise.all([traerCatedras(), traerTareasDocente()])
+      .then(([c, t]) => {
+        setCatedras(c.catedras);
+        setTareas(t.tareas);
+        setCargando(false);
+      })
+      .catch((e: unknown) => {
+        setError(e instanceof Error ? e.message : "No se pudieron traer las tareas.");
+        setCargando(false);
+      });
+  }, []);
+
+  useEffect(() => cargar(), [cargar]);
 
   // ── Derivados ──
   const tareasVisibles = useMemo(() => {
@@ -74,7 +70,8 @@ export default function GestionTareasProfesorPage() {
     );
   }, [tareas, busqueda]);
 
-  // Resumen semanal: porcentaje global de entregas hechas (al día + tarde)
+  // Resumen semanal: porcentaje global de entregas hechas (al día + tarde),
+  // calculado sobre los conteos reales que devuelve el servidor.
   const { entregadas, totalEntregas, porcentaje } = useMemo(() => {
     const totales = tareas.reduce(
       (acc, t) => {
@@ -88,56 +85,49 @@ export default function GestionTareasProfesorPage() {
     return { entregadas: totales.entregadas, totalEntregas: totales.total, porcentaje: pct };
   }, [tareas]);
 
-  // Tareas "corregidas" = las que no tienen entregas pendientes
-  const tareasCorregidas = useMemo(
-    () => tareas.filter((t) => t.pendiente === 0).length,
-    [tareas]
-  );
+  const tareasAlDia = useMemo(() => tareas.filter((t) => t.pendiente === 0).length, [tareas]);
 
   // ── Acciones ──
   const abrirCreacion = () => {
     setTareaEditando(null);
     setModalAbierto(true);
   };
-
   const abrirEdicion = (id: string) => {
-    const tarea = tareas.find((t) => t.id === id) ?? null;
-    setTareaEditando(tarea);
+    setTareaEditando(tareas.find((t) => t.id === id) ?? null);
     setModalAbierto(true);
   };
-
   const cerrarModal = () => {
     setModalAbierto(false);
     setTareaEditando(null);
   };
 
-  const guardarTarea = (datos: DatosTarea) => {
+  const guardarTarea = async (datos: DatosNuevaTarea) => {
     if (tareaEditando) {
-      // Editar: conserva estado de entregas
-      setTareas((prev) =>
-        prev.map((t) => (t.id === tareaEditando.id ? { ...t, ...datos } : t))
-      );
+      await editarTarea(tareaEditando.id, {
+        titulo: datos.titulo,
+        consigna: datos.consigna,
+        fechaLimite: datos.fechaLimite,
+        metodoEstudio: datos.metodoEstudio,
+        tipoAsignacion: datos.tipoAsignacion,
+      });
     } else {
-      // Crear: nueva tarea sin entregas todavía
-      setTareas((prev) => [
-        { id: crypto.randomUUID(), ...datos, alDia: 0, tarde: 0, pendiente: 0 },
-        ...prev,
-      ]);
+      await crearTarea(datos);
     }
     cerrarModal();
+    cargar();
   };
 
-  const eliminarTarea = (id: string) => {
-    setTareas((prev) => prev.filter((t) => t.id !== id));
+  const borrarTarea = async (id: string) => {
+    await eliminarTarea(id);
+    cargar();
   };
 
-  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion } = useNavegacion();
+  if (!usuario) return null;
 
   return (
     <div className="flex bg-[#1C1030] min-h-screen text-on-surface overflow-x-hidden">
       <Sidebar
         usuario={usuario}
-        rutaActiva="/portafolio/gestion"
         onNavegar={handleNavegar}
         onCerrarSesion={handleCerrarSesion}
       />
@@ -161,14 +151,6 @@ export default function GestionTareasProfesorPage() {
                 Aula Virtual
               </button>
             </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="material-symbols-outlined text-slate-400 hover:text-[#C548F5] cursor-pointer">
-              notifications
-            </button>
-            <button className="material-symbols-outlined text-slate-400 hover:text-[#C548F5] cursor-pointer">
-              settings
-            </button>
           </div>
         </header>
 
@@ -207,64 +189,73 @@ export default function GestionTareasProfesorPage() {
           </div>
 
           {/* Lista de tareas */}
-          <div className="grid grid-cols-1 gap-4">
-            {tareasVisibles.length === 0 ? (
-              <div className="text-center py-16 text-slate-400">
-                <span className="material-symbols-outlined text-5xl mb-2 block">assignment</span>
-                {busqueda
-                  ? "No hay tareas que coincidan con la búsqueda."
-                  : "Todavía no creaste ninguna tarea. Empezá con “Nueva Tarea”."}
+          {cargando ? (
+            <Cargando que="tus tareas" />
+          ) : error ? (
+            <Fallo error={error} onReintentar={cargar} />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-4">
+                {tareasVisibles.length === 0 ? (
+                  <div className="text-center py-16 text-slate-400">
+                    <span className="material-symbols-outlined text-5xl mb-2 block">assignment</span>
+                    {busqueda
+                      ? "No hay tareas que coincidan con la búsqueda."
+                      : "Todavía no creaste ninguna tarea. Empezá con “Nueva Tarea”."}
+                  </div>
+                ) : (
+                  tareasVisibles.map((tarea) => (
+                    <TarjetaTareaDocente
+                      key={tarea.id}
+                      tarea={tarea}
+                      onCorregir={setCorreccionId}
+                      onEditar={abrirEdicion}
+                      onEliminar={borrarTarea}
+                    />
+                  ))
+                )}
               </div>
-            ) : (
-              tareasVisibles.map((tarea) => (
-                <TarjetaTareaDocente
-                  key={tarea.id}
-                  tarea={tarea}
-                  onEditar={abrirEdicion}
-                  onEliminar={eliminarTarea}
-                />
-              ))
-            )}
-          </div>
 
-          {/* Resumen (calculado en vivo) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-            <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-[#2D1B4E] to-surface-container-lowest p-6 rounded-xl border border-outline-variant/20 relative overflow-hidden">
-              <div className="relative z-10">
-                <h4 className="font-headline font-bold text-tertiary">Resumen Semanal</h4>
-                <p className="text-3xl font-black text-white mt-2">
-                  {porcentaje}%{" "}
-                  <span className="text-sm font-medium text-emerald-400">
-                    {entregadas}/{totalEntregas} entregas realizadas
+              {/* Resumen (calculado en vivo sobre datos reales) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+                <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-[#2D1B4E] to-surface-container-lowest p-6 rounded-xl border border-outline-variant/20 relative overflow-hidden">
+                  <div className="relative z-10">
+                    <h4 className="font-headline font-bold text-tertiary">Resumen Semanal</h4>
+                    <p className="text-3xl font-black text-white mt-2">
+                      {porcentaje}%{" "}
+                      <span className="text-sm font-medium text-emerald-400">
+                        {entregadas}/{totalEntregas} entregas realizadas
+                      </span>
+                    </p>
+                    <div className="w-full bg-background/50 h-2 rounded-full mt-4 overflow-hidden">
+                      <div
+                        className="bg-primary h-full rounded-full transition-all"
+                        style={{ width: `${porcentaje}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="absolute -right-4 -bottom-4 opacity-10">
+                    <span
+                      className="material-symbols-outlined text-[120px]"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      trending_up
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-surface-container-high p-6 rounded-xl border border-primary/20 flex flex-col justify-center items-center text-center">
+                  <span className="material-symbols-outlined text-4xl text-primary mb-2">
+                    assignment_turned_in
                   </span>
-                </p>
-                <div className="w-full bg-background/50 h-2 rounded-full mt-4 overflow-hidden">
-                  <div
-                    className="bg-primary h-full rounded-full transition-all"
-                    style={{ width: `${porcentaje}%` }}
-                  />
+                  <p className="text-white font-black text-2xl">{tareasAlDia}</p>
+                  <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest">
+                    Tareas al día
+                  </p>
                 </div>
               </div>
-              <div className="absolute -right-4 -bottom-4 opacity-10">
-                <span
-                  className="material-symbols-outlined text-[120px]"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  trending_up
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-surface-container-high p-6 rounded-xl border border-primary/20 flex flex-col justify-center items-center text-center">
-              <span className="material-symbols-outlined text-4xl text-primary mb-2">
-                assignment_turned_in
-              </span>
-              <p className="text-white font-black text-2xl">{tareasCorregidas}</p>
-              <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest">
-                Tareas al día
-              </p>
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
         {/* FAB para crear tarea rápido */}
@@ -283,11 +274,19 @@ export default function GestionTareasProfesorPage() {
       <ModalTareaDocente
         abierto={modalAbierto}
         tareaEditando={tareaEditando}
-        materias={MATERIAS}
-        cursos={CURSOS}
+        catedras={catedras}
         onGuardar={guardarTarea}
         onCerrar={cerrarModal}
       />
+
+      {/* Panel de corrección */}
+      {correccionId && (
+        <ModalPanelCorreccion
+          tareaId={correccionId}
+          onCerrar={() => setCorreccionId(null)}
+          onCambio={cargar}
+        />
+      )}
     </div>
   );
 }

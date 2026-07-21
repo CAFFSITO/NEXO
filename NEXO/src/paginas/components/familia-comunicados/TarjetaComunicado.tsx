@@ -4,6 +4,9 @@ interface TarjetaComunicadoProps {
   comunicado: Comunicado;
   onMarcarLeido: (id: string) => void;
   onDescargarAdjunto?: (id: string) => void;
+  // "Responder" abre el chat privado con quien lo emitió (Error 10.A.2). No
+  // escribe en el comunicado (lo verían todas las familias).
+  onResponder?: (id: string) => void;
 }
 
 // Tarjeta de un comunicado del Portal de Familia.
@@ -12,6 +15,7 @@ export default function TarjetaComunicado({
   comunicado,
   onMarcarLeido,
   onDescargarAdjunto,
+  onResponder,
 }: TarjetaComunicadoProps) {
   const { id, titulo, fecha, emisor, emisorTipo, adjunto, leido, fechaLeido } = comunicado;
   const iconoEmisor = ICONO_EMISOR[emisorTipo];
@@ -43,6 +47,16 @@ export default function TarjetaComunicado({
             </span>
             <span>Leído{fechaLeido ? ` el ${fechaLeido}` : ""}</span>
           </div>
+          {onResponder && (
+            <button
+              type="button"
+              onClick={() => onResponder(id)}
+              className="flex items-center gap-1.5 text-slate-300 hover:text-[#C548F5] text-xs font-bold transition-colors"
+            >
+              <span className="material-symbols-outlined text-base">reply</span>
+              Responder
+            </button>
+          )}
         </div>
       </div>
     );
@@ -77,13 +91,25 @@ export default function TarjetaComunicado({
             <span className="text-xs text-slate-300">{adjunto.nombre}</span>
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => onMarcarLeido(id)}
-          className="bg-primary-container text-on-primary-container px-4 py-2 rounded-full text-xs font-bold hover:scale-105 active:scale-95 transition-transform"
-        >
-          Marcar como leído
-        </button>
+        <div className="flex items-center gap-2">
+          {onResponder && (
+            <button
+              type="button"
+              onClick={() => onResponder(id)}
+              className="flex items-center gap-1.5 border border-white/10 text-slate-200 px-4 py-2 rounded-full text-xs font-bold hover:bg-white/5 transition-colors"
+            >
+              <span className="material-symbols-outlined text-base">reply</span>
+              Responder
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => onMarcarLeido(id)}
+            className="bg-primary-container text-on-primary-container px-4 py-2 rounded-full text-xs font-bold hover:scale-105 active:scale-95 transition-transform"
+          >
+            Marcar como leído
+          </button>
+        </div>
       </div>
     </div>
   );

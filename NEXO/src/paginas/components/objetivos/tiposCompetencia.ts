@@ -1,19 +1,25 @@
 // Tipos compartidos del módulo de Competencias (Objetivos Personales — Estudiante)
+//
+// La escala es la de la base (`competencia_avances.nivel`): iniciado →
+// en-desarrollo → avanzado → dominado. La pantalla usaba "inicial" y "experto",
+// dos valores que la base rechaza con un CHECK: eran una escala paralela que
+// nunca podría haberse guardado.
 
-export type NivelCompetencia = "inicial" | "en-desarrollo" | "avanzado" | "experto";
+export type { NivelCompetencia } from "../../../servicios/objetivos";
+import type { NivelCompetencia } from "../../../servicios/objetivos";
 
-// Orden fijo de la escala de desarrollo (Inicial → Experto)
+// Orden fijo de la escala de desarrollo (Iniciado → Dominado)
 export const NIVELES: { id: NivelCompetencia; label: string }[] = [
-  { id: "inicial", label: "INICIAL" },
+  { id: "iniciado", label: "INICIADO" },
   { id: "en-desarrollo", label: "EN DESARROLLO" },
   { id: "avanzado", label: "AVANZADO" },
-  { id: "experto", label: "EXPERTO" },
+  { id: "dominado", label: "DOMINADO" },
 ];
 
 export interface Evidencia {
   id: string;
   titulo: string;
-  icono: string; // Material Symbol
+  icono?: string; // Material Symbol; si falta, la tarjeta usa uno por defecto
 }
 
 // Paleta por competencia (clases estáticas — Tailwind no admite interpolación dinámica)
@@ -63,10 +69,11 @@ export const PALETAS: Record<ColorCompetencia, PaletaColor> = {
   },
 };
 
+/** Lo que dibuja la tarjeta: una competencia de la base + su presentación. */
 export interface Competencia {
   id: string;
   nombre: string;
-  descripcion: string;
+  descripcion?: string; // la base no guarda descripción de la competencia
   icono: string; // Material Symbol
   color: ColorCompetencia;
   nivel: NivelCompetencia;
@@ -75,8 +82,19 @@ export interface Competencia {
 
 // Etiqueta legible del nivel para el badge de estado
 export const LABEL_NIVEL: Record<NivelCompetencia, string> = {
-  inicial: "Inicial",
+  iniciado: "Iniciado",
   "en-desarrollo": "En desarrollo",
   avanzado: "Avanzado",
-  experto: "Experto",
+  dominado: "Dominado",
 };
+
+// Un color por competencia raíz, elegido de forma estable por nombre: la misma
+// competencia se ve siempre igual, sin guardar el color en la base (un color no
+// es un dato del colegio).
+const COLORES: ColorCompetencia[] = ["purple", "blue", "amber", "teal"];
+
+export function colorDeCompetencia(nombre: string): ColorCompetencia {
+  let suma = 0;
+  for (const letra of nombre) suma += letra.codePointAt(0) ?? 0;
+  return COLORES[suma % COLORES.length];
+}

@@ -1,15 +1,20 @@
-import type { Habito } from "./tiposDashboard";
+import type { Habito } from "../../../servicios/objetivos";
 
 interface TarjetaRachaProps {
   habito: Habito;
   onToggle: (id: string) => void;
 }
 
-// Hábito con contador de racha, check-in diario y visual de puntos cumplidos.
+// La versión chica del hábito, para la tarjeta "Mis rachas" del Dashboard.
+//
+// Dibuja el MISMO hábito que la sección Hábitos, con los mismos datos: es la
+// misma fila de la base vista en chico (Errores 13.5 y 2.D.1). Los puntos son
+// el historial real de los últimos días, no una barra proporcional a la racha:
+// antes pintaba `min(racha, diasVisibles)` puntos seguidos, que dibujaba una
+// racha perfecta aunque los días reales tuvieran huecos.
 export default function TarjetaRacha({ habito, onToggle }: TarjetaRachaProps) {
-  const { nombre, rachaDias, cumplidoHoy, diasVisibles } = habito;
+  const { nombre, rachaDias, cumplidoHoy, historial } = habito;
   const sinRacha = rachaDias === 0;
-  const activos = Math.min(rachaDias, diasVisibles);
 
   return (
     <div className="group">
@@ -23,7 +28,7 @@ export default function TarjetaRacha({ habito, onToggle }: TarjetaRachaProps) {
               sinRacha ? "text-slate-500" : "text-orange-400"
             }`}
           >
-            {sinRacha ? "0 días" : `🔥 ${rachaDias} días`}
+            {sinRacha ? "0 días" : `🔥 ${rachaDias} ${rachaDias === 1 ? "día" : "días"}`}
           </p>
         </div>
         <input
@@ -38,12 +43,13 @@ export default function TarjetaRacha({ habito, onToggle }: TarjetaRachaProps) {
           }`}
         />
       </div>
-      <div className={`flex space-x-1.5 ${sinRacha ? "opacity-30" : ""}`}>
-        {Array.from({ length: diasVisibles }).map((_, i) => (
+      <div className="flex space-x-1.5">
+        {historial.map((dia) => (
           <div
-            key={i}
+            key={dia.fecha}
+            title={dia.fecha}
             className={`w-2.5 h-2.5 rounded-full ${
-              i < activos ? "bg-[#C548F5]" : "bg-surface-container-highest"
+              dia.cumplido ? "bg-[#C548F5]" : "bg-surface-container-highest"
             }`}
           />
         ))}

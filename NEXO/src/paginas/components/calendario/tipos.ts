@@ -1,5 +1,6 @@
 // Tipos y helpers de color del módulo Calendario Institucional
 
+// Las cuatro "familias" de color/ícono que tiene el diseño.
 export type TipoEvento = "examen" | "conferencia" | "evento" | "reunion";
 
 export interface EventoCalendario {
@@ -8,10 +9,33 @@ export interface EventoCalendario {
   fecha: string; // ISO yyyy-MM-dd
   horaInicio?: string;
   horaFin?: string;
-  tipo: TipoEvento;
+  // El tipo real es texto libre (Error 6.E.4): lo escribe quien crea el evento
+  // ("acto", "asamblea", "cita"…). No es una de cuatro opciones fijas. El color
+  // y el ícono se eligen a partir de ese texto con `familiaDeTipo`.
+  tipo: string;
   lugar?: string;
-  icono: string; // Material Symbol mostrado en la lista de próximos eventos
+  descripcion?: string;
+  creador?: string;
 }
+
+// Traduce el tipo libre de un evento a una de las cuatro familias visuales. Así
+// "acto", "asamblea" y "reunión de padres" caen en "reunion/evento" y toman un
+// color coherente, sin obligar a la base a usar solo cuatro palabras.
+export function familiaDeTipo(tipo: string): TipoEvento {
+  const t = tipo.toLowerCase();
+  if (t.includes("examen") || t.includes("parcial") || t.includes("prueba")) return "examen";
+  if (t.includes("reunión") || t.includes("reunion") || t.includes("cita") || t.includes("entrevista")) return "reunion";
+  if (t.includes("conferencia") || t.includes("charla") || t.includes("taller")) return "conferencia";
+  return "evento";
+}
+
+// Ícono para la lista de próximos eventos, según la familia del tipo.
+export const ICONO_FAMILIA: Record<TipoEvento, string> = {
+  examen: "schedule",
+  conferencia: "location_on",
+  evento: "groups",
+  reunion: "videocam",
+};
 
 export interface Feriado {
   fecha: string; // ISO yyyy-MM-dd

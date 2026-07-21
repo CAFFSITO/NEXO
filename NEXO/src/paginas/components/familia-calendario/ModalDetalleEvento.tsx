@@ -3,15 +3,14 @@ import { PALETA_FAMILIA, type EventoFamilia } from "./tipos";
 
 interface ModalDetalleEventoProps {
   evento: EventoFamilia;
-  onConfirmarAsistencia: (id: string) => void;
   onCerrar: () => void;
 }
 
 // Detalle de evento en modo lectura (la familia no crea ni elimina eventos).
-// Permite confirmar asistencia cuando el evento lo requiere.
+// Se quitó "Confirmar asistencia": no hay tabla que respalde esa función y el
+// botón nunca se dibujaba (limpieza de la etapa 10, Error 12.8).
 export default function ModalDetalleEvento({
   evento,
-  onConfirmarAsistencia,
   onCerrar,
 }: ModalDetalleEventoProps) {
   const paleta = PALETA_FAMILIA[evento.tipo];
@@ -68,20 +67,6 @@ export default function ModalDetalleEvento({
           >
             Cerrar
           </button>
-          {evento.requiereConfirmacion &&
-            (evento.confirmado ? (
-              <span className="flex-1 py-3 text-green-400 font-bold rounded-full text-sm text-center flex items-center justify-center gap-1">
-                <span className="material-symbols-outlined text-[18px]">task_alt</span>
-                Confirmada
-              </span>
-            ) : (
-              <button
-                onClick={() => onConfirmarAsistencia(evento.id)}
-                className="flex-1 py-3 bg-[#C548F5] text-white font-bold rounded-full hover:bg-[#b03bd9] transition-colors text-sm"
-              >
-                Confirmar asistencia
-              </button>
-            ))}
         </div>
       </div>
     </div>

@@ -31,7 +31,7 @@ const HASH_SENUELO = await hashearContrasena(randomBytes(32).toString("hex"));
 // Express sabe ESCRIBIR cookies (res.cookie) pero no leerlas. Como solo hay una
 // que nos importe y su valor es hexadecimal (sin caracteres raros), alcanza con
 // esto y evitamos sumar una dependencia.
-function leerToken(req) {
+export function leerToken(req) {
   const crudo = req.headers.cookie;
   if (!crudo) return null;
   for (const parte of crudo.split(";")) {
