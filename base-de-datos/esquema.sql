@@ -307,6 +307,9 @@ CREATE TABLE publicaciones (
     autor_id       INTEGER NOT NULL REFERENCES usuarios(id),
     contenido      TEXT NOT NULL,
     imagen_id      INTEGER REFERENCES archivos(id),
+    publicar_en    TEXT,                            -- fecha-hora ISO programada; NULL = publicar ya
+    fijado_en      TEXT,                            -- cuándo se fijó; NULL = no fijado
+    fijado_por_id  INTEGER REFERENCES usuarios(id), -- quién la fijó
     creado_en      TEXT NOT NULL DEFAULT (datetime('now')),
     eliminado_en   TEXT,
     eliminado_por  INTEGER REFERENCES usuarios(id)
@@ -601,6 +604,9 @@ CREATE TABLE comunicados (
     titulo         TEXT NOT NULL,
     contenido      TEXT NOT NULL,
     archivo_id     INTEGER REFERENCES archivos(id),
+    publicar_en    TEXT,                            -- fecha-hora ISO programada; NULL = publicar ya
+    fijado_en      TEXT,                            -- cuándo se fijó; NULL = no fijado
+    fijado_por_id  INTEGER REFERENCES usuarios(id), -- quién lo fijó
     enviado_en     TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -774,6 +780,34 @@ CREATE TABLE papelera_movimientos (
 );
 
 -- ============================================================================
+-- 14.C. PLANTILLAS DE PLATAFORMA (detalles finales)
+-- ----------------------------------------------------------------------------
+-- Un conjunto base de ESTRUCTURA (materias sugeridas, competencias base) que el
+-- Administrador de plataforma define una vez y APLICA al configurar una escuela,
+-- para no cargar todo a mano. Son de la plataforma, no de una institución: por
+-- eso `plantillas` no tiene institucion_id. Aplicarlas inserta filas reales en
+-- `materias` / `competencias` de la institución elegida.
+--
+-- Estructura, nunca contenido: una plantilla trae "Matemática" como materia, no
+-- alumnos ni notas. El operador de plataforma sigue sin ver la vida interna de
+-- ninguna escuela (sección 5.9).
+CREATE TABLE plantillas (
+    id        INTEGER PRIMARY KEY,
+    nombre    TEXT NOT NULL,
+    creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Cada ítem de una plantilla: qué es (materia o competencia) y cómo se llama.
+-- El CHECK acota los tipos a los que hoy mapean a una tabla real; deja lugar a
+-- sumar más adelante sin romper lo existente.
+CREATE TABLE plantilla_items (
+    id           INTEGER PRIMARY KEY,
+    plantilla_id INTEGER NOT NULL REFERENCES plantillas(id),
+    tipo         TEXT NOT NULL CHECK (tipo IN ('materia','competencia')),
+    nombre       TEXT NOT NULL
+);
+
+-- ============================================================================
 -- 15. VISTAS (consultas ya armadas)
 -- ============================================================================
 
@@ -850,3 +884,4 @@ CREATE INDEX idx_catedra_avisos_catedra ON catedra_avisos(catedra_id, creado_en)
 CREATE INDEX idx_aviso_reacciones_aviso ON aviso_reacciones(aviso_id);
 CREATE INDEX idx_aviso_respuestas_aviso ON aviso_respuestas(aviso_id);
 CREATE INDEX idx_papelera_mov_afectado  ON papelera_movimientos(usuario_afectado_id, realizado_en);
+CREATE INDEX idx_plantilla_items        ON plantilla_items(plantilla_id);

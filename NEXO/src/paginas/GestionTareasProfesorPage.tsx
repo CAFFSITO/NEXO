@@ -188,6 +188,35 @@ export default function GestionTareasProfesorPage() {
             />
           </div>
 
+          {/* Mis materias: entrar al detalle de la cátedra (horarios, avisos).
+              Es donde el profesor publica y gestiona los avisos de su curso. */}
+          {!cargando && !error && catedras.length > 0 && (
+            <div>
+              <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-3">
+                Mis materias
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {catedras.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => handleNavegar(`/portafolio/materia?catedra=${c.id}`)}
+                    className="text-left bg-[#2D1B4E] border border-white/5 hover:border-[#C548F5]/40 rounded-xl p-4 transition-all group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-white font-bold">{c.materia}</p>
+                      <span className="material-symbols-outlined text-white/30 group-hover:text-[#C548F5] transition-colors">
+                        chevron_right
+                      </span>
+                    </div>
+                    <p className="text-slate-400 text-xs mt-1">
+                      {c.curso} · {c.alumnos} {c.alumnos === 1 ? "alumno" : "alumnos"}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Lista de tareas */}
           {cargando ? (
             <Cargando que="tus tareas" />

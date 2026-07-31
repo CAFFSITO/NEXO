@@ -44,6 +44,7 @@ import AulaVirtualEstudiantePage from "./paginas/AulaVirtualEstudiantePage.tsx";
 import AulaVirtualProfesorPage from "./paginas/AulaVirtualProfesorPage.tsx";
 import MisCursosEstudiantePage from "./paginas/MisCursosEstudiantePage.tsx";
 import MisTareasEstudiantePage from "./paginas/MisTareasEstudiantePage.tsx";
+import DetalleMateriaPage from "./paginas/DetalleMateriaPage.tsx";
 import FamiliaCalendarioPage from "./paginas/FamiliaCalendarioPage.tsx";
 import FamiliaComunicadosPage from "./paginas/FamiliaComunicadosPage.tsx";
 import MisCursosPreceptorPage from "./paginas/MisCursosPreceptorPage.tsx";
@@ -85,6 +86,7 @@ const PAGINAS: Record<Exclude<Page, "login">, () => React.ReactElement> = {
   "aula-virtual-profesor": () => <AulaVirtualProfesorPage />,
   "mis-cursos-estudiante": () => <MisCursosEstudiantePage />,
   "mis-tareas-estudiante": () => <MisTareasEstudiantePage />,
+  "detalle-materia-estudiante": () => <DetalleMateriaPage />,
   "familia-calendario": () => <FamiliaCalendarioPage />,
   "familia-comunicados": () => <FamiliaComunicadosPage />,
   "mis-cursos-preceptor": () => <MisCursosPreceptorPage />,

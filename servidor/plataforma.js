@@ -166,4 +166,161 @@ export function registrarPlataforma(app, db) {
       res.status(500).json({ error: "La cocina no pudo crear la institución." });
     }
   });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // PLANTILLAS POR INSTITUCIÓN (detalles finales)
+  // ----------------------------------------------------------------------------
+  // Un conjunto base de ESTRUCTURA (materias, competencias) que el operador
+  // define una vez y aplica a una escuela, para no cargar todo a mano. Aplicar
+  // inserta filas reales en materias/competencias de esa institución. Sigue
+  // siendo estructura, nunca contenido: el operador no ve alumnos ni notas.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  const TIPOS_ITEM = ["materia", "competencia"];
+
+  const listarPlantillas = db.prepare(
+    "SELECT id, nombre, creado_en FROM plantillas ORDER BY creado_en DESC, id DESC"
+  );
+  const itemsDePlantilla = db.prepare(
+    "SELECT id, tipo, nombre FROM plantilla_items WHERE plantilla_id = ? ORDER BY id"
+  );
+
+  // ── Listar plantillas (con sus ítems) ──────────────────────────────────────
+  app.get(
+    "/api/plataforma/plantillas",
+    ventanilla((req, res) => {
+      const usuario = exigirAdministrador(db, req, res);
+      if (!usuario) return;
+
+      res.json({
+        plantillas: listarPlantillas.all().map((p) => {
+          const items = itemsDePlantilla.all(p.id);
+          return {
+            id: String(p.id),
+            nombre: p.nombre,
+            creadoEn: p.creado_en,
+            materias: items.filter((i) => i.tipo === "materia").map((i) => i.nombre),
+            competencias: items.filter((i) => i.tipo === "competencia").map((i) => i.nombre),
+          };
+        }),
+      });
+    })
+  );
+
+  // ── Crear una plantilla con sus ítems ──────────────────────────────────────
+  const insertarPlantilla = db.prepare("INSERT INTO plantillas (nombre) VALUES (?)");
+  const insertarItem = db.prepare(
+    "INSERT INTO plantilla_items (plantilla_id, tipo, nombre) VALUES (?, ?, ?)"
+  );
+
+  app.post(
+    "/api/plataforma/plantillas",
+    ventanilla((req, res) => {
+      const usuario = exigirAdministrador(db, req, res);
+      if (!usuario) return;
+
+      const nombre = String(req.body?.nombre ?? "").trim();
+      if (!nombre) return res.status(400).json({ error: "La plantilla necesita un nombre." });
+
+      // Los ítems llegan como [{ tipo, nombre }]. Se limpian y validan: tipo de la
+      // lista cerrada, nombre no vacío, sin duplicados dentro de la plantilla.
+      const crudos = Array.isArray(req.body?.items) ? req.body.items : [];
+      const vistos = new Set();
+      const items = [];
+      for (const it of crudos) {
+        const tipo = String(it?.tipo ?? "");
+        const nom = String(it?.nombre ?? "").trim();
+        if (!TIPOS_ITEM.includes(tipo) || !nom) continue;
+        const clave = tipo + "::" + nom.toLowerCase();
+        if (vistos.has(clave)) continue;
+        vistos.add(clave);
+        items.push({ tipo, nombre: nom });
+      }
+      if (items.length === 0) {
+        return res.status(400).json({ error: "Agregá al menos una materia o competencia." });
+      }
+
+      db.exec("BEGIN");
+      try {
+        const info = insertarPlantilla.run(nombre);
+        const plantillaId = Number(info.lastInsertRowid);
+        for (const it of items) insertarItem.run(plantillaId, it.tipo, it.nombre);
+        db.exec("COMMIT");
+        registrarLog.run("Plantilla creada: " + nombre);
+        res.status(201).json({ id: String(plantillaId) });
+      } catch (e) {
+        db.exec("ROLLBACK");
+        throw e;
+      }
+    })
+  );
+
+  // ── Aplicar una plantilla a una institución ────────────────────────────────
+  // Inserta las materias/competencias que faltan (saltea las que ya existen por
+  // nombre): aplicar dos veces no duplica. Es lo ÚNICO que el operador escribe en
+  // la vida de una escuela, y es estructura.
+  const institucionPorId = db.prepare("SELECT id, nombre FROM instituciones WHERE id = ?");
+  const plantillaPorId = db.prepare("SELECT id, nombre FROM plantillas WHERE id = ?");
+  const materiaExiste = db.prepare(
+    "SELECT 1 FROM materias WHERE institucion_id = ? AND nombre = ?"
+  );
+  const insertarMateria = db.prepare(
+    "INSERT INTO materias (institucion_id, nombre) VALUES (?, ?)"
+  );
+  const competenciaExiste = db.prepare(
+    "SELECT 1 FROM competencias WHERE institucion_id = ? AND nombre = ? AND padre_id IS NULL"
+  );
+  const insertarCompetencia = db.prepare(
+    "INSERT INTO competencias (institucion_id, nombre) VALUES (?, ?)"
+  );
+
+  app.post(
+    "/api/plataforma/instituciones/:id/aplicar-plantilla",
+    ventanilla((req, res) => {
+      const usuario = exigirAdministrador(db, req, res);
+      if (!usuario) return;
+
+      const institucionId = Number(req.params.id);
+      const institucion = Number.isInteger(institucionId) ? institucionPorId.get(institucionId) : null;
+      if (!institucion) return res.status(404).json({ error: "Esa institución no existe." });
+
+      const plantillaId = Number(req.body?.plantillaId);
+      const plantilla = Number.isInteger(plantillaId) ? plantillaPorId.get(plantillaId) : null;
+      if (!plantilla) return res.status(404).json({ error: "Esa plantilla no existe." });
+
+      const items = itemsDePlantilla.all(plantillaId);
+      const creado = { materias: 0, competencias: 0 };
+      const omitido = { materias: 0, competencias: 0 };
+
+      db.exec("BEGIN");
+      try {
+        for (const it of items) {
+          if (it.tipo === "materia") {
+            if (materiaExiste.get(institucionId, it.nombre)) omitido.materias++;
+            else {
+              insertarMateria.run(institucionId, it.nombre);
+              creado.materias++;
+            }
+          } else if (it.tipo === "competencia") {
+            if (competenciaExiste.get(institucionId, it.nombre)) omitido.competencias++;
+            else {
+              insertarCompetencia.run(institucionId, it.nombre);
+              creado.competencias++;
+            }
+          }
+        }
+        db.exec("COMMIT");
+      } catch (e) {
+        db.exec("ROLLBACK");
+        throw e;
+      }
+
+      registrarLog.run(
+        `Plantilla "${plantilla.nombre}" aplicada a ${institucion.nombre}: ` +
+          `${creado.materias} materias, ${creado.competencias} competencias`
+      );
+
+      res.json({ creado, omitido });
+    })
+  );
 }

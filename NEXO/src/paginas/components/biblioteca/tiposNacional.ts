@@ -12,7 +12,7 @@ export interface RecursoNacional {
   materia: string;
   escuela: string;
   tipo: TipoRecurso;
-  // Votos base (sin contar el voto del usuario actual)
+  // Votos reales del recurso (totales de la tabla `votos`, ya incluyen el propio)
   votosPositivos: number;
   votosNegativos: number;
   fechaPublicacion: string; // ISO date

@@ -3,6 +3,7 @@ import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
 import TarjetaCurso, { type Curso, type TemaCurso } from "./components/portafolio/TarjetaCurso";
+import SubNavPortafolio from "./components/portafolio/SubNavPortafolio";
 import { usarMisClases, type ClaseEstudiante } from "../servicios/aula";
 import { usarPortafolio, type TareaAcademica } from "../servicios/portafolio";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
@@ -14,24 +15,28 @@ import { fechaCorta } from "../servicios/fechas";
 // ningún otro lado ("Prof. Elena Vásquez", "Prof. Carlos Iturri" — Error 13.2).
 const TEMAS: TemaCurso[] = ["fuchsia", "indigo", "emerald"];
 
+// Se agrupa por CÁTEDRA (no por nombre de materia): así cada card lleva su
+// catedraId y el clic abre el detalle de esa materia. Para un alumno hay una
+// cátedra por materia (UNIQUE materia+curso), pero el id correcto es el de la
+// cátedra, que es lo que pide el detalle.
 function cursosDesdeTareas(tareas: TareaAcademica[]): Curso[] {
-    const porMateria = new Map<string, TareaAcademica[]>();
+    const porCatedra = new Map<string, TareaAcademica[]>();
     for (const t of tareas) {
-        const lista = porMateria.get(t.materia) ?? [];
+        const lista = porCatedra.get(t.catedraId) ?? [];
         lista.push(t);
-        porMateria.set(t.materia, lista);
+        porCatedra.set(t.catedraId, lista);
     }
-    return [...porMateria.entries()].map(([materia, lista], i) => {
+    return [...porCatedra.entries()].map(([catedraId, lista], i) => {
         const entregadas = lista.filter((t) => t.estado === "entregada").length;
         return {
-            id: materia,
-            titulo: materia,
+            id: catedraId,
+            titulo: lista[0].materia,
             profesor: lista[0].profesor,
             categoria: `${lista.length} ${lista.length === 1 ? "tarea" : "tareas"}`,
             icono: "menu_book",
             progreso: Math.round((entregadas / lista.length) * 100),
             tema: TEMAS[i % TEMAS.length],
-            labelBoton: "Ver tareas",
+            labelBoton: "Ver materia",
             iconoBoton: "arrow_forward",
         };
     });
@@ -65,8 +70,10 @@ export default function MisCursosEstudiantePage() {
 
     if (!usuario) return null;
 
-    // "Continuar" un curso = ir a las tareas reales de esa materia.
-    const handleAccionCurso = () => handleNavegar("/portafolio/mis-tareas");
+    // Tocar una materia abre su DETALLE (profesor, horarios, avisos, tareas),
+    // no Mis Tareas. El id de la card es la cátedra, que es lo que pide el detalle.
+    const handleAccionCurso = (catedraId: string) =>
+        handleNavegar(`/portafolio/materia?catedra=${catedraId}`);
 
     return (
         <div className="flex bg-[#1C1030] min-h-screen">
@@ -78,6 +85,10 @@ export default function MisCursosEstudiantePage() {
 
             <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
                 <TopBar title="Mis Cursos & Aula Virtual" />
+
+                {/* Sub-navegación del módulo: la misma barra que Mis Tareas y
+                    Calificaciones, para poder ir y volver (antes faltaba acá). */}
+                <SubNavPortafolio rutaActiva="/portafolio/mis-cursos" />
 
                 <div className="flex-1 overflow-y-auto bg-[#190d2d]">
                     <div className="p-8 max-w-7xl mx-auto w-full space-y-16">

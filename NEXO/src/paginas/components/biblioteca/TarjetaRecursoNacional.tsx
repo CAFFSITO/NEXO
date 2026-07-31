@@ -16,8 +16,10 @@ export default function TarjetaRecursoNacional({
   onVotar,
   onAbrir,
 }: TarjetaRecursoNacionalProps) {
-  // Total de positivos mostrado = base + 1 si el usuario votó positivo
-  const positivos = recurso.votosPositivos + (voto === "positivo" ? 1 : 0);
+  // Los conteos ya son los totales reales del servidor (incluyen el voto propio);
+  // `voto` solo decide el resaltado del botón, no suma ni resta al número.
+  const positivos = recurso.votosPositivos;
+  const negativos = recurso.votosNegativos;
 
   return (
     <div className="bg-[#2D1B4E] rounded-[16px] p-5 flex items-start gap-5 hover:bg-[#341f5a] transition-all border border-transparent hover:border-fuchsia-500/20 group">
@@ -61,6 +63,7 @@ export default function TarjetaRecursoNacional({
               >
                 thumb_down
               </span>
+              <span className="text-xs font-bold">{negativos}</span>
             </button>
           </div>
         </div>

@@ -14,6 +14,8 @@ import { usarDatos } from "./api";
 
 export interface TareaAcademica {
   id: string;
+  /** La cátedra (materia+curso) a la que pertenece: Mis Cursos abre su detalle. */
+  catedraId: string;
   materia: string;
   titulo: string;
   consigna: string;

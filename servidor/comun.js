@@ -119,3 +119,61 @@ export function hoyISO() {
   const dia = String(ahora.getDate()).padStart(2, "0");
   return `${ahora.getFullYear()}-${mes}-${dia}`;
 }
+
+// ── Voto único, con regla de alternancia (Error 2.B.1) ──────────────────────
+
+/**
+ * La regla de voto de NEXO, en un solo lugar. La usan la comunidad (publicación,
+ * debate, comentario) y la biblioteca (recurso): todas votan sobre la misma
+ * tabla `votos`, así que la regla —poner, cambiar o sacar— tiene que ser una
+ * sola y no una copia por módulo.
+ *
+ * Tocar el mismo sentido que ya se tenía QUITA el voto; tocar el otro lo CAMBIA;
+ * sin voto previo lo CREA. Un solo voto por persona y objeto lo garantiza el
+ * índice UNIQUE(usuario_id, objeto_tipo, objeto_id) de la tabla.
+ *
+ * NO valida permisos ni que el objeto exista: eso es de cada módulo, que sabe a
+ * quién le deja votar qué. Acá solo se aplica el voto y se devuelven los totales
+ * frescos, calculados de la tabla, para que la vidriera no invente números.
+ *
+ * @returns {{ miVoto: 1 | -1 | null, votosAFavor: number, votosEnContra: number }}
+ */
+export function aplicarVoto(db, usuarioId, objetoTipo, objetoId, valor) {
+  const previo = db
+    .prepare(
+      "SELECT id, valor FROM votos WHERE usuario_id = ? AND objeto_tipo = ? AND objeto_id = ?"
+    )
+    .get(usuarioId, objetoTipo, objetoId);
+
+  let miVoto;
+  if (!previo) {
+    db.prepare(
+      "INSERT INTO votos (usuario_id, objeto_tipo, objeto_id, valor) VALUES (?, ?, ?, ?)"
+    ).run(usuarioId, objetoTipo, objetoId, valor);
+    miVoto = valor;
+  } else if (previo.valor === valor) {
+    db.prepare("DELETE FROM votos WHERE id = ?").run(previo.id);
+    miVoto = null; // tocar el mismo sentido retira el voto
+  } else {
+    db.prepare(
+      "UPDATE votos SET valor = ?, creado_en = datetime('now') WHERE id = ?"
+    ).run(valor, previo.id);
+    miVoto = valor;
+  }
+
+  const totales = db
+    .prepare(
+      `SELECT
+         COALESCE(SUM(CASE WHEN valor = 1 THEN 1 ELSE 0 END), 0)  AS a_favor,
+         COALESCE(SUM(CASE WHEN valor = -1 THEN 1 ELSE 0 END), 0) AS en_contra
+       FROM votos WHERE objeto_tipo = ? AND objeto_id = ?`
+    )
+    .get(objetoTipo, objetoId);
+
+  return { miVoto, votosAFavor: totales.a_favor, votosEnContra: totales.en_contra };
+}
+
+/** El voto propio como lo espera la vidriera: "a-favor" / "en-contra" / null. */
+export function nombreDeVoto(valor) {
+  return valor === 1 ? "a-favor" : valor === -1 ? "en-contra" : null;
+}

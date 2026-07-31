@@ -193,6 +193,12 @@ INSERT INTO publicaciones (id, institucion_id, autor_id, contenido, creado_en) V
   (3, 1, 2,  'Subí a la biblioteca una guía nueva de ecuaciones. Recomendada antes del parcial.',  '2026-07-02T11:45:00'),
   (4, 1, 8,  'Propuesta: armar un grupo de estudio de Historia los miércoles después de clase.',   '2026-07-03T10:30:00');
 
+-- Publicación PROGRAMADA (Prompt 12): publicar_en dos días en el futuro. No debe
+-- aparecer en el feed hasta esa hora (lo aplicará el Prompt 13). Autor id 2 = Prof. Diego García.
+INSERT INTO publicaciones (id, institucion_id, autor_id, contenido, creado_en, publicar_en) VALUES
+  (5, 1, 2,  'Recordatorio: la entrega del TP de Matemática es la próxima semana. ¡A no dejarlo para último momento!',
+      '2026-07-31T08:00:00', datetime('now', '+2 days'));
+
 INSERT INTO debates (id, institucion_id, autor_id, titulo, descripcion, cierra_en, creado_en) VALUES
   (1, 1, 2,  '¿Debería usarse IA para hacer la tarea?',
       'Debate para 4° año: ¿la IA es una herramienta de estudio legítima o un atajo que impide aprender? Fundamentar cada postura.',
@@ -345,6 +351,12 @@ INSERT INTO comunicados (id, institucion_id, emisor_id, curso_id, titulo, conten
       'Los esperamos el martes 28/07 a las 17:00 en el aula de 4°B. Adjuntamos la circular con los temas.', 3, '2026-07-01T09:00:00'),
   (2, 1, 1, NULL, 'Acto por el Día de la Independencia',
       'El acto se realizará el martes 07/07 a las 10:00 en el patio central. Las familias están invitadas.', NULL, '2026-07-02T10:00:00');
+
+-- Comunicado FIJADO por la dirección (Prompt 12): emisor y fijador id 1 = direccion@sanmartin.
+-- Da algo real para probar "desfijar" (antes "fijado" era decoración del frontend).
+INSERT INTO comunicados (id, institucion_id, emisor_id, curso_id, titulo, contenido, archivo_id, enviado_en, fijado_en, fijado_por_id) VALUES
+  (3, 1, 1, NULL, 'Calendario de exámenes finales 2026',
+      'Publicamos el cronograma completo de finales. Queda fijado arriba para consulta permanente.', NULL, '2026-07-05T09:00:00', datetime('now'), 1);
 
 INSERT INTO comunicado_lecturas (comunicado_id, usuario_id, leido_en) VALUES
   (2, 14, '2026-07-02T12:30:00');

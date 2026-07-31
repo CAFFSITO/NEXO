@@ -3,6 +3,7 @@ import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
 import TarjetaPosteo from "./components/comunidad/TarjetaPosteo";
+import SidebarTendencias from "./components/comunidad/SidebarTendencias";
 import ModalDetalleComunidad from "./components/comunidad/ModalDetalleComunidad";
 import ModalDenuncia from "./components/comunidad/ModalDenuncia";
 import ModalModeracion from "./components/comunidad/ModalModeracion";
@@ -120,6 +121,11 @@ export default function ComunidadPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 bg-[#190d2d]">
+          {/* Columna del feed (izquierda) + previsualización de Tendencias
+              (derecha). En pantallas chicas la sidebar se oculta (xl:block) y el
+              feed ocupa todo, sin scroll horizontal. */}
+          <div className="flex gap-8 items-start">
+          <div className="flex-1 min-w-0">
           {/* Header */}
           <div className="mb-10 flex items-start justify-between max-w-2xl">
             <div>
@@ -209,6 +215,10 @@ export default function ComunidadPage() {
                 onEliminar={handleEliminar}
               />
             ))}
+          </div>
+          </div>
+
+          <SidebarTendencias onVer={() => handleNavegar("/comunidad/tendencias")} />
           </div>
         </div>
       </main>

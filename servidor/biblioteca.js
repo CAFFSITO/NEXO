@@ -21,7 +21,7 @@
 // "biología" = "biologia" = "BIOLOGÍA".
 // ============================================================================
 
-import { exigirAcceso, ventanilla } from "./comun.js";
+import { exigirAcceso, ventanilla, aplicarVoto, nombreDeVoto } from "./comun.js";
 
 /** El bibliotecario y la dirección ven la cola completa: es su trabajo. */
 const VEN_TODA_LA_COLA = ["bibliotecario", "admin-academico"];
@@ -57,7 +57,19 @@ export function registrarBiblioteca(app, db, notificaciones) {
             a.nombre_original,
             a.tipo_mime,
             a.tamano_bytes,
-            i.nombre AS institucion
+            i.nombre AS institucion,
+            -- Votos del recurso: misma tabla votos que la comunidad, con
+            -- objeto_tipo='recurso'. Conteos reales, y el voto propio (privado)
+            -- de quien pregunta (?2), para pintar los botones de voto (Error 2.E.9).
+            (SELECT COUNT(*) FROM votos v
+              WHERE v.objeto_tipo = 'recurso' AND v.objeto_id = r.id
+                AND v.valor = 1) AS votos_a_favor,
+            (SELECT COUNT(*) FROM votos v
+              WHERE v.objeto_tipo = 'recurso' AND v.objeto_id = r.id
+                AND v.valor = -1) AS votos_en_contra,
+            (SELECT v.valor FROM votos v
+              WHERE v.objeto_tipo = 'recurso' AND v.objeto_id = r.id
+                AND v.usuario_id = ?2) AS mi_voto
        FROM recursos r
        JOIN usuarios u      ON u.id = r.autor_id
        LEFT JOIN materias m ON m.id = r.materia_id
@@ -158,6 +170,11 @@ export function registrarBiblioteca(app, db, notificaciones) {
           alcance: fila.alcance,
           institucion: fila.institucion ?? null,
           creadoEn: fila.creado_en,
+          // Los votos, reales, salen de la tabla `votos` (nada inventado).
+          votosPositivos: fila.votos_a_favor,
+          votosNegativos: fila.votos_en_contra,
+          // El voto propio es privado: cada quien recibe el suyo y nada más.
+          miVoto: nombreDeVoto(fila.mi_voto),
           // Por id y no por nombre: dos personas pueden llamarse igual, y el
           // nombre no es lo que identifica a nadie.
           esMio: fila.autor_id === usuario.id,
@@ -403,6 +420,56 @@ export function registrarBiblioteca(app, db, notificaciones) {
       }
 
       res.status(400).json({ error: "Decisión desconocida: usá 'aprobar' o 'rechazar'." });
+    })
+  );
+
+  // ── Votar un recurso (Error 2.E.9) ─────────────────────────────────────────
+  // Mismo comportamiento y misma tabla que el voto de comunidad: la regla vive
+  // en comun.js (aplicarVoto) y no se duplica. Lo único propio de acá es QUIÉN
+  // puede votar: solo quien puede VER el recurso. La visibilidad es la misma
+  // regla que la lista de recursos (aprobado para todos; en revisión solo para
+  // su autor o el bibliotecario), así nadie vota un recurso que no vería.
+  const recursoVisible = db.prepare(
+    `SELECT r.id
+       FROM recursos r
+      WHERE r.id = ?1
+        AND r.eliminado_en IS NULL
+        AND (r.institucion_id = ?2 OR r.institucion_id IS NULL)
+        AND (
+              r.estado = 'aprobado'
+              OR (r.estado = 'en-revision' AND (r.autor_id = ?3 OR ?4 = 1))
+            )`
+  );
+
+  app.post(
+    "/api/biblioteca/recursos/:id/voto",
+    ventanilla((req, res) => {
+      // La página desde donde se vota es la Biblioteca Nacional; el mismo grupo
+      // de roles entra a la institucional, y la visibilidad del recurso hace el
+      // resto del filtro.
+      const usuario = exigirAcceso(db, req, res, "biblioteca-nacional");
+      if (!usuario) return;
+
+      const recursoId = Number(req.params.id);
+      const valor = Number(req.body?.valor);
+      if (valor !== 1 && valor !== -1) {
+        return res.status(400).json({ error: "El voto solo puede ser a favor o en contra." });
+      }
+
+      const veTodaLaCola = VEN_TODA_LA_COLA.includes(usuario.rol) ? 1 : 0;
+      const visible = Number.isInteger(recursoId)
+        ? recursoVisible.get(recursoId, usuario.institucionId, usuario.id, veTodaLaCola)
+        : null;
+      if (!visible) {
+        return res.status(404).json({ error: "Ese recurso no existe o no podés verlo." });
+      }
+
+      const resultado = aplicarVoto(db, usuario.id, "recurso", recursoId, valor);
+      res.json({
+        miVoto: nombreDeVoto(resultado.miVoto),
+        votosPositivos: resultado.votosAFavor,
+        votosNegativos: resultado.votosEnContra,
+      });
     })
   );
 }

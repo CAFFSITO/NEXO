@@ -54,7 +54,7 @@ interface SidebarProps {
 const NAV_POR_ROL: Record<Rol, NavItem[]> = {
     estudiante: [
         { label: "Comunidad", icono: "group", ruta: "/comunidad" },
-        { label: "Portafolio", icono: "school", ruta: "/portafolio/mis-tareas" },
+        { label: "Portafolio", icono: "school", ruta: "/portafolio/mis-cursos" },
         { label: "Objetivos", icono: "target", ruta: "/objetivos" },
         { label: "Biblioteca", icono: "local_library", ruta: "/biblioteca/institucional" },
         { label: "Chat", icono: "chat", ruta: "/chat" },

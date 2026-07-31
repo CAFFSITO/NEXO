@@ -76,6 +76,10 @@ export const ROLES_POR_PAGINA = {
   // Estudiante
   "mis-tareas-estudiante": ["estudiante"],
   "mis-cursos-estudiante": ["estudiante"],
+  // Detalle de una materia (profesor, horarios, avisos, tareas). La ventanilla
+  // vuelve a validar por fila: el alumno debe estar inscripto en ese curso y el
+  // profesor debe ser el docente de esa cátedra (publicar avisos es solo suyo).
+  "detalle-materia-estudiante": ["estudiante", "profesor"],
   calificaciones: ["estudiante"],
   "objetivos-dashboard": ["estudiante"],
   "objetivos-metas": ["estudiante"],

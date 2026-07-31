@@ -19,7 +19,7 @@
 // este colegio ni de ningún otro).
 // ============================================================================
 
-import { exigirAcceso, ventanilla } from "./comun.js";
+import { exigirAcceso, ventanilla, aplicarVoto, nombreDeVoto } from "./comun.js";
 
 export function registrarComunidad(app, db) {
   // ── Feed ──────────────────────────────────────────────────────────────────
@@ -330,37 +330,16 @@ export function registrarComunidad(app, db) {
         return res.status(404).json({ error: "Ese contenido no existe en tu comunidad." });
       }
 
-      const previo = db.prepare(
-        "SELECT id, valor FROM votos WHERE usuario_id = ? AND objeto_tipo = ? AND objeto_id = ?"
-      ).get(usuario.id, tipo, objetoId);
-
-      let miVoto;
-      if (!previo) {
-        db.prepare(
-          `INSERT INTO votos (usuario_id, objeto_tipo, objeto_id, valor) VALUES (?, ?, ?, ?)`
-        ).run(usuario.id, tipo, objetoId, valor);
-        miVoto = valor;
-      } else if (previo.valor === valor) {
-        db.prepare("DELETE FROM votos WHERE id = ?").run(previo.id);
-        miVoto = null; // tocar el mismo sentido retira el voto
-      } else {
-        db.prepare("UPDATE votos SET valor = ?, creado_en = datetime('now') WHERE id = ?")
-          .run(valor, previo.id);
-        miVoto = valor;
-      }
-
-      // Los totales frescos para que la tarjeta se actualice sin recargar todo.
-      const totales = db.prepare(
-        `SELECT
-           COALESCE(SUM(CASE WHEN valor = 1 THEN 1 ELSE 0 END), 0)  AS a_favor,
-           COALESCE(SUM(CASE WHEN valor = -1 THEN 1 ELSE 0 END), 0) AS en_contra
-         FROM votos WHERE objeto_tipo = ? AND objeto_id = ?`
-      ).get(tipo, objetoId);
+      // La regla de voto vive en comun.js (aplicarVoto): poner / cambiar / sacar,
+      // única por persona y objeto. Acá ya validamos que el objeto es de mi
+      // escuela; la biblioteca reutiliza la misma función con su propia regla de
+      // visibilidad.
+      const resultado = aplicarVoto(db, usuario.id, tipo, objetoId, valor);
 
       res.json({
-        miVoto: miVoto === 1 ? "a-favor" : miVoto === -1 ? "en-contra" : null,
-        votosAFavor: totales.a_favor,
-        votosEnContra: totales.en_contra,
+        miVoto: nombreDeVoto(resultado.miVoto),
+        votosAFavor: resultado.votosAFavor,
+        votosEnContra: resultado.votosEnContra,
       });
     })
   );

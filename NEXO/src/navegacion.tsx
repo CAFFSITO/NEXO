@@ -41,6 +41,7 @@ export type Page =
     | "aula-virtual-profesor"
     | "mis-cursos-estudiante"
     | "mis-tareas-estudiante"
+    | "detalle-materia-estudiante"
     | "familia-calendario"
     | "familia-comunicados"
     | "mis-cursos-preceptor"
@@ -122,11 +123,14 @@ export const MAPA_RUTAS = {
 
     // Portafolio (estudiante). Las tres sub-pantallas son UNA sola sección de
     // menú: el ítem "Portafolio" queda encendido en las tres.
-    "/portafolio": { pagina: "mis-tareas-estudiante", seccion: "portafolio-estudiante" },
+    "/portafolio": { pagina: "mis-cursos-estudiante", seccion: "portafolio-estudiante" },
     "/portafolio/mis-tareas": { pagina: "mis-tareas-estudiante", seccion: "portafolio-estudiante" },
     "/portafolio/mis-cursos": { pagina: "mis-cursos-estudiante", seccion: "portafolio-estudiante" },
     "/portafolio/cursos": { pagina: "mis-cursos-estudiante", seccion: "portafolio-estudiante" },
     "/portafolio/calificaciones": { pagina: "calificaciones", seccion: "portafolio-estudiante" },
+    // Detalle de una materia (se abre desde una card de Mis Cursos con ?catedra=ID).
+    // Sigue siendo la sección Portafolio: el menú "Portafolio" queda encendido.
+    "/portafolio/materia": { pagina: "detalle-materia-estudiante", seccion: "portafolio-estudiante" },
     // El aula virtual del estudiante se entra desde Mis Cursos (Error 2.C.1):
     // mientras está en clase sigue estando, para el menú, en su Portafolio.
     "/aula-virtual": { pagina: "aula-virtual-estudiante", seccion: "portafolio-estudiante" },

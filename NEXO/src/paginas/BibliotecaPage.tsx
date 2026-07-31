@@ -7,8 +7,10 @@ import ModalPresentarRecurso from "./components/biblioteca/ModalPresentarRecurso
 import {
   normalizar,
   usarBiblioteca,
+  votarRecurso,
   type AmbitoBiblioteca,
   type Recurso,
+  type ResultadoVotoRecurso,
 } from "../servicios/biblioteca";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 import { usarInstitucion } from "../servicios/institucion";
@@ -43,6 +45,27 @@ export default function BibliotecaPage() {
   // base los recursos de su ámbito.
   const { recursos, cargando, error, recargar } = usarBiblioteca(ambito);
 
+  // Al votar, el servidor devuelve el estado fresco (mi voto + totales reales).
+  // Se guarda por id de recurso para actualizar la tarjeta al instante; en la
+  // próxima carga (F5) el mismo estado ya viene del servidor.
+  const [votos, setVotos] = useState<Record<string, ResultadoVotoRecurso>>({});
+  const estadoVoto = (r: Recurso): ResultadoVotoRecurso =>
+    votos[r.id] ?? {
+      miVoto: r.miVoto,
+      votosPositivos: r.votosPositivos,
+      votosNegativos: r.votosNegativos,
+    };
+  // Votar de verdad (Error 2.E.9): el servidor pone/cambia/saca el voto (único
+  // por persona y recurso) y responde los totales, que reemplazan a los locales.
+  const handleVotar = async (recursoId: string, valor: 1 | -1) => {
+    try {
+      const res = await votarRecurso(recursoId, valor);
+      setVotos((v) => ({ ...v, [recursoId]: res }));
+    } catch (e) {
+      console.error("No se pudo votar el recurso", e);
+    }
+  };
+
   // La búsqueda ya no distingue tildes ni mayúsculas (Error 2.E.3): "cancion"
   // encuentra "canción". Antes solo tomaba coincidencias exactas.
   const recursosVisibles = useMemo(() => {
@@ -70,9 +93,10 @@ export default function BibliotecaPage() {
     else if (r.archivoId) window.open(urlDescarga(r.archivoId), "_blank");
   };
 
+  // Institucional primero (es la que abre por defecto), Nacional después.
   const tabs: { id: AmbitoBiblioteca; label: string }[] = [
-    { id: "nacional", label: "Nacional" },
     { id: "institucional", label: "Institucional" },
+    { id: "nacional", label: "Nacional" },
   ];
 
   return (
@@ -176,6 +200,10 @@ export default function BibliotecaPage() {
                 // "aprobado"/"en-revision". Es la misma cosa; se traduce acá.
                 estado={r.estado === "aprobado" ? "verificado" : "revision"}
                 onAction={() => handleAccionRecurso(r)}
+                votosPositivos={estadoVoto(r).votosPositivos}
+                votosNegativos={estadoVoto(r).votosNegativos}
+                miVoto={estadoVoto(r).miVoto}
+                onVotar={(valor) => handleVotar(r.id, valor)}
               />
             ))}
           </div>

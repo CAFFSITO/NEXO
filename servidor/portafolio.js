@@ -36,6 +36,7 @@ export function registrarPortafolio(app, db) {
             t.fecha_limite,
             t.metodo_estudio,
             t.tipo_asignacion,
+            ca.id     AS catedra_id,
             m.nombre  AS materia,
             p.nombre  AS profesor,
             e.id            AS entrega_id,
@@ -92,6 +93,9 @@ export function registrarPortafolio(app, db) {
 
       const tareas = tareasDe.all(usuario.id).map((fila) => ({
         id: String(fila.id),
+        // La cátedra a la que pertenece: con esto, Mis Cursos sabe a qué
+        // materia abrir su detalle (una cátedra por materia y curso).
+        catedraId: String(fila.catedra_id),
         materia: fila.materia,
         titulo: fila.titulo,
         consigna: fila.consigna,

@@ -48,6 +48,7 @@ import { registrarCuenta } from "./cuenta.js";
 import { registrarInstitucion } from "./institucion.js";
 import { registrarPerfiles, programarPurgaPapelera } from "./perfiles.js";
 import { registrarPortafolio } from "./portafolio.js";
+import { registrarMateria } from "./materia.js";
 import { registrarObjetivos } from "./objetivos.js";
 import { registrarDiario } from "./diario.js";
 import { registrarComunidad } from "./comunidad.js";
@@ -131,6 +132,10 @@ registrarPerfiles(app, db);
 registrarArchivos(app, db, carpeta);
 registrarTareas(app, db);
 registrarPortafolio(app, db);
+// Detalle de materia del estudiante (detalles finales): profesor, horarios,
+// avisos del docente con reacciones/respuestas y tareas de la cátedra. Permiso
+// por fila: solo alumnos inscriptos en el curso de esa cátedra.
+registrarMateria(app, db);
 registrarObjetivos(app, db);
 // Diario reflexivo del docente (Errores 3.C.3 y 3.C.6): crear/editar/borrar y que
 // los registros sobrevivan a la recarga, contra diario_registros. Permiso por fila.

@@ -1,5 +1,8 @@
 export type EstadoRecurso = "verificado" | "revision";
 
+/** Voto propio sobre el recurso, tal como lo devuelve el servidor. */
+export type VotoRecurso = "a-favor" | "en-contra" | null;
+
 interface ResourceCardProps {
   title: string;
   category: string;
@@ -11,6 +14,12 @@ interface ResourceCardProps {
   fileSize: string;
   estado?: EstadoRecurso;
   onAction?: () => void;
+  // Votos reales del recurso (totales de la tabla `votos`, incluyen el propio).
+  // Solo se muestran los controles si se pasa `onVotar`.
+  votosPositivos?: number;
+  votosNegativos?: number;
+  miVoto?: VotoRecurso;
+  onVotar?: (valor: 1 | -1) => void;
 }
 
 // Deriva label + ícono del botón según el tipo de archivo
@@ -37,6 +46,10 @@ export default function ResourceCard({
   fileSize,
   estado,
   onAction,
+  votosPositivos = 0,
+  votosNegativos = 0,
+  miVoto = null,
+  onVotar,
 }: ResourceCardProps) {
   const accion = accionPorTipo(fileType);
   const esEnlace = fileType.toUpperCase() === "LINK";
@@ -82,6 +95,56 @@ export default function ResourceCard({
             )}
           </div>
           <span className="text-xs text-gray-300">{author}</span>
+        </div>
+      )}
+
+      {/* Votos del recurso (Error 2.E.9): estilo Reddit, un solo puntaje neto
+          (a favor − en contra). Flecha arriba y flecha abajo se cancelan entre
+          sí; un solo voto por persona, se alterna. El puntaje es real (tabla
+          votos) y `miVoto` resalta la flecha. Solo aparece si hay manejador. */}
+      {onVotar && (
+        <div className="mt-auto flex items-center gap-1 w-fit rounded-full bg-[#1C1030] px-2 py-1">
+          <button
+            onClick={() => onVotar(1)}
+            aria-label="Votar a favor"
+            aria-pressed={miVoto === "a-favor"}
+            className={`flex items-center transition-colors ${
+              miVoto === "a-favor" ? "text-[#C548F5]" : "text-gray-400 hover:text-[#C548F5]"
+            }`}
+          >
+            <span
+              className="material-symbols-outlined text-xl"
+              style={miVoto === "a-favor" ? { fontVariationSettings: "'FILL' 1" } : undefined}
+            >
+              arrow_upward
+            </span>
+          </button>
+          <span
+            className={`min-w-6 text-center text-sm font-bold tabular-nums ${
+              miVoto === "a-favor"
+                ? "text-[#C548F5]"
+                : miVoto === "en-contra"
+                  ? "text-[#7c8cff]"
+                  : "text-gray-200"
+            }`}
+          >
+            {votosPositivos - votosNegativos}
+          </span>
+          <button
+            onClick={() => onVotar(-1)}
+            aria-label="Votar en contra"
+            aria-pressed={miVoto === "en-contra"}
+            className={`flex items-center transition-colors ${
+              miVoto === "en-contra" ? "text-[#7c8cff]" : "text-gray-400 hover:text-[#7c8cff]"
+            }`}
+          >
+            <span
+              className="material-symbols-outlined text-xl"
+              style={miVoto === "en-contra" ? { fontVariationSettings: "'FILL' 1" } : undefined}
+            >
+              arrow_downward
+            </span>
+          </button>
         </div>
       )}
 

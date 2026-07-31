@@ -8,8 +8,14 @@ import FiltrosNacional, {
 } from "./components/biblioteca/FiltrosNacional";
 import PanelTendencias, { type Tendencia } from "./components/biblioteca/PanelTendencias";
 import WidgetNovedades from "./components/biblioteca/WidgetNovedades";
-import type { RecursoNacional, TipoRecurso } from "./components/biblioteca/tiposNacional";
-import { normalizar, usarBiblioteca, type Recurso } from "../servicios/biblioteca";
+import type { RecursoNacional, TipoRecurso, Voto } from "./components/biblioteca/tiposNacional";
+import {
+  normalizar,
+  usarBiblioteca,
+  votarRecurso,
+  type Recurso,
+  type ResultadoVotoRecurso,
+} from "../servicios/biblioteca";
 import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 import { urlDescarga } from "../servicios/archivos";
 
@@ -33,14 +39,33 @@ const TIPO_NACIONAL: Record<Recurso["tipo"], TipoRecurso> = {
   libro: "articulo",
 };
 
+// El voto de la base ("a-favor"/"en-contra") traducido al del módulo nacional.
+const A_VOTO: Record<string, Voto> = { "a-favor": "positivo", "en-contra": "negativo" };
+
 export default function BibliotecaNacionalPage() {
   const [filtros, setFiltros] = useState<EstadoFiltros>(FILTROS_INICIALES);
   const { recursos, cargando, error, recargar } = usarBiblioteca("nacional");
 
-  // Cada recurso de la base, vestido para este módulo. Los votos van en cero:
-  // votar recursos de biblioteca no existe todavía en NEXO (la tabla `votos`
-  // es de la comunidad, no de la biblioteca), así que mostrar cualquier otro
-  // número sería inventarlo. El día que se agregue, saldrá de acá.
+  // Al votar, el servidor devuelve el estado fresco (mi voto + totales reales).
+  // Se guarda acá para que la tarjeta se actualice al instante sin recargar todo;
+  // en la próxima carga (F5) el mismo estado ya viene del servidor.
+  const [votos, setVotos] = useState<Record<string, ResultadoVotoRecurso>>({});
+
+  // Estado efectivo de voto por recurso: lo que devolvió el último voto, o lo que
+  // trajo el servidor al cargar. Todo real, nada inventado (sale de la tabla `votos`).
+  const estadoVoto = useMemo(() => {
+    const m: Record<string, ResultadoVotoRecurso> = {};
+    for (const r of recursos ?? []) {
+      m[r.id] = votos[r.id] ?? {
+        miVoto: r.miVoto,
+        votosPositivos: r.votosPositivos,
+        votosNegativos: r.votosNegativos,
+      };
+    }
+    return m;
+  }, [recursos, votos]);
+
+  // Cada recurso de la base, vestido para este módulo, con sus votos reales.
   const nacionales = useMemo<RecursoNacional[]>(() => {
     return (recursos ?? []).map((r) => ({
       id: r.id,
@@ -48,16 +73,22 @@ export default function BibliotecaNacionalPage() {
       materia: r.categoria,
       escuela: r.institucion ?? "Nacional",
       tipo: TIPO_NACIONAL[r.tipo],
-      votosPositivos: 0,
-      votosNegativos: 0,
+      votosPositivos: estadoVoto[r.id]?.votosPositivos ?? 0,
+      votosNegativos: estadoVoto[r.id]?.votosNegativos ?? 0,
       fechaPublicacion: r.creadoEn,
     }));
-  }, [recursos]);
+  }, [recursos, estadoVoto]);
 
-  // Votar recursos es escritura y no existe como dato: se deja el gesto pero no
-  // altera nada (Etapa 5).
-  const handleVotar = (id: string, tipo: "positivo" | "negativo") =>
-    console.log("Votar recurso", id, tipo);
+  // Votar de verdad (Error 2.E.9): el servidor pone/cambia/saca el voto (único por
+  // persona y recurso) y responde los totales frescos, que reemplazan a los locales.
+  const handleVotar = async (id: string, tipo: "positivo" | "negativo") => {
+    try {
+      const res = await votarRecurso(id, tipo === "positivo" ? 1 : -1);
+      setVotos((v) => ({ ...v, [id]: res }));
+    } catch (e) {
+      console.error("No se pudo votar el recurso", e);
+    }
+  };
 
   // Opciones de filtro derivadas de los datos reales (sin duplicados)
   const materias = useMemo(() => [...new Set(nacionales.map((r) => r.materia))], [nacionales]);
@@ -165,7 +196,7 @@ export default function BibliotecaNacionalPage() {
                 <TarjetaRecursoNacional
                   key={r.id}
                   recurso={r}
-                  voto={null}
+                  voto={A_VOTO[estadoVoto[r.id]?.miVoto ?? ""] ?? null}
                   onVotar={handleVotar}
                   onAbrir={handleAbrir}
                 />

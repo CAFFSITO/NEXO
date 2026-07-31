@@ -6,6 +6,7 @@ import TarjetaCalificacion from "./components/portafolio/TarjetaCalificacion";
 import ResumenCalificaciones from "./components/portafolio/ResumenCalificaciones";
 import ModalDevolucion from "./components/portafolio/ModalDevolucion";
 import ModalDetalleTarea from "./components/portafolio/ModalDetalleTarea";
+import SubNavPortafolio from "./components/portafolio/SubNavPortafolio";
 import {
   estiloMateria,
   type Calificacion,
@@ -19,13 +20,6 @@ import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 // `/api/portafolio`, exactamente la misma ventanilla que Mis Tareas, y arma sus
 // tarjetas con esas filas. Ese es todo el arreglo del Error 13.1: no hay dos
 // listas que puedan discrepar, hay una.
-
-// Sub-navegación del módulo Portafolio (estudiante)
-const SUBNAV = [
-  { label: "Mis Cursos", ruta: "/portafolio/cursos" },
-  { label: "Mis Tareas", ruta: "/portafolio/mis-tareas" },
-  { label: "Calificaciones", ruta: "/portafolio/calificaciones" },
-];
 
 // Filtros disponibles
 const FILTROS: { label: string; valor: EstadoCalificacion | "todas" }[] = [
@@ -121,24 +115,7 @@ export default function CalificacionesPage() {
         <TopBar title="Portafolio de Aprendizaje" subtitle="Calificaciones" />
 
         {/* Sub-navegación del módulo */}
-        <div className="flex gap-6 items-center px-8 h-12 border-b border-purple-900/20 bg-[#1C1030]/60">
-          {SUBNAV.map((tab) => {
-            const activa = tab.ruta === "/portafolio/calificaciones";
-            return (
-              <button
-                key={tab.ruta}
-                onClick={() => handleNavegar(tab.ruta)}
-                className={`pb-1 font-headline text-sm font-medium transition-all ${
-                  activa
-                    ? "text-[#C548F5] border-b-2 border-[#C548F5] font-bold"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <SubNavPortafolio rutaActiva="/portafolio/calificaciones" />
 
         <div className="flex-1 overflow-y-auto px-10 pt-8 pb-12 bg-[#190d2d] relative">
           {/* Decoración de fondo */}

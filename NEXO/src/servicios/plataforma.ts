@@ -3,7 +3,7 @@
 // Todo lo que trae sale de la base: instituciones con sus totales, salud del
 // sistema y los logs. Ningún dato interno de una escuela pasa por acá.
 
-import { usarDatos } from "./api";
+import { enviar, usarDatos } from "./api";
 
 export interface InstitucionPlataforma {
   id: string;
@@ -84,4 +84,49 @@ export async function crearInstitucion(
     direccionEmail: cuerpo.direccionEmail,
     contrasenaInicial: cuerpo.contrasenaInicial,
   };
+}
+
+// ─── Plantillas por institución (detalles finales) ──────
+// Estructura base (materias, competencias) que el operador define una vez y
+// aplica a una escuela. Es estructura, no contenido: no toca alumnos ni notas.
+
+export type TipoItemPlantilla = "materia" | "competencia";
+
+export interface ItemPlantilla {
+  tipo: TipoItemPlantilla;
+  nombre: string;
+}
+
+export interface PlantillaPlataforma {
+  id: string;
+  nombre: string;
+  creadoEn: string;
+  materias: string[];
+  competencias: string[];
+}
+
+export function usarPlantillas() {
+  const { datos, cargando, error, recargar } =
+    usarDatos<{ plantillas: PlantillaPlataforma[] }>("/api/plataforma/plantillas");
+  return { plantillas: datos?.plantillas ?? null, cargando, error, recargar };
+}
+
+/** Crear una plantilla con sus ítems (materias/competencias). */
+export function crearPlantilla(nombre: string, items: ItemPlantilla[]) {
+  return enviar<{ id: string }>("/api/plataforma/plantillas", "POST", { nombre, items });
+}
+
+/** Cuántas filas se crearon y cuántas se saltearon por ya existir. */
+export interface ResultadoAplicar {
+  creado: { materias: number; competencias: number };
+  omitido: { materias: number; competencias: number };
+}
+
+/** Aplicar una plantilla a una institución (inserta la estructura que falta). */
+export function aplicarPlantilla(institucionId: string, plantillaId: string) {
+  return enviar<ResultadoAplicar>(
+    `/api/plataforma/instituciones/${institucionId}/aplicar-plantilla`,
+    "POST",
+    { plantillaId: Number(plantillaId) },
+  );
 }

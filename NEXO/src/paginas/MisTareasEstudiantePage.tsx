@@ -6,6 +6,7 @@ import TarjetaTarea from "./components/portafolio/TarjetaTarea";
 import TarjetaTareaPersonal from "./components/portafolio/TarjetaTareaPersonal";
 import ModalNuevaTareaPersonal from "./components/portafolio/ModalNuevaTareaPersonal";
 import ModalDetalleTarea from "./components/portafolio/ModalDetalleTarea";
+import SubNavPortafolio from "./components/portafolio/SubNavPortafolio";
 import {
   estadoEfectivo,
   FILTROS,
@@ -28,15 +29,6 @@ import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 // Prof. García, que da Matemática — Error 13.2), fechas sin año ("15 ABR",
 // Error 2.C.9) y una nota de Biología de 9.5 que contradecía el 8.0 que
 // mostraba Calificaciones sobre el MISMO trabajo (Error 13.1).
-
-// Sub-navegación del módulo Portafolio (Estudiante)
-const SUBNAV = [
-  { label: "Mis Cursos", ruta: "/portafolio/mis-cursos" },
-  { label: "Mis Tareas", ruta: "/portafolio/mis-tareas" },
-  { label: "Calificaciones", ruta: "/portafolio/calificaciones" },
-];
-
-const RUTA_ACTIVA = "/portafolio/mis-tareas";
 
 type Orden = "fecha" | "materia";
 
@@ -164,24 +156,7 @@ export default function MisTareasEstudiantePage() {
         <TopBar title="Portafolio de aprendizaje" subtitle="Mis Tareas" />
 
         {/* Sub-navegación del módulo */}
-        <div className="flex gap-6 items-center px-8 h-12 border-b border-purple-900/20 bg-[#1C1030]/60">
-          {SUBNAV.map((tab) => {
-            const activa = tab.ruta === RUTA_ACTIVA;
-            return (
-              <button
-                key={tab.ruta}
-                onClick={() => handleNavegar(tab.ruta)}
-                className={`pb-1 font-headline text-sm font-medium transition-all ${
-                  activa
-                    ? "text-[#C548F5] border-b-2 border-[#C548F5] font-bold"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <SubNavPortafolio rutaActiva="/portafolio/mis-tareas" />
 
         <div className="flex-1 overflow-y-auto bg-[#190d2d] p-8">
           <div className="max-w-6xl mx-auto">

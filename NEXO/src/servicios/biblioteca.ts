@@ -33,6 +33,11 @@ export interface Recurso {
   alcance: AmbitoBiblioteca;
   institucion: string | null;
   creadoEn: string;
+  /** Votos reales del recurso (tabla `votos`), totales que incluyen el propio. */
+  votosPositivos: number;
+  votosNegativos: number;
+  /** Mi voto, privado. null = todavía no voté (Error 2.E.9). */
+  miVoto: "a-favor" | "en-contra" | null;
   /** true si lo presentó quien está mirando (para la sección "en revisión"). */
   esMio: boolean;
 }
@@ -56,6 +61,28 @@ export function normalizar(texto: string): string {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "");
+}
+
+// ─── Votar un recurso (Error 2.E.9) ─────────────────────
+
+/** Resultado de votar un recurso: mi voto (privado) y los totales frescos. */
+export interface ResultadoVotoRecurso {
+  miVoto: "a-favor" | "en-contra" | null;
+  votosPositivos: number;
+  votosNegativos: number;
+}
+
+/**
+ * Voto único y privado sobre un recurso (misma regla que la comunidad). Tocar el
+ * mismo sentido lo quita; el otro lo cambia. El servidor garantiza un solo voto
+ * por persona y recurso y devuelve los totales reales.
+ */
+export function votarRecurso(recursoId: string, valor: 1 | -1) {
+  return enviar<ResultadoVotoRecurso>(
+    `/api/biblioteca/recursos/${recursoId}/voto`,
+    "POST",
+    { valor },
+  );
 }
 
 // ─── Filtros reales (materias y tipos de la base) ────────
