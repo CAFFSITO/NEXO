@@ -22,6 +22,7 @@ export default function PanelProximosEventos({ eventos, onVerCalendario }: Panel
                 Próximos Eventos
             </h4>
             <div className="space-y-6">
+                {eventos.length === 0 && <p className="text-sm text-slate-400">No hay eventos próximos en tu calendario.</p>}
                 {eventos.map((evento) => (
                     <div
                         key={evento.id}

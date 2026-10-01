@@ -90,7 +90,7 @@ export default function GraficoProgresoAlumno({ serie }: Props) {
             <Tooltip
               contentStyle={{ background: "#2D1B4E", border: "1px solid #ffffff20", borderRadius: 12, color: "#fff" }}
               labelStyle={{ color: "#cbd5e1" }}
-              formatter={(v: number, _n, item) => [`${v} / 10`, item?.payload?.tarea ?? "Nota"]}
+              formatter={(v, _n, item) => [`${v} / 10`, item?.payload?.tarea ?? "Nota"]}
             />
             <Line
               type="monotone"
@@ -110,7 +110,7 @@ export default function GraficoProgresoAlumno({ serie }: Props) {
               cursor={{ fill: "#ffffff0a" }}
               contentStyle={{ background: "#2D1B4E", border: "1px solid #ffffff20", borderRadius: 12, color: "#fff" }}
               labelStyle={{ color: "#cbd5e1" }}
-              formatter={(v: number, _n, item) => [`${v} / 10`, item?.payload?.tarea ?? "Nota"]}
+              formatter={(v, _n, item) => [`${v} / 10`, item?.payload?.tarea ?? "Nota"]}
             />
             <Bar dataKey="nota" radius={[6, 6, 0, 0]}>
               {datos.map((p, i) => (

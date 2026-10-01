@@ -1,123 +1,37 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { DatosEvidencia } from "../../../servicios/objetivos";
 
-// Trabajos disponibles desde el Portafolio para vincular como evidencia
-export interface TrabajoDisponible {
-  id: string;
-  titulo: string;
-  icono: string;
-}
-
-interface ModalAgregarEvidenciaProps {
+export interface TrabajoDisponible { id: string; titulo: string; icono: string }
+interface Props {
   competenciaNombre: string;
   trabajos: TrabajoDisponible[];
-  onGuardar: () => void;
+  onGuardar: (datos: DatosEvidencia) => Promise<void>;
   onCerrar: () => void;
 }
-
-// Guardar la evidencia de verdad (vincular un trabajo del portafolio y su
-// reflexión, y que la fila viaje a `evidencias`) es la Etapa 5. En esta etapa
-// el formulario valida y se cierra; por eso `onGuardar` no lleva datos.
-export default function ModalAgregarEvidencia({
-  competenciaNombre,
-  trabajos,
-  onGuardar,
-  onCerrar,
-}: ModalAgregarEvidenciaProps) {
-  const [trabajoId, setTrabajoId] = useState<string>("");
-  const [reflexion, setReflexion] = useState<string>("");
-
-  const trabajoSeleccionado = trabajos.find((t) => t.id === trabajoId);
-  const puedeGuardar = trabajoSeleccionado !== undefined && reflexion.trim().length > 0;
-
-  const handleGuardar = () => {
-    if (!puedeGuardar) return;
-    onGuardar();
+export default function ModalAgregarEvidencia({ competenciaNombre, trabajos, onGuardar, onCerrar }: Props) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [titulo, setTitulo] = useState("");
+  const [tareaId, setTareaId] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => { dialog.current?.showModal(); }, []);
+  const guardar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (guardando || !titulo.trim()) return;
+    setGuardando(true); setError("");
+    try { await onGuardar({ titulo: titulo.trim(), descripcion: descripcion.trim(), tareaId: tareaId || null }); }
+    catch (e) { setError(e instanceof Error ? e.message : "No se pudo guardar la evidencia."); }
+    finally { setGuardando(false); }
   };
-
-  return (
-    <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-      onClick={onCerrar}
-    >
-      <div
-        className="w-full max-w-md bg-[#2D1B4E] rounded-[20px] border border-purple-900/30 shadow-2xl p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h2 className="text-xl font-bold font-headline text-white">Agregar Evidencia</h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Para <span className="text-[#C548F5] font-bold">{competenciaNombre}</span>
-            </p>
-          </div>
-          <button
-            onClick={onCerrar}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-colors"
-            aria-label="Cerrar"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </div>
-
-        {/* Selector de trabajo */}
-        <div className="mb-5">
-          <label
-            htmlFor="selector-trabajo"
-            className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider"
-          >
-            Trabajo o proyecto
-          </label>
-          <select
-            id="selector-trabajo"
-            value={trabajoId}
-            onChange={(e) => setTrabajoId(e.target.value)}
-            className="w-full bg-[#1C1030] text-white text-sm rounded-lg px-4 py-3 border border-purple-900/30 focus:ring-2 focus:ring-[#C548F5]/50 focus:border-[#C548F5]/50 outline-none"
-          >
-            <option value="">Seleccioná un trabajo…</option>
-            {trabajos.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.titulo}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Editor de reflexión metacognitiva */}
-        <div className="mb-6">
-          <label
-            htmlFor="editor-reflexion"
-            className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider"
-          >
-            Reflexión
-          </label>
-          <textarea
-            id="editor-reflexion"
-            value={reflexion}
-            onChange={(e) => setReflexion(e.target.value)}
-            rows={4}
-            placeholder="¿Cómo demuestro esta competencia en este trabajo?"
-            className="w-full bg-[#1C1030] text-white text-sm rounded-lg px-4 py-3 border border-purple-900/30 focus:ring-2 focus:ring-[#C548F5]/50 focus:border-[#C548F5]/50 outline-none resize-none placeholder-slate-500"
-          />
-        </div>
-
-        {/* Acciones */}
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={onCerrar}
-            className="px-5 py-2.5 text-slate-400 hover:text-white text-sm font-bold transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleGuardar}
-            disabled={!puedeGuardar}
-            className="px-6 py-2.5 bg-[#C548F5] hover:bg-[#b039df] text-white rounded-full text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Guardar evidencia
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return <dialog ref={dialog} className="nexo-search-dialog" aria-labelledby="evidencia-titulo" onCancel={e => { if (guardando) e.preventDefault(); else onCerrar(); }} onClose={onCerrar}>
+    <form onSubmit={guardar} className="p-6 space-y-5">
+      <header className="flex justify-between gap-4"><div><h2 id="evidencia-titulo" className="font-headline text-xl font-bold">Agregar evidencia</h2><p className="text-sm text-primary mt-1">{competenciaNombre}</p></div><button type="button" disabled={guardando} onClick={onCerrar} aria-label="Cerrar" className="nexo-icon-button"><span className="material-symbols-outlined">close</span></button></header>
+      <label className="block text-sm">Título<input autoFocus required maxLength={200} value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="¿Qué aprendiste o lograste?" className="mt-2 block w-full bg-background border border-outline-variant/50 rounded-xl p-3" /></label>
+      <label className="block text-sm">Trabajo del portafolio <span className="text-on-surface-variant/60">· opcional</span><select value={tareaId} onChange={e => { setTareaId(e.target.value); if (!titulo) setTitulo(trabajos.find(t => t.id === e.target.value)?.titulo ?? ""); }} className="mt-2 block w-full bg-background border border-outline-variant/50 rounded-xl p-3"><option value="">Evidencia de una experiencia personal</option>{trabajos.map(t => <option key={t.id} value={t.id}>{t.titulo}</option>)}</select></label>
+      <label className="block text-sm">Tu reflexión<textarea value={descripcion} maxLength={10000} onChange={e => setDescripcion(e.target.value)} placeholder="Contá cómo esta experiencia demuestra tu competencia." rows={4} className="mt-2 block w-full bg-background border border-outline-variant/50 rounded-xl p-3 resize-y" /></label>
+      {error && <p role="alert" className="text-error text-sm">{error}</p>}
+      <div className="flex justify-end gap-3"><button type="button" disabled={guardando} onClick={onCerrar} className="px-4 py-3 text-sm">Cancelar</button><button disabled={guardando || !titulo.trim()} className="bg-primary text-on-primary px-5 py-3 rounded-xl text-sm font-bold disabled:opacity-50">{guardando ? "Guardando…" : "Guardar evidencia"}</button></div>
+    </form>
+  </dialog>;
 }

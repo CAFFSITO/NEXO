@@ -4,12 +4,15 @@ import type { Habito } from "../../../servicios/objetivos";
 interface TarjetaHabitoProps {
   habito: Habito;
   onToggle: (id: string) => void;
+  onEditar?: (id: string) => void;
+  onArchivar?: (id: string) => void;
+  ocupado?: boolean;
 }
 
 // Tarjeta de hábito de la vista "Mis Hábitos de Estudio".
 // Muestra nombre, frecuencia, visual de los últimos días, contador de racha
 // y un check grande para registrar el cumplimiento de hoy.
-export default function TarjetaHabito({ habito, onToggle }: TarjetaHabitoProps) {
+export default function TarjetaHabito({ habito, onToggle, onEditar, onArchivar, ocupado }: TarjetaHabitoProps) {
   const { id, nombre, frecuencia, rachaDias, cumplidoHoy, historial } = habito;
   const sinRacha = rachaDias === 0;
 
@@ -22,7 +25,11 @@ export default function TarjetaHabito({ habito, onToggle }: TarjetaHabitoProps) 
       <div className="space-y-4">
         <div>
           <h3 className="text-lg font-bold text-white">{nombre}</h3>
-          <span className="text-sm text-white/40">{FRECUENCIA_LABELS[frecuencia]}</span>
+          <span className="text-sm text-white/60">{FRECUENCIA_LABELS[frecuencia]}</span>
+          {(onEditar || onArchivar) && <div className="flex gap-3 mt-3 text-xs text-primary">
+            {onEditar && <button disabled={ocupado} onClick={() => onEditar(id)} className="hover:underline">Editar</button>}
+            {onArchivar && <button disabled={ocupado} onClick={() => onArchivar(id)} className="hover:underline">Archivar</button>}
+          </div>}
         </div>
 
         {/* Historial de cumplimiento (últimos días). Cada punto es un día real
@@ -62,6 +69,7 @@ export default function TarjetaHabito({ habito, onToggle }: TarjetaHabitoProps) 
           type="checkbox"
           className="sr-only peer"
           checked={cumplidoHoy}
+          disabled={ocupado}
           onChange={() => onToggle(id)}
           aria-label={`Registrar ${nombre} hoy`}
         />

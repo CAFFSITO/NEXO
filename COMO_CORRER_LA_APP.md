@@ -11,7 +11,26 @@ Además hay una carpeta `base-de-datos/` con el archivo `nexo.db`, donde vive to
 
 ---
 
-## Paso 1 — Instalar Node.js (versión 22.5 o más nueva)
+## Arranque unificado
+
+Usá **Node.js 24 o superior**. Desde la raíz del proyecto, con las dependencias instaladas:
+
+```powershell
+npm run dev
+```
+
+Este comando levanta el servidor y Vite juntos. Espera a que el backend esté listo y abre la aplicación en `http://localhost:5173`. Si uno falla, detiene el otro. `Ctrl+C` cierra ambos. Una base existente se conserva; si falta la base predeterminada, se crea con los datos iniciales.
+
+- `npm run check`: lint, compilación y pruebas de integración.
+- `npm test`: pruebas contra una base temporal, sin modificar `nexo.db`.
+- `npm run build` y después `npm start`: servir la versión compilada en `http://localhost:3000`.
+- `npm run dev:frontend` / `npm run dev:backend`: arrancar cada parte por separado.
+
+`NEXO_PORT`, `NEXO_HOST`, `NEXO_DB_PATH` y `NEXO_STORAGE_DIR` permiten cambiar puerto, interfaz, base y almacenamiento. Para usar un backend en otra dirección, configurá `NEXO_API_ORIGIN` antes de iniciar Vite. En desarrollo usá HTTP local; para HTTPS seguí las instrucciones de producción de abajo.
+
+Los pasos 6 y 7 describen la alternativa manual; no los ejecutes a la vez que `npm run dev` porque ocuparían los mismos puertos.
+
+## Paso 1 — Instalar Node.js (versión 24 o superior)
 
 Node.js es el programa que ejecuta tanto el servidor como la aplicación.
 
@@ -23,7 +42,7 @@ Node.js es el programa que ejecuta tanto el servidor como la aplicación.
 node -v
 ```
 
-Tiene que mostrar `v22.5.0` **o superior** (por ejemplo `v22.11.0`). Esto es importante: el servidor usa el SQLite que viene integrado en Node a partir de la 22.5. Si te muestra una versión más vieja, desinstalá Node y volvé a instalar la LTS actual.
+Tiene que mostrar `v24.0.0` **o superior**. Esta versión permite usar SQLite integrado y las herramientas de compilación del frontend. Si te muestra una versión más vieja, desinstalá Node y volvé a instalar la LTS actual.
 
 > 💡 ¿Qué terminal uso? En Windows: buscá "PowerShell" en el menú Inicio. En Mac/Linux: la aplicación "Terminal".
 
@@ -129,7 +148,7 @@ En la pantalla de ingreso, usá alguna de las cuentas de prueba. **La contraseñ
 
 ## Resumen para el día a día
 
-Una vez instalado todo, cada vez que quieras usar la app solo repetís los pasos 6 y 7:
+Una vez instalado todo, ejecutá `npm run dev` desde la raíz. Como alternativa, podés repetir los pasos 6 y 7:
 
 1. **Terminal 1:** `cd servidor` → `node servidor.js`
 2. **Terminal 2:** `cd NEXO` → `yarn dev`
@@ -197,6 +216,53 @@ Tiene que decir `nothing to commit, working tree clean` (no hay nada pendiente).
 > git config --global user.name "Tu Nombre"
 > git config --global user.email "tu@correo.com"
 > ```
+
+---
+
+## Poner NEXO en producción (HTTPS y la cámara del aula virtual)
+
+En desarrollo alcanza con lo de arriba (servidor en `localhost:3000`, Vite en
+`localhost:5173`). Pero la **videollamada del aula virtual** usa la cámara del
+navegador, y **los navegadores sólo dan acceso a la cámara en `https` o en
+`localhost`**. Por eso, para que el video funcione entre computadoras de la
+escuela, hay que servir NEXO por **HTTPS**. Todo se hace con nuestro propio
+servidor; no depende de ningún servicio externo.
+
+1. **Compilar la aplicación** (una vez por cada versión nueva):
+   ```
+   cd NEXO
+   yarn build
+   ```
+   Esto genera la carpeta `NEXO/dist`. Cuando esa carpeta existe, el servidor la
+   sirve solo: la app, `/api` y el video quedan todos en el **mismo sitio** (ya no
+   hace falta Vite ni el puerto 5173 en producción).
+
+2. **Encender con HTTPS**, indicándole al servidor un certificado y su clave
+   (propios de la institución) con dos variables de entorno:
+   ```
+   # Windows (PowerShell), en la carpeta servidor/
+   $env:NEXO_TLS_CERT="C:\ruta\certificado.pem"
+   $env:NEXO_TLS_KEY="C:\ruta\clave.pem"
+   node servidor.js
+   ```
+   Si arranca bien vas a ver `Cocina de NEXO encendida en https://localhost:3000`.
+   Entrás desde cualquier computadora de la red a `https://<ip-del-servidor>:3000`.
+   Sin esas variables, el servidor sigue en `http` (que ya alcanza para localhost).
+
+3. **(Opcional) Acceso desde FUERA de la red de la escuela.** En una red local no
+   hace falta nada más. Si algún día se quiere entrar al aula desde otra red
+   (internet), los navegadores necesitan un servidor **STUN/TURN** para cruzar el
+   router. Se usa uno **propio** de la institución (nunca uno ajeno), sin tocar
+   código, al compilar:
+   ```
+   # ejemplo: definir la variable antes de "yarn build"
+   VITE_ICE_SERVERS='[{"urls":"turn:turn.miescuela.edu:3478","username":"u","credential":"c"}]'
+   ```
+   Mientras no se defina, la videollamada usa sólo la red local.
+
+> El tope de cámaras simultáneas por clase es 12 (la videollamada es en malla y no
+> escala más allá de una decena). Se puede ajustar con la variable `NEXO_MAX_VIDEO`
+> en el servidor.
 
 ---
 

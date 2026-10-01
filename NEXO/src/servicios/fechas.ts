@@ -43,6 +43,16 @@ export function hoy(): Date {
   return fecha;
 }
 
+/** Conserva hora y zona. SQLite datetime('now') devuelve UTC sin sufijo. */
+export function aInstante(valor: string | null | undefined): Date | null {
+  if (!valor) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) return aFecha(valor);
+  const iso = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?$/.test(valor)
+    ? valor.replace(" ", "T") + "Z" : valor;
+  const fecha = new Date(iso);
+  return Number.isNaN(fecha.getTime()) ? null : fecha;
+}
+
 /**
  * Días desde hoy hasta `iso`. Negativo = ya venció. null = no hay fecha.
  * Nunca "corrige" una fecha pasada al año siguiente: si venció, venció.
@@ -76,6 +86,23 @@ export function fechaCorta(iso: string | null | undefined): string {
   return fecha.getFullYear() === anioActual
     ? texto
     : `${texto} ${fecha.getFullYear()}`;
+}
+
+/**
+ * "5 ago, 15:25" — fecha y hora local. Para lo programado a una hora puntual
+ * (una publicación o un comunicado con fecha de publicación, Prompt 13). A
+ * diferencia de `fechaCorta`, aquí la hora importa, así que se lee el ISO
+ * completo (con 'T'/'Z') tal como lo manda el servidor y se muestra en la hora
+ * local de quien mira.
+ */
+export function fechaHora(iso: string | null | undefined): string {
+  if (!iso) return "Sin fecha";
+  const d = aInstante(iso);
+  if (!d) return "Sin fecha";
+  const fecha = `${d.getDate()} ${MESES_CORTOS[d.getMonth()]}`;
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${fecha}, ${hh}:${mm}`;
 }
 
 const plural = (n: number, singular: string, plural: string) =>

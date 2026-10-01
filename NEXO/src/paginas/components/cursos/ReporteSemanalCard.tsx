@@ -20,10 +20,9 @@ export default function ReporteSemanalCard({
       >
         analytics
       </span>
-      <h3 className="text-xl font-bold text-white font-headline mb-2">Reporte Semanal</h3>
+      <h3 className="text-xl font-bold text-white font-headline mb-2">Actividad académica</h3>
       <p className="text-primary-fixed/70 text-sm mb-6 leading-relaxed">
-        Analiza el desempeño institucional, asistencias y objetivos cumplidos durante los últimos 7
-        días.
+        Consultá la actividad de los últimos 7 días y descargá el reporte institucional de cursos, entregas y calificaciones.
       </p>
 
       <div className="space-y-4 mb-8">
@@ -41,9 +40,9 @@ export default function ReporteSemanalCard({
         className="w-full bg-white text-[#1C1030] font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-primary-fixed transition-all active:scale-95 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
       >
         <span className="material-symbols-outlined">
-          {generando ? "progress_activity" : "picture_as_pdf"}
+          {generando ? "progress_activity" : "download"}
         </span>
-        {generando ? "Generando…" : "Generar PDF"}
+        {generando ? "Generando…" : "Descargar reporte"}
       </button>
     </div>
   );

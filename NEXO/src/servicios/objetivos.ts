@@ -9,7 +9,7 @@
 // La racha no viene guardada: la cuenta el servidor a partir de los días
 // registrados (`habito_registros`). Ver `servidor/objetivos.js`.
 
-import { enviar, pedir, usarDatos } from "./api";
+import { enviar, pedir, useDatos } from "./api";
 
 // ─── Metas ──────────────────────────────────────────────
 
@@ -100,8 +100,8 @@ export interface DatosObjetivos {
   hoy: string;
 }
 
-export function usarObjetivos() {
-  const { datos, cargando, error, recargar } = usarDatos<DatosObjetivos>("/api/objetivos");
+export function useObjetivos() {
+  const { datos, cargando, error, recargar } = useDatos<DatosObjetivos>("/api/objetivos");
   return { datos, cargando, error, recargar };
 }
 
@@ -235,6 +235,14 @@ export function eliminarEvidencia(evidenciaId: string) {
   return enviar("/api/objetivos/evidencias/" + evidenciaId, "DELETE");
 }
 
+export interface DatosEvidencia { titulo: string; descripcion: string; tareaId: string | null }
+export function agregarEvidencia(competenciaId: string, datos: DatosEvidencia) {
+  return enviar<{ id: string }>(`/api/objetivos/competencias/${competenciaId}/evidencias`, "POST", datos);
+}
+export function useCatalogoCompetencias() {
+  return useDatos<{ competencias: { id: string; nombre: string; padre: string | null }[] }>("/api/objetivos/competencias/catalogo");
+}
+
 // ─── Resumen semanal + próximo hito (Errores 2.D.10 y 2.D.11) ──
 
 export interface ResumenObjetivos {
@@ -249,8 +257,8 @@ export interface ResumenObjetivos {
   hoy: string;
 }
 
-export function usarResumen() {
+export function useResumen() {
   const { datos, cargando, error, recargar } =
-    usarDatos<ResumenObjetivos>("/api/objetivos/resumen");
+    useDatos<ResumenObjetivos>("/api/objetivos/resumen");
   return { resumen: datos, cargando, error, recargar };
 }

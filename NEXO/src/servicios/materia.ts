@@ -8,7 +8,7 @@
 
 import type { Rol } from "../paginas/components/shared/roles";
 import type { TareaAcademica } from "./portafolio";
-import { enviar, pedir, usarDatos } from "./api";
+import { enviar, pedir, useDatos } from "./api";
 
 // El set FIJO de emojis, el mismo que valida la base (CHECK de aviso_reacciones).
 export const EMOJIS_REACCION = ["👍", "❤️", "🎉", "😮", "✅"] as const;
@@ -31,8 +31,8 @@ export interface DetalleMateria {
   tareas: TareaAcademica[];
 }
 
-export function usarDetalleMateria(catedraId: string) {
-  const { datos, cargando, error, recargar } = usarDatos<DetalleMateria>(
+export function useDetalleMateria(catedraId: string) {
+  const { datos, cargando, error, recargar } = useDatos<DetalleMateria>(
     `/api/materias/${catedraId}/detalle`,
   );
   return { detalle: datos, cargando, error, recargar };
@@ -69,8 +69,8 @@ export interface AvisoMateria {
   respuestas: RespuestaAviso[];
 }
 
-export function usarAvisosMateria(catedraId: string) {
-  const { datos, cargando, error, recargar } = usarDatos<{ avisos: AvisoMateria[] }>(
+export function useAvisosMateria(catedraId: string) {
+  const { datos, cargando, error, recargar } = useDatos<{ avisos: AvisoMateria[] }>(
     `/api/materias/${catedraId}/avisos`,
   );
   return { avisos: datos?.avisos ?? null, cargando, error, recargar };
@@ -172,8 +172,8 @@ export interface AlumnoMateria {
   avatar: string | null;
 }
 
-export function usarAlumnosMateria(catedraId: string) {
-  const { datos, cargando, error, recargar } = usarDatos<{ alumnos: AlumnoMateria[] }>(
+export function useAlumnosMateria(catedraId: string) {
+  const { datos, cargando, error, recargar } = useDatos<{ alumnos: AlumnoMateria[] }>(
     `/api/materias/${catedraId}/alumnos`,
   );
   return { alumnos: datos?.alumnos ?? null, cargando, error, recargar };
@@ -214,8 +214,8 @@ export interface ProgresoAlumno {
  * Progreso analítico de un alumno en la materia. El servidor lo entrega SOLO al
  * profesor dueño de la cátedra o a la dirección; el propio alumno recibe 403.
  */
-export function usarProgresoAlumno(catedraId: string, alumnoId: string) {
-  const { datos, cargando, error, recargar } = usarDatos<ProgresoAlumno>(
+export function useProgresoAlumno(catedraId: string, alumnoId: string) {
+  const { datos, cargando, error, recargar } = useDatos<ProgresoAlumno>(
     `/api/materias/${catedraId}/alumnos/${alumnoId}/progreso`,
   );
   return { progreso: datos, cargando, error, recargar };

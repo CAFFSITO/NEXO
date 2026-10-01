@@ -11,7 +11,7 @@
 import Sidebar from "./components/shared/Sidebar";
 import TarjetaMetrica from "./components/panel-directivo/TarjetaMetrica";
 import { useNavegacion } from "../navegacion";
-import { usarPlataforma, type LogSistema } from "../servicios/plataforma";
+import { usePlataforma, type LogSistema } from "../servicios/plataforma";
 import { textoRelativo } from "../servicios/fechas";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 
@@ -24,7 +24,7 @@ const ESTILO_NIVEL: Record<LogSistema["nivel"], { color: string; icono: string }
 
 export default function SaludSistemaPage() {
   const { navegar, cerrarSesion, usuario } = useNavegacion();
-  const { datos, cargando, error, recargar } = usarPlataforma();
+  const { datos, cargando, error, recargar } = usePlataforma();
 
   if (!usuario) return null;
 
@@ -34,7 +34,7 @@ export default function SaludSistemaPage() {
     <div className="flex bg-[#1C1030] min-h-screen text-on-background">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <header className="flex justify-between items-center px-10 h-16 sticky top-0 bg-[#1C1030]/80 backdrop-blur-md border-b border-fuchsia-900/10 z-40">
           <h1 className="text-fuchsia-500 font-headline font-bold">Salud del Sistema</h1>
           <span className="text-xs text-slate-400">Administración de Plataforma · NEXO</span>

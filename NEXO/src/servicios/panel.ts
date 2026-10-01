@@ -2,7 +2,7 @@
 // Puerta del Panel de la dirección hacia el servidor. Cada cifra que trae está
 // calculada en la base (ver `servidor/panel.js`); ninguna está escrita a mano.
 
-import { usarDatos } from "./api";
+import { useDatos } from "./api";
 
 export interface PanelInstitucional {
   /** true si quien pregunta es el admin de plataforma (no tiene colegio). */
@@ -34,8 +34,8 @@ export interface PanelInstitucional {
   };
 }
 
-export function usarPanelInstitucional() {
+export function usePanelInstitucional() {
   const { datos, cargando, error, recargar } =
-    usarDatos<PanelInstitucional>("/api/panel/institucional");
+    useDatos<PanelInstitucional>("/api/panel/institucional");
   return { datos, cargando, error, recargar };
 }

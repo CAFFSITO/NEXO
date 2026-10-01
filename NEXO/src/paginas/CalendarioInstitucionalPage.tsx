@@ -11,7 +11,7 @@ import { toISO } from "./components/calendario/fechas";
 import type { EventoCalendario } from "./components/calendario/tipos";
 import { useNavegacion } from "../navegacion";
 import {
-  usarCalendario,
+  useCalendario,
   crearEvento,
   borrarEvento,
   type DatosNuevoEvento,
@@ -34,7 +34,7 @@ export default function CalendarioInstitucionalPage() {
   const { navegar, cerrarSesion, usuario } = useNavegacion();
   const rol = usuario?.rol ?? "admin-academico";
 
-  const { datos, cargando, error, recargar } = usarCalendario();
+  const { datos, cargando, error, recargar } = useCalendario();
 
   // Quién puede crear/editar lo decide el SERVIDOR (ROLES_EDITAN en
   // calendario.js): dirección, preceptor, centro y profesor, cada uno con las
@@ -66,7 +66,7 @@ export default function CalendarioInstitucionalPage() {
       })) ?? [],
     [datos],
   );
-  const feriados = datos?.feriados ?? [];
+  const feriados = useMemo(() => datos?.feriados ?? [], [datos]);
 
   const [modalNuevo, setModalNuevo] = useState<{ abierto: boolean; fecha: string }>({
     abierto: false,
@@ -151,12 +151,12 @@ export default function CalendarioInstitucionalPage() {
         onCerrarSesion={cerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content min-h-screen">
         {/* Top App Bar */}
-        <header className="flex justify-between items-center w-full px-8 h-20 bg-[#1C1030]/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-40">
+        <header className="flex flex-wrap gap-3 justify-between items-center w-full px-4 sm:px-8 py-4 min-h-20 bg-[#1C1030]/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-40">
           <h2 className="text-2xl font-bold text-white font-headline">Calendario Institucional</h2>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex bg-white/5 p-1 rounded-full border border-white/10">
               {VISTAS.map((v) => (
                 <button

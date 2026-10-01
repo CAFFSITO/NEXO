@@ -15,6 +15,7 @@ import {
 } from "../../../servicios/comunidad";
 import MenuTresPuntos from "./MenuTresPuntos";
 import ModalDenuncia from "./ModalDenuncia";
+import { useDialogo } from "../../../servicios/useDialogo";
 
 interface Props {
   tipo: ObjetoTipo;
@@ -32,6 +33,7 @@ interface Props {
 // el feed. Es la misma pieza para publicación y debate: una sola vista, no una
 // por pestaña (sección 1.4).
 export default function ModalDetalleComunidad({ tipo, id, rol, usuarioId, onCerrar, onCambio }: Props) {
+  const dialogo = useDialogo<HTMLDivElement>(onCerrar);
   const [detalle, setDetalle] = useState<DetalleComunidad | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [texto, setTexto] = useState("");
@@ -106,19 +108,20 @@ export default function ModalDetalleComunidad({ tipo, id, rol, usuarioId, onCerr
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4"
       onClick={onCerrar}
     >
       <div
+        ref={dialogo} role="dialog" aria-modal="true" aria-labelledby="titulo-detalle-comunidad"
         className="bg-[#241338] border border-white/10 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Encabezado */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-          <h3 className="text-sm font-bold text-white/70 uppercase tracking-wider">
+          <h3 id="titulo-detalle-comunidad" className="text-sm font-bold text-white/70 uppercase tracking-wider">
             {tipo === "debate" ? "Debate" : "Publicación"}
           </h3>
-          <button onClick={onCerrar} className="text-white/40 hover:text-white transition-colors">
+          <button onClick={onCerrar} aria-label="Cerrar publicación o debate" className="text-white/40 hover:text-white transition-colors">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
@@ -197,10 +200,12 @@ export default function ModalDetalleComunidad({ tipo, id, rol, usuarioId, onCerr
             onChange={(e) => setTexto(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && enviarComentario()}
             placeholder="Escribí un comentario…"
-            className="flex-1 bg-[#1C1030] text-white rounded-full px-4 py-2.5 text-sm border border-[#3b2f50] focus:ring-1 focus:ring-[#C548F5] placeholder-white/30"
+            aria-label="Comentario"
+            className="flex-1 min-w-0 bg-[#1C1030] text-white rounded-full px-4 py-2.5 text-sm border border-[#3b2f50] focus:ring-1 focus:ring-[#C548F5] placeholder-white/30"
           />
           <button
             onClick={enviarComentario}
+            aria-label="Enviar comentario"
             disabled={!texto.trim() || enviando}
             className="bg-[#C548F5] text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#d15aff] disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0"
           >

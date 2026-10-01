@@ -1,81 +1,22 @@
 import { useState } from "react";
-import QuickActionChip from "./QuickActionChip";
 
-interface MessageInputProps {
-  onSendMessage?: (message: string) => void;
+interface Props {
+  onSendMessage: (message: string) => Promise<boolean>;
+  disabled?: boolean;
+  pensando?: boolean;
 }
-
-export default function MessageInput({ onSendMessage }: MessageInputProps) {
+export default function MessageInput({ onSendMessage, disabled, pensando }: Props) {
   const [message, setMessage] = useState("");
-
-  const handleSend = () => {
-    if (message.trim()) {
-      onSendMessage?.(message);
-      setMessage("");
-    }
+  const enviar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || disabled || pensando) return;
+    if (await onSendMessage(message.trim())) setMessage("");
   };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const quickActions = [
-    { label: "Explicame este concepto", icon: "lightbulb" },
-    { label: "Dame ejercicios", icon: "edit_note" },
-    { label: "Ayúdame a organizar", icon: "calendar_today" },
-    { label: "Revisá mi redacción", icon: "draw" },
-  ];
-
-  return (
-    <footer className="p-6 bg-[#1C1030] space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {quickActions.map((action) => (
-          <QuickActionChip
-            key={action.label}
-            label={action.label}
-            icon={action.icon}
-            onClick={() => {
-              setMessage(action.label);
-            }}
-          />
-        ))}
-      </div>
-
-      <div className="relative group">
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-[#C548F5]/30 to-[#4900a6]/30 rounded-2xl blur opacity-30 group-focus-within:opacity-100 transition duration-1000" />
-        <div className="relative flex items-center bg-[#25193a] border border-purple-900/30 rounded-2xl p-2 pl-4">
-          <input
-            className="flex-1 bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-gray-500 font-body py-2"
-            placeholder="Hacé tu pregunta..."
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-          />
-          <div className="flex items-center gap-1 px-2">
-            <button className="p-2 text-gray-400 hover:text-primary transition-colors">
-              <span className="material-symbols-outlined">attach_file</span>
-            </button>
-            <button className="p-2 text-gray-400 hover:text-primary transition-colors">
-              <span className="material-symbols-outlined">mic</span>
-            </button>
-            <button
-              onClick={handleSend}
-              className="ml-2 w-10 h-10 bg-[#C548F5] text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-            >
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
-                send
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
-      <p className="text-[10px] text-center text-gray-500">
-        Nexus AI puede cometer errores. Considera verificar la información importante.
-      </p>
-    </footer>
-  );
+  return <form onSubmit={enviar} className="p-4 sm:p-6 border-t border-white/10 bg-background">
+    <div className="max-w-3xl mx-auto flex items-end gap-3 rounded-2xl border border-outline-variant/50 bg-surface-container p-3">
+      <textarea aria-label="Mensaje al tutor" value={message} onChange={e => setMessage(e.target.value)} disabled={disabled || pensando} rows={2} maxLength={10000} placeholder={disabled ? "El tutor todavía no está disponible." : "¿Qué te gustaría aprender hoy?"} className="min-w-0 flex-1 bg-transparent resize-none text-sm p-1 outline-none disabled:opacity-50" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
+      <button type="submit" disabled={disabled || pensando || !message.trim()} aria-label="Enviar mensaje" className="w-10 h-10 rounded-xl bg-primary text-on-primary grid place-items-center disabled:opacity-40"><span className={`material-symbols-outlined ${pensando ? "animate-spin" : ""}`}>{pensando ? "progress_activity" : "arrow_upward"}</span></button>
+    </div>
+    <p className="text-center text-[10px] text-on-surface-variant/50 mt-3">Enter para enviar · Shift + Enter para una nueva línea</p>
+  </form>;
 }

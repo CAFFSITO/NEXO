@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ModalProgresoAlumno from "./ModalProgresoAlumno";
 import { Cargando, Fallo } from "../shared/EstadoCarga";
-import { usarAlumnosMateria, type AlumnoMateria } from "../../../servicios/materia";
+import { useAlumnosMateria, type AlumnoMateria } from "../../../servicios/materia";
 
 // Lista de alumnos de la materia (vista del PROFESOR). Al tocar un alumno se abre
 // el panel de progreso con los gráficos reales. Solo lo ve el profesor: el
@@ -11,7 +11,7 @@ const iniciales = (nombre: string) =>
   nombre.split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");
 
 export default function PanelAlumnosProfesor({ catedraId }: { catedraId: string }) {
-  const { alumnos, cargando, error, recargar } = usarAlumnosMateria(catedraId);
+  const { alumnos, cargando, error, recargar } = useAlumnosMateria(catedraId);
   const [seleccionado, setSeleccionado] = useState<AlumnoMateria | null>(null);
 
   return (

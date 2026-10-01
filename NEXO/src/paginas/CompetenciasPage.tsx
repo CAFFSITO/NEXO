@@ -3,20 +3,22 @@ import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
 import TarjetaCompetencia from "./components/objetivos/TarjetaCompetencia";
-import ModalAgregarEvidencia, {
-  type TrabajoDisponible,
-} from "./components/objetivos/ModalAgregarEvidencia";
+import ModalAgregarEvidencia from "./components/objetivos/ModalAgregarEvidencia";
+import { usePortafolio } from "../servicios/portafolio";
 import {
   colorDeCompetencia,
   type Competencia,
 } from "./components/objetivos/tiposCompetencia";
 import {
-  usarObjetivos,
+  useObjetivos,
   cambiarNivelCompetencia,
   eliminarEvidencia,
+  agregarEvidencia,
+  useCatalogoCompetencias,
+  type DatosEvidencia,
   type NivelCompetencia,
 } from "../servicios/objetivos";
-import { Cargando, Fallo } from "./components/shared/EstadoCarga";
+import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 
 // Se fueron las cuatro competencias inventadas. Una de ellas, "Comunicación",
 // tenía nivel "inicial", un valor que la base rechaza (la escala real es
@@ -44,12 +46,13 @@ const SUBNAV = [
 
 // El selector de "agregar evidencia" se conecta al portafolio en la Etapa 5
 // (por eso va vacío por ahora: sin escritura, no hay a dónde guardar).
-const TRABAJOS_DISPONIBLES: TrabajoDisponible[] = [];
 
 // ─── PÁGINA ─────────────────────────────────────────────
 
 export default function CompetenciasPage() {
-  const { datos, cargando, error, recargar } = usarObjetivos();
+  const { datos, cargando, error, recargar } = useObjetivos();
+  const catalogo = useCatalogoCompetencias();
+  const { datos: portafolio } = usePortafolio();
   const [competenciaActivaId, setCompetenciaActivaId] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
@@ -59,15 +62,17 @@ export default function CompetenciasPage() {
   // Cada competencia de la base, vestida para la tarjeta: su ícono y su color
   // se eligen de forma estable por nombre.
   const competencias = useMemo<Competencia[]>(() => {
-    return (datos?.competencias ?? []).map((c) => ({
+    return (catalogo.datos?.competencias ?? datos?.competencias ?? []).map((c) => {
+      const avance = datos?.competencias.find(a => a.id === c.id);
+      return ({
       id: c.id,
       nombre: c.nombre,
       icono: ICONOS[c.nombre] ?? "workspace_premium",
       color: colorDeCompetencia(c.nombre),
-      nivel: c.nivel,
-      evidencias: c.evidencias.map((e) => ({ id: e.id, titulo: e.titulo })),
-    }));
-  }, [datos]);
+      nivel: avance?.nivel ?? "iniciado",
+      evidencias: (avance?.evidencias ?? []).map((e) => ({ id: e.id, titulo: e.titulo })),
+    }); });
+  }, [datos, catalogo.datos]);
 
   const competenciaActiva = competencias.find((c) => c.id === competenciaActivaId) ?? null;
 
@@ -95,7 +100,12 @@ export default function CompetenciasPage() {
     }
   };
 
-  const guardarEvidencia = () => setCompetenciaActivaId(null);
+  const guardarEvidencia = async (evidencia: DatosEvidencia) => {
+    if (!competenciaActivaId) return;
+    await agregarEvidencia(competenciaActivaId, evidencia);
+    setCompetenciaActivaId(null);
+    recargar();
+  };
 
   if (!usuario) return null;
 
@@ -107,7 +117,7 @@ export default function CompetenciasPage() {
         onCerrarSesion={handleCerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <TopBar title="Objetivos Personales" subtitle="Competencias" />
 
         {/* Sub-navegación del módulo */}
@@ -146,10 +156,12 @@ export default function CompetenciasPage() {
           )}
 
           {/* Matriz de competencias */}
-          {cargando ? (
+          {cargando || catalogo.cargando ? (
             <Cargando que="tus competencias" />
-          ) : error ? (
-            <Fallo error={error} onReintentar={recargar} />
+          ) : error || catalogo.error ? (
+            <Fallo error={error ?? catalogo.error!} onReintentar={() => { recargar(); catalogo.recargar(); }} />
+          ) : competencias.length === 0 ? (
+            <Vacio icono="verified" mensaje="Tu institución todavía no definió competencias para trabajar." />
           ) : competencias.length === 0 ? (
             <div className="bg-[#2D1B4E]/40 border border-white/5 rounded-[20px] p-12 text-center">
               <span className="material-symbols-outlined text-4xl text-slate-500 mb-2">
@@ -187,7 +199,7 @@ export default function CompetenciasPage() {
       {competenciaActiva && (
         <ModalAgregarEvidencia
           competenciaNombre={competenciaActiva.nombre}
-          trabajos={TRABAJOS_DISPONIBLES}
+          trabajos={(portafolio?.tareas ?? []).filter(t => t.estado === "entregada").map(t => ({ id: t.id, titulo: t.titulo, icono: "assignment" }))}
           onGuardar={guardarEvidencia}
           onCerrar={() => setCompetenciaActivaId(null)}
         />

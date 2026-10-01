@@ -289,14 +289,14 @@ export function registrarPerfiles(app, db) {
   // colegio que quien pregunta (el institucion_id sale de la sesión): pedir el
   // detalle de un curso de otra institución responde 404, no filtra nada.
   const cursoPorId = db.prepare(
-    `SELECT c.id, c.anio, c.division, c.institucion_id, p.nombre AS preceptor
+    `SELECT c.id, c.anio, c.division, c.institucion_id, c.preceptor_id, p.nombre AS preceptor
        FROM cursos c
        LEFT JOIN usuarios p ON p.id = c.preceptor_id
       WHERE c.id = ?`
   );
 
   const catedrasDelCurso = db.prepare(
-    `SELECT m.nombre AS materia, pr.nombre AS profesor
+    `SELECT ca.id, ca.materia_id, ca.profesor_id, m.nombre AS materia, pr.nombre AS profesor
        FROM catedras ca
        JOIN materias m  ON m.id = ca.materia_id
        JOIN usuarios pr ON pr.id = ca.profesor_id
@@ -305,7 +305,7 @@ export function registrarPerfiles(app, db) {
   );
 
   const alumnosDelCurso = db.prepare(
-    `SELECT u.nombre, u.email
+    `SELECT u.id, u.nombre, u.email
        FROM inscripciones i
        JOIN usuarios u ON u.id = i.estudiante_id
       WHERE i.curso_id = ?
@@ -344,11 +344,16 @@ export function registrarPerfiles(app, db) {
       res.json({
         curso: { id: String(curso.id), anio: curso.anio, division: curso.division },
         preceptor: curso.preceptor ?? null,
+        preceptorId: curso.preceptor_id == null ? null : String(curso.preceptor_id),
         catedras: catedrasDelCurso.all(id).map((f) => ({
+          id: String(f.id),
+          materiaId: String(f.materia_id),
+          profesorId: String(f.profesor_id),
           materia: f.materia,
           profesor: f.profesor,
         })),
         alumnos: alumnosDelCurso.all(id).map((f) => ({
+          id: String(f.id),
           nombre: f.nombre,
           email: f.email,
         })),

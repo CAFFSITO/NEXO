@@ -1,65 +1,156 @@
-/* src/index.css */
-/* Estilos globales de NEXO — fuentes, resets y utilidades base */
-
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600&family=Architects+Daughter&display=swap");
+/* NEXO: paleta original, tipografía y componentes compartidos. */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Architects+Daughter&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
-
 @import "tailwindcss";
+@config "../tailwind.config.ts";
 
-/* Material Symbols config */
-.material-symbols-outlined {
-  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+:root { --sidebar-width: 248px; --nexo-border: rgba(212,193,213,.11); --nexo-muted: #a99ab9; }
+html { color-scheme: dark; background: #190d2d; scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; font-family: "Inter", sans-serif; background: #190d2d; color: #ecdcff; -webkit-font-smoothing: antialiased; }
+#root { min-height: 100dvh; }
+::selection { background: #c548f550; color: #fff; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), a { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+:focus-visible { outline: 2px solid #edb1ff; outline-offset: 4px; }
+input, textarea, select { max-width: 100%; }
+select { color-scheme: dark; }
+input[type="date"], input[type="datetime-local"], input[type="time"] { min-width: 0; }
+input::placeholder, textarea::placeholder { opacity: 1; }
+.font-headline { font-family: "Plus Jakarta Sans", sans-serif; }
+.font-handwritten { font-family: "Architects Daughter", cursive; }
+.material-symbols-outlined { font-family: "Material Symbols Outlined"; font-weight: normal; font-style: normal; font-size: 24px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr; font-feature-settings: "liga"; -webkit-font-smoothing: antialiased; font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; flex-shrink: 0; }
+
+/* Un único contrato de layout para todas las páginas. */
+.app-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); min-width: 0; }
+.app-fixed-header { left: var(--sidebar-width); }
+.app-content > :is(div, section) { min-width: 0; }
+.app-content h1 { letter-spacing: -.045em; line-height: 1.2; }
+.app-content :is(h2,h3) { letter-spacing: -.025em; }
+.app-content > .p-8, .app-content > .px-8 { padding-left: clamp(20px,3vw,48px); padding-right: clamp(20px,3vw,48px); }
+.app-content > .overflow-y-auto { scrollbar-gutter: stable; }
+.nexo-topbar { min-height: 76px; flex-shrink: 0; padding: 16px clamp(20px,3vw,48px); display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--nexo-border); background: #190d2d; }
+.nexo-pill { align-items: center; border: 1px solid #edb1ff25; border-radius: 999px; background: #edb1ff0a; color: #edb1ff; font-size: 10px; font-weight: 600; padding: 4px 9px; }
+.nexo-icon-button { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; flex-shrink: 0; color: #b6a6c9; transition: background .15s, color .15s; }
+.nexo-icon-button:hover { color: #edb1ff; background: #edb1ff0d; }
+.nexo-icon-button .material-symbols-outlined { font-size: 21px; }
+.nexo-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 50; width: var(--sidebar-width); height: 100dvh; background: #160d28; border-right: 1px solid var(--nexo-border); padding: 30px 16px 16px; display: flex; flex-direction: column; overflow: hidden; }
+.nexo-brand-row { display: flex; align-items: center; gap: 10px; padding: 0 12px; }
+.nexo-brand-icon { color: #c548f5; background: #c548f517; padding: 8px; border-radius: 12px; font-size: 23px; }
+.nexo-wordmark { color: #ecdcff; font: 800 32px/1 "Plus Jakarta Sans", sans-serif; letter-spacing: -2px; }
+.nexo-wordmark > span { color: #c548f5; }
+.nexo-brand-caption { font-size: 8px; font-weight: 600; letter-spacing: 1.8px; color: #a99ab9; margin: 14px 12px 28px; }
+.nexo-nav-search { display: flex; align-items: center; gap: 8px; width: 100%; padding: 11px 10px; border-radius: 9px; background: #211535; border: 1px solid var(--nexo-border); color: #b6a6c9; font-size: 11px; }
+.nexo-nav-search .material-symbols-outlined { font-size: 18px; }
+.nexo-nav-search kbd { margin-left: auto; color: #a99ab9; font: 9px "Inter",sans-serif; white-space: nowrap; border: 1px solid #504253; border-radius: 4px; padding: 3px; }
+.nexo-nav-section-label { margin: 28px 12px 12px; font-size: 9px; letter-spacing: 1.8px; font-weight: 600; color: #8b7c9b; }
+.nexo-nav-items { display: flex; flex-direction: column; gap: 5px; padding-bottom: 20px; }
+.nexo-nav-item { width: 100%; min-height: 45px; display: flex; gap: 11px; align-items: center; padding: 11px 12px; border-radius: 9px; color: #b6a6c9; font-size: 12px; font-weight: 500; text-align: left; border: 1px solid transparent; transition: background .15s,color .15s; }
+.nexo-nav-item > .material-symbols-outlined { font-size: 21px; }
+.nexo-nav-item:hover { color: #ecdcff; background: #25193a; }
+.nexo-nav-item.is-active { color: #edb1ff; background: #c548f515; border-color: #c548f525; }
+.nexo-nav-item.is-active > .material-symbols-outlined { font-variation-settings: "FILL" 1; }
+.nexo-nav-badge { margin-left: auto; background: #c548f5; color: #fff; min-width: 19px; border-radius: 6px; text-align: center; padding: 2px 4px; font-size: 10px; }
+.nexo-sidebar-scroll { flex: 1 1 auto; min-height: 0; margin: 0 -8px; padding: 0 8px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.nexo-sidebar-scroll::-webkit-scrollbar { display: none; }
+.nexo-sidebar-tools { padding-top: 14px; padding-bottom: 8px; border-top: 1px solid var(--nexo-border); }
+.nexo-user-card { flex: 0 0 auto; margin-top: 8px; padding: 16px 0 0; border-top: 1px solid var(--nexo-border); display: flex; align-items: center; gap: 9px; background: #160d28; }
+.nexo-avatar { width: 36px; height: 36px; flex-shrink: 0; object-fit: cover; border-radius: 12px; display: grid; place-items: center; background: #4f3d72; color: #ebddff; font-size: 11px; font-weight: 700; }
+.nexo-mobile-bar, .nexo-drawer-close, .nexo-drawer-backdrop { display: none; }
+.nexo-skip-link { position: fixed; top: -100px; left: 16px; z-index: 200; background: #edb1ff; color: #320045; border-radius: 8px; padding: 12px 18px; }
+.nexo-skip-link:focus { top: 12px; }
+.nexo-search-dialog { position: fixed; inset: 12vh 0 auto; margin: 0 auto; width: min(560px,calc(100% - 32px)); max-height: 78dvh; border: 1px solid #504253; border-radius: 18px; background: #211535; color: #ecdcff; padding: 0; box-shadow: 0 30px 100px #0008; }
+.nexo-search-dialog::backdrop { background: #0d061bcc; backdrop-filter: blur(6px); }
+.nexo-search-input { display: flex; align-items: center; gap: 10px; border: 1px solid #504253; background: #190d2d; border-radius: 10px; padding: 12px; color: #b6a6c9; }
+.nexo-search-input input { outline: none; width: 100%; background: transparent; font-size: 14px; color: #ecdcff; }
+.nexo-search-results { overflow-y: auto; max-height: 44dvh; padding: 0 12px 12px; }
+.nexo-search-result { width: 100%; display: flex; align-items: center; gap: 14px; padding: 13px 12px; text-align: left; font-size: 13px; border-radius: 8px; }
+.nexo-search-result:hover, .nexo-search-result:focus-visible { background: #302445; }
+.nexo-search-result .material-symbols-outlined { font-size: 20px; }
+
+/* Acceso institucional: una portada útil sin estadísticas inventadas. */
+.nexo-login { min-height: 100dvh; display: grid; grid-template-columns: minmax(0,1.1fr) minmax(400px,1fr); background: #190d2d; }
+.nexo-login-story { padding: clamp(32px,5vw,80px); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; border-right: 1px solid var(--nexo-border); background: radial-gradient(ellipse at 25% 45%,#4f3d7245,transparent 65%),#160d28; }
+.nexo-login-story::after { content: ""; position: absolute; width: 460px; height: 460px; border: 1px solid #c548f516; border-radius: 50%; right: -240px; bottom: -170px; box-shadow: 0 0 0 70px #c548f508,0 0 0 140px #c548f505; pointer-events: none; }
+.nexo-login-heading { max-width: 560px; padding: 56px 0 40px; position: relative; z-index: 1; }
+.nexo-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: #edb1ff; }
+.nexo-eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #c548f5; }
+.nexo-login-heading h1 { font: 700 clamp(38px,4.3vw,66px)/1.1 "Plus Jakarta Sans",sans-serif; letter-spacing: -.055em; margin: 24px 0; }
+.nexo-login-heading h1 span { color: #edb1ff; }
+.nexo-login-heading > p { color: #b6a6c9; max-width: 390px; font-size: 15px; line-height: 1.8; }
+.nexo-login-features { display: grid; gap: 17px; margin-top: 40px; }
+.nexo-login-feature { display: flex; gap: 13px; align-items: center; }
+.nexo-login-feature > span { color: #edb1ff; font-size: 20px; padding: 10px; border: 1px solid #504253; border-radius: 12px; }
+.nexo-login-feature p { font-size: 12px; color: #b6a6c9; margin-top: 3px; }
+.nexo-login-feature h2 { font-size: 13px; font-weight: 600; }
+.nexo-login-form-panel { display: flex; flex-direction: column; justify-content: center; padding: 48px clamp(24px,5vw,80px); }
+.nexo-login-form-panel > main { width: 100%; max-width: 400px; margin: auto; padding: 40px 0; }
+.nexo-login-form-panel footer { margin-top: 28px; }
+.nexo-login-form-panel form > button[type="submit"] { border-radius: 10px; box-shadow: none; }
+.nexo-login-form-panel input { border-radius: 10px; background: #211535; }
+
+.chalkboard-texture { background-color: #12241c; background-image: radial-gradient(circle at 20% 30%,#ffffff0a,transparent 40%),linear-gradient(135deg,#14261e,#0f1f18); }
+.whiteboard-grid { background-image: linear-gradient(#ffffff0a 1px,transparent 1px),linear-gradient(90deg,#ffffff0a 1px,transparent 1px); background-size: 32px 32px; }
+.custom-scrollbar, .nexo-search-results { scrollbar-width: thin; scrollbar-color: #504253 transparent; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #504253; border-radius: 10px; }
+
+@media (max-width: 1023px) {
+  .app-content { margin-left: 0; width: 100%; padding-top: 64px; }
+  .app-content.h-full { height: 100dvh; }
+  .app-content > header.sticky { top: 64px; }
+  .app-fixed-header { left: 0; top: 64px; }
+  .app-content:has(~ .app-fixed-header), .app-fixed-header ~ .app-content { padding-top: 152px; }
+  .nexo-sidebar { transform: translateX(-100%); visibility: hidden; transition: transform .2s,visibility .2s; z-index: 90; width: 270px; }
+  .nexo-sidebar.is-open { transform: translateX(0); visibility: visible; }
+  .nexo-mobile-bar { display: flex; position: fixed; inset: 0 0 auto; height: 64px; background: #160d28; border-bottom: 1px solid var(--nexo-border); z-index: 45; align-items: center; justify-content: space-between; padding: 0 16px; }
+  .nexo-mobile-bar .nexo-wordmark { font-size: 27px; }
+  .nexo-drawer-close { display: inline-flex; margin-left: auto; }
+  .nexo-drawer-backdrop { display: block; position: fixed; inset: 0; background: #080311b3; z-index: 80; backdrop-filter: blur(3px); }
+  .nexo-topbar { min-height: 64px; }
+}
+@media (max-width: 767px) {
+  .nexo-login { grid-template-columns: 1fr; }
+  .nexo-login-story { padding: 28px 24px; border-right: none; border-bottom: 1px solid var(--nexo-border); }
+  .nexo-login-heading { padding: 32px 0 0; }
+  .nexo-login-heading h1 { font-size: 38px; margin: 16px 0 12px; }
+  .nexo-login-heading > p { font-size: 13px; }
+  .nexo-login-features, .nexo-login-story > p { display: none; }
+  .nexo-login-form-panel { padding: 0 24px 28px; }
+  .nexo-login-form-panel > main { padding: 36px 0 12px; }
+  .app-content > .p-8, .app-content > .px-8, .app-content > .p-10, .app-content > .px-10 { padding-left: 16px; padding-right: 16px; }
+  .app-content > .p-8 { padding-top: 24px; }
+  .app-content h1 { font-size: clamp(24px,6vw,32px); }
+  .app-content > .flex.gap-6 { gap: 20px; padding-left: 16px; padding-right: 16px; overflow-x: auto; flex-shrink: 0; }
+  .app-content > .flex.gap-6 > button { white-space: nowrap; }
+  .nexo-search-dialog { inset-block-start: 5dvh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
-/* Base body */
-body {
-  font-family: "Inter", sans-serif;
-  background-color: #190d2d;
-  color: #ecdcff;
-}
-
-/* Utility: headline font */
-.font-headline {
-  font-family: "Plus Jakarta Sans", sans-serif;
-}
-
-/* Dark class en html por defecto */
-html {
-  color-scheme: dark;
-}
-
-/* Utility: handwritten font (Aula Virtual — pizarrón) */
-.font-handwritten {
-  font-family: "Architects Daughter", cursive;
-}
-
-/* Textura de pizarrón para el Aula Virtual */
-.chalkboard-texture {
-  background-color: #12241c;
-  background-image:
-    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.04) 0%, transparent 40%),
-    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.03) 0%, transparent 45%),
-    linear-gradient(135deg, #14261e 0%, #0f1f18 100%);
-}
-
-/* Grilla del pizarrón digital (Aula Virtual — Profesor) */
-.whiteboard-grid {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 32px 32px;
-}
-
-/* Custom scrollbar for chat */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #c548f5;
-  border-radius: 10px;
+.nexo-community-welcome { display: flex; justify-content: space-between; gap: 24px; align-items: center; margin-bottom: 28px; }
+.nexo-community-welcome h1 { font-family: "Plus Jakarta Sans",sans-serif; font-size: clamp(27px,2.8vw,38px); font-weight: 700; margin: 13px 0 10px; }
+.nexo-community-welcome h1 > span { color: #b6a6c9; font-weight: 500; }
+.nexo-community-welcome p:not(.nexo-eyebrow) { font-size: 13px; line-height: 1.7; color: #a99ab9; }
+.nexo-welcome-symbol { font-size: 72px; color: #c548f5; background: #c548f50b; border: 1px solid #c548f518; padding: 25px; border-radius: 30px; transform: rotate(-7deg); }
+.nexo-quick-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin-bottom: 38px; }
+.nexo-quick-card { display: flex; align-items: center; gap: 14px; padding: 19px; text-align: left; background: #211535; border: 1px solid var(--nexo-border); border-radius: 14px; transition: border-color .2s,transform .2s; }
+.nexo-quick-card:hover { border-color: #c548f560; transform: translateY(-2px); }
+.nexo-quick-card strong { display: block; font-size: 12px; font-weight: 600; }
+.nexo-quick-card small { display: block; color: #a99ab9; margin-top: 5px; font-size: 10px; }
+.nexo-quick-icon { font-size: 23px; padding: 10px; border-radius: 11px; background: #c548f51a; color: #edb1ff; }
+.nexo-quick-icon.tone-1 { background: #10b98115; color: #10b981; }
+.nexo-quick-icon.tone-2 { background: #efc04c15; color: #efc04c; }
+.nexo-quick-arrow { margin-left: auto; font-size: 17px; color: #8b7c9b; }
+.bg-primary.text-white { color: #53006f; }
+@media(max-width:767px) {
+ .nexo-community-welcome { margin-bottom: 24px; }
+ .nexo-community-welcome h1 > span { display: block; margin-top: 4px; }
+ .nexo-welcome-symbol { display: none; }
+ .nexo-quick-grid { grid-template-columns: 1fr; gap: 8px; margin-bottom: 28px; }
+ .nexo-quick-card { padding: 12px 14px; }
+ .nexo-quick-card small { display: none; }
+ .nexo-quick-icon { padding: 8px; font-size: 20px; }
 }

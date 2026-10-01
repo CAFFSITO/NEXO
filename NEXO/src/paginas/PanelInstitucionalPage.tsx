@@ -5,6 +5,7 @@
 // Foco en lógica/funcionalidad: estado de búsqueda, alertas "avisadas" y accesos navegables.
 
 import { useMemo, useState } from "react";
+import TopBar from "./components/shared/TopBar";
 import Sidebar from "./components/shared/Sidebar";
 import TarjetaMetrica from "./components/panel-directivo/TarjetaMetrica";
 import ActividadHoy, { type ItemActividad } from "./components/panel-directivo/ActividadHoy";
@@ -12,9 +13,10 @@ import AlertasSistema, { type Alerta } from "./components/panel-directivo/Alerta
 import PulsoInstitucion, { type MetricaPulso } from "./components/panel-directivo/PulsoInstitucion";
 import AccesosRapidos, { type AccesoRapido } from "./components/panel-directivo/AccesosRapidos";
 import { useNavegacion } from "../navegacion";
-import { usarPanelInstitucional } from "../servicios/panel";
-import { subtituloInstitucional, usarInstitucion } from "../servicios/institucion";
-import { textoRelativo } from "../servicios/fechas";
+import { usePanelInstitucional } from "../servicios/panel";
+import { subtituloInstitucional, useInstitucion } from "../servicios/institucion";
+import { useComunicadosEnviados, fijarComunicado } from "../servicios/calendario";
+import { textoRelativo, fechaHora } from "../servicios/fechas";
 import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 
 // Todos los números de este panel eran inventados: "342 estudiantes activos"
@@ -42,10 +44,27 @@ const ESTILO_ACTIVIDAD: Record<string, string> = {
 
 export default function PanelInstitucionalPage() {
   const { navegar, cerrarSesion, usuario } = useNavegacion();
-  const { datos, cargando, error, recargar } = usarPanelInstitucional();
-  const { institucion } = usarInstitucion();
+  const { datos, cargando, error, recargar } = usePanelInstitucional();
+  const { institucion } = useInstitucion();
+  // Los comunicados que emitió la dirección: acá los fija/desfija. El pin que
+  // ven las familias sale de ese mismo dato real (fijado_en, Prompt 13).
+  const {
+    comunicados: comunicados,
+    cargando: cargandoComunicados,
+    recargar: recargarComunicados,
+  } = useComunicadosEnviados();
 
-  const [busqueda, setBusqueda] = useState("");
+  const [avisoComunicado, setAvisoComunicado] = useState<string | null>(null);
+
+  const alternarFijado = async (id: string, fijado: boolean) => {
+    setAvisoComunicado(null);
+    try {
+      await fijarComunicado(id, fijado);
+      recargarComunicados();
+    } catch (e) {
+      setAvisoComunicado(e instanceof Error ? e.message : "No se pudo actualizar el comunicado.");
+    }
+  };
 
   // Las métricas del encabezado, contadas en la base.
   const metricas = useMemo(() => {
@@ -129,31 +148,8 @@ export default function PanelInstitucionalPage() {
         onCerrarSesion={cerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
-        {/* ── Top app bar ── */}
-        <header className="flex justify-between items-center px-10 h-16 sticky top-0 bg-[#1C1030]/80 backdrop-blur-md border-b border-fuchsia-900/10 z-40">
-          <h1 className="text-fuchsia-500 font-headline font-bold">Panel Principal</h1>
-          <div className="flex items-center gap-6">
-            <div className="relative flex items-center">
-              <span className="material-symbols-outlined absolute left-3 text-slate-400 text-sm">search</span>
-              <input
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                className="bg-slate-900/50 border-none rounded-full pl-10 pr-4 py-1.5 text-xs text-slate-300 w-64 focus:ring-1 focus:ring-fuchsia-500 transition-all"
-                placeholder="Buscar expedientes, alumnos..."
-                type="text"
-              />
-            </div>
-            <div className="flex gap-4">
-              <button className="text-slate-400 hover:text-fuchsia-400 transition-colors opacity-80 hover:opacity-100">
-                <span className="material-symbols-outlined">notifications</span>
-              </button>
-              <button className="text-slate-400 hover:text-fuchsia-400 transition-colors opacity-80 hover:opacity-100">
-                <span className="material-symbols-outlined">help_outline</span>
-              </button>
-            </div>
-          </div>
-        </header>
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
+        <TopBar title="Panel institucional" />
 
         {/* ── Contenido ── */}
         <section className="flex-1 px-10 pt-6 pb-12">
@@ -197,6 +193,70 @@ export default function PanelInstitucionalPage() {
                   <div className="space-y-6">
                     <PulsoInstitucion metricas={pulso} />
                     <AccesosRapidos accesos={ACCESOS} onAccion={manejarAcceso} />
+                  </div>
+                </div>
+
+                {/* Comunicados emitidos: acá la dirección fija/desfija (Prompt 13).
+                    El pin sale de fijado_en real y es el mismo que ven las
+                    familias en su portal. El servidor revalida el permiso. */}
+                <div className="mt-6 bg-[#2D1B4E]/40 border border-white/5 rounded-[20px] p-6">
+                  <h3 className="text-lg font-headline font-bold text-white mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-fuchsia-400">campaign</span>
+                    Comunicados enviados
+                  </h3>
+
+                  {avisoComunicado && (
+                    <div className="mb-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">
+                      {avisoComunicado}
+                    </div>
+                  )}
+
+                  {cargandoComunicados && <Cargando que="los comunicados enviados" />}
+
+                  {!cargandoComunicados && comunicados && comunicados.length === 0 && (
+                    <p className="text-sm text-slate-400">Todavía no emitiste comunicados.</p>
+                  )}
+
+                  <div className="space-y-3">
+                    {(comunicados ?? []).map((c) => (
+                      <div
+                        key={c.id}
+                        className={`flex items-center justify-between gap-4 rounded-xl px-4 py-3 border ${
+                          c.fijado ? "border-[#C548F5]/50 bg-fuchsia-500/5" : "border-white/5 bg-black/20"
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            {c.fijado && (
+                              <span className="material-symbols-outlined text-[#C548F5] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                keep
+                              </span>
+                            )}
+                            <p className="text-sm font-bold text-white truncate">{c.titulo}</p>
+                          </div>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {c.destino} · {c.leidos}/{c.destinatarios} leyeron
+                            {c.programada && (
+                              <span className="text-amber-300"> · Programado {fechaHora(c.publicarEn)}</span>
+                            )}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => alternarFijado(c.id, !c.fijado)}
+                          className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                            c.fijado
+                              ? "bg-fuchsia-500/15 text-[#C548F5] hover:bg-fuchsia-500/25"
+                              : "bg-white/5 text-slate-300 hover:bg-white/10"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[16px]">
+                            {c.fijado ? "keep_off" : "keep"}
+                          </span>
+                          {c.fijado ? "Desfijar" : "Fijar"}
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </>

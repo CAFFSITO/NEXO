@@ -1,59 +1,64 @@
-// src/paginas/components/portafolio/ModalDetalleTarea.tsx
-// Detalle de una tarea académica para el ESTUDIANTE (Errores 2.C.4 a 2.C.6).
+// src/paginas/components/shared/tareas/ModalDetalleTarea.tsx
+// Detalle de una tarea académica. Es COMPARTIDO por dos roles (antes vivía en
+// components/portafolio/, solo para el estudiante):
 //
-// Antes "Ver detalle" y "Entregar" eran un console.log: no abrían nada y no
-// entregaban nada. Acá vive el detalle completo (consigna, adjuntos del docente,
-// método sugerido) y, según el estado, el flujo de entrega o la devolución:
-//   · Sin entregar → formulario: subir archivos + comentario + Entregar.
-//   · Entregada    → lo que entregué, con opción de anular (si no está corregida).
-//   · Corregida    → mi nota y la devolución del profesor.
+//   · ESTUDIANTE (por defecto, con `tareaId`): abre la tarea desde el servidor y,
+//     según el estado, muestra el flujo de entrega o la devolución:
+//       - Sin entregar → formulario: subir archivos + comentario + Entregar.
+//       - Entregada    → lo que entregué, con opción de anular (si no está corregida).
+//       - Corregida    → mi nota y la devolución del profesor.
+//     (Este flujo NO cambió al mudar el archivo: mismos datos, mismo servidor.)
+//
+//   · PROFESOR (con `tareaDocente`): detalle de SOLO LECTURA de la consigna que
+//     él mismo escribió (título, materia/curso, vencimiento, consigna, método) y
+//     sus acciones propias (editar, corregir) que entran por el slot `acciones`.
+//     No hay formulario de entrega: el profesor no entrega, gestiona.
 //
 // Todo pasa por el servidor (servicios/tareas.ts): la pantalla no inventa nada.
 
-import { useCallback, useEffect, useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
-  traerDetalle,
   entregarTarea,
   anularEntrega,
   type DetalleTarea,
-} from "../../../servicios/tareas";
-import { subirArchivo, urlDescarga, tamanoLegible } from "../../../servicios/archivos";
-import { ErrorDeApi } from "../../../servicios/api";
-import { textoVencimiento, colorVencimiento, textoRelativo } from "../../../servicios/fechas";
+  type TareaDocente,
+} from "../../../../servicios/tareas";
+import { subirArchivo, urlDescarga, tamanoLegible } from "../../../../servicios/archivos";
+import { ErrorDeApi, useDatos } from "../../../../servicios/api";
+import { textoVencimiento, colorVencimiento, textoRelativo } from "../../../../servicios/fechas";
 
 interface Props {
-  tareaId: string;
   onCerrar: () => void;
+  // ── Modo estudiante ──
+  /** Id de la tarea a abrir. Presente = modo estudiante (con flujo de entrega). */
+  tareaId?: string;
   /** Se llama tras entregar o anular, para que la lista de fondo se refresque. */
-  onCambio: () => void;
+  onCambio?: () => void;
+  // ── Modo profesor ──
+  /** Tarea ya conocida por el docente. Presente = modo profesor (solo lectura). */
+  tareaDocente?: TareaDocente;
+  /** Acciones propias del docente (editar, corregir), como slot en el pie. */
+  acciones?: ReactNode;
 }
 
-export default function ModalDetalleTarea({ tareaId, onCerrar, onCambio }: Props) {
-  const [detalle, setDetalle] = useState<DetalleTarea | null>(null);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function ModalDetalleTarea({
+  tareaId,
+  onCerrar,
+  onCambio,
+  tareaDocente,
+  acciones,
+}: Props) {
+  const esDocente = tareaDocente != null;
 
-  // Estado del formulario de entrega
+  const { datos: detalle, cargando, error, recargar: cargar } = useDatos<DetalleTarea>(!esDocente && tareaId ? `/api/tareas/${tareaId}` : null);
+
+  // Estado del formulario de entrega (solo se usa en modo estudiante)
   const [comentario, setComentario] = useState("");
   const [seleccionados, setSeleccionados] = useState<File[]>([]);
   const [enviando, setEnviando] = useState(false);
   const [avisoEntrega, setAvisoEntrega] = useState<string | null>(null);
 
-  const cargar = useCallback(() => {
-    setCargando(true);
-    setError(null);
-    traerDetalle(tareaId)
-      .then((d) => {
-        setDetalle(d);
-        setCargando(false);
-      })
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : "No se pudo abrir la tarea.");
-        setCargando(false);
-      });
-  }, [tareaId]);
 
-  useEffect(() => cargar(), [cargar]);
 
   const agregarArchivos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const nuevos = Array.from(e.target.files ?? []);
@@ -65,6 +70,7 @@ export default function ModalDetalleTarea({ tareaId, onCerrar, onCambio }: Props
     setSeleccionados((prev) => prev.filter((_, idx) => idx !== i));
 
   const entregar = async () => {
+    if (!tareaId) return;
     setEnviando(true);
     setAvisoEntrega(null);
     try {
@@ -79,7 +85,7 @@ export default function ModalDetalleTarea({ tareaId, onCerrar, onCambio }: Props
       await entregarTarea(tareaId, comentario.trim(), ids);
       setSeleccionados([]);
       setComentario("");
-      onCambio();
+      onCambio?.();
       cargar();
     } catch (e: unknown) {
       setAvisoEntrega(
@@ -91,11 +97,12 @@ export default function ModalDetalleTarea({ tareaId, onCerrar, onCambio }: Props
   };
 
   const anular = async () => {
+    if (!tareaId) return;
     setEnviando(true);
     setAvisoEntrega(null);
     try {
       await anularEntrega(tareaId);
-      onCambio();
+      onCambio?.();
       cargar();
     } catch (e: unknown) {
       setAvisoEntrega(
@@ -106,9 +113,11 @@ export default function ModalDetalleTarea({ tareaId, onCerrar, onCambio }: Props
     }
   };
 
+  const titulo = esDocente ? tareaDocente.titulo : detalle?.tarea.titulo ?? "Detalle de la tarea";
+
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4"
       onClick={onCerrar}
     >
       <div
@@ -118,7 +127,7 @@ export default function ModalDetalleTarea({ tareaId, onCerrar, onCambio }: Props
         {/* Encabezado */}
         <div className="flex items-start justify-between p-6 border-b border-white/10 sticky top-0 bg-[#2D1B4E] z-10">
           <h3 className="text-xl font-extrabold text-white font-headline pr-4">
-            {detalle?.tarea.titulo ?? "Detalle de la tarea"}
+            {titulo}
           </h3>
           <button
             onClick={onCerrar}
@@ -130,7 +139,9 @@ export default function ModalDetalleTarea({ tareaId, onCerrar, onCambio }: Props
         </div>
 
         <div className="p-6 space-y-6">
-          {cargando ? (
+          {esDocente ? (
+            <DetalleDocente tarea={tareaDocente} acciones={acciones} />
+          ) : cargando ? (
             <p className="text-slate-400 text-sm">Abriendo la tarea…</p>
           ) : error ? (
             <p className="text-rose-400 text-sm">{error}</p>
@@ -233,6 +244,74 @@ export default function ModalDetalleTarea({ tareaId, onCerrar, onCambio }: Props
 }
 
 // ─── Piezas internas ────────────────────────────────────
+
+// Detalle de solo lectura para el PROFESOR: la consigna que él escribió, con sus
+// acciones (editar/corregir) en el pie. Reusa la misma cáscara del modal y las
+// mismas secciones visuales (chips + consigna + método) que ve el estudiante.
+function DetalleDocente({
+  tarea,
+  acciones,
+}: {
+  tarea: TareaDocente;
+  acciones?: ReactNode;
+}) {
+  return (
+    <>
+      <div className="flex flex-wrap gap-3 text-sm">
+        <span className="px-3 py-1 rounded-full bg-[#1C1030] text-slate-300 flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-base">menu_book</span>
+          {tarea.materia}
+        </span>
+        <span className="px-3 py-1 rounded-full bg-[#1C1030] text-slate-300 flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-base">school</span>
+          {tarea.curso}
+        </span>
+        <span
+          className={`px-3 py-1 rounded-full bg-[#1C1030] flex items-center gap-1.5 ${colorVencimiento(
+            tarea.fechaLimite
+          )}`}
+        >
+          <span className="material-symbols-outlined text-base">schedule</span>
+          {textoVencimiento(tarea.fechaLimite)}
+        </span>
+        {tarea.tipoAsignacion === "grupal" && (
+          <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-base">groups</span>
+            Grupal
+          </span>
+        )}
+      </div>
+
+      <section>
+        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+          Consigna
+        </h4>
+        <p className="text-slate-200 whitespace-pre-wrap text-sm leading-relaxed">
+          {tarea.consigna || "No dejaste una consigna escrita."}
+        </p>
+      </section>
+
+      {tarea.metodoEstudio && (
+        <section>
+          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+            Método de estudio sugerido
+          </h4>
+          <p className="text-slate-200 text-sm flex items-center gap-2">
+            <span className="material-symbols-outlined text-lg text-[#C548F5]">neurology</span>
+            {tarea.metodoEstudio}
+          </p>
+        </section>
+      )}
+
+      {acciones && (
+        <>
+          <hr className="border-white/10" />
+          <div className="flex flex-wrap items-center justify-end gap-3">{acciones}</div>
+        </>
+      )}
+    </>
+  );
+}
 
 function ArchivoDescargable({
   archivo,

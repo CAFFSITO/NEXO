@@ -9,7 +9,7 @@
 //
 // Ver `servidor/diario.js`.
 
-import { enviar, usarDatos } from "./api";
+import { enviar, useDatos } from "./api";
 
 /** Un registro del diario, como lo devuelve la cocina. */
 export interface RegistroDiario {
@@ -26,8 +26,8 @@ export interface DatosDiario {
 }
 
 /** Lee mis registros (los del profesor de la sesión), más nuevos primero. */
-export function usarDiario() {
-  const { datos, cargando, error, recargar } = usarDatos<DatosDiario>("/api/diario");
+export function useDiario() {
+  const { datos, cargando, error, recargar } = useDatos<DatosDiario>("/api/diario");
   return { datos, cargando, error, recargar };
 }
 

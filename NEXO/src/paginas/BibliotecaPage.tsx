@@ -6,14 +6,14 @@ import ResourceCard from "./components/biblioteca/ResourceCard";
 import ModalPresentarRecurso from "./components/biblioteca/ModalPresentarRecurso";
 import {
   normalizar,
-  usarBiblioteca,
+  useBiblioteca,
   votarRecurso,
   type AmbitoBiblioteca,
   type Recurso,
   type ResultadoVotoRecurso,
 } from "../servicios/biblioteca";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
-import { usarInstitucion } from "../servicios/institucion";
+import { useInstitucion } from "../servicios/institucion";
 import { urlDescarga } from "../servicios/archivos";
 
 // Ícono por tipo de recurso. Decoración, no un dato de la base.
@@ -37,13 +37,17 @@ export default function BibliotecaPage() {
 
   const [ambito, setAmbito] = useState<AmbitoBiblioteca>("institucional");
   const [query, setQuery] = useState("");
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+  const [tipo, setTipo] = useState("todos");
+  const [categoria, setCategoria] = useState("todas");
+  const [avisoError, setAvisoError] = useState("");
   const [modalPresentar, setModalPresentar] = useState(false);
-  const { institucion } = usarInstitucion();
+  const { institucion } = useInstitucion();
 
   // Los recursos inventados ("Reglamento institucional 2025", "Simulaciones de
   // Física" del "Ministerio de Educación") se fueron: cada pestaña pide a la
   // base los recursos de su ámbito.
-  const { recursos, cargando, error, recargar } = usarBiblioteca(ambito);
+  const { recursos, cargando, error, recargar } = useBiblioteca(ambito);
 
   // Al votar, el servidor devuelve el estado fresco (mi voto + totales reales).
   // Se guarda por id de recurso para actualizar la tarjeta al instante; en la
@@ -62,7 +66,7 @@ export default function BibliotecaPage() {
       const res = await votarRecurso(recursoId, valor);
       setVotos((v) => ({ ...v, [recursoId]: res }));
     } catch (e) {
-      console.error("No se pudo votar el recurso", e);
+      setAvisoError(e instanceof Error ? e.message : "No se pudo votar el recurso.");
     }
   };
 
@@ -71,14 +75,13 @@ export default function BibliotecaPage() {
   const recursosVisibles = useMemo(() => {
     const q = normalizar(query.trim());
     if (!recursos) return [];
-    if (!q) return recursos;
     return recursos.filter(
       (r) =>
-        normalizar(r.titulo).includes(q) ||
+        (tipo === "todos" || r.tipo === tipo) && (categoria === "todas" || r.categoria === categoria) && (normalizar(r.titulo).includes(q) ||
         normalizar(r.categoria).includes(q) ||
-        normalizar(r.autor).includes(q)
+        normalizar(r.autor).includes(q))
     );
-  }, [recursos, query]);
+  }, [recursos, query, tipo, categoria]);
 
   // "Presentar recurso" y "Agregar recurso" abren el mismo flujo (Etapa 7): un
   // recurso nuevo entra a la cola de revisión (Error 2.E.2). El bibliotecario y
@@ -108,12 +111,12 @@ export default function BibliotecaPage() {
       />
 
       {/* Top App Bar: tabs Nacional / Institucional */}
-      <header className="fixed top-0 left-[220px] right-0 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] px-8 py-4 flex justify-between items-center z-40">
+      <header className="fixed top-0 app-fixed-header right-0 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] px-8 py-4 flex justify-between items-center z-40">
         <nav className="flex gap-6 font-headline font-semibold">
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setAmbito(tab.id)}
+              onClick={() => { if (tab.id === "nacional") handleNavegar("/biblioteca/nacional"); else setAmbito(tab.id); }}
               className={`pb-2 transition-all cursor-pointer ${
                 ambito === tab.id
                   ? "text-[#C548F5] border-b-2 border-[#C548F5]"
@@ -125,19 +128,19 @@ export default function BibliotecaPage() {
           ))}
         </nav>
         <div className="flex items-center gap-4">
-          <button className="text-gray-400 hover:text-[#C548F5] transition-all p-2">
+          <button aria-label="Notificaciones" onClick={() => handleNavegar("/notificaciones")} className="text-gray-400 hover:text-[#C548F5] transition-all p-2">
             <span className="material-symbols-outlined">notifications</span>
           </button>
-          <button className="text-gray-400 hover:text-[#C548F5] transition-all p-2">
+          <button aria-label="Configuración" onClick={() => handleNavegar("/configuracion")} className="text-gray-400 hover:text-[#C548F5] transition-all p-2">
             <span className="material-symbols-outlined">settings</span>
           </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="ml-[220px] pt-24 p-8 min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content pt-24 p-8 min-h-screen">
         {/* Header Section */}
-        <div className="flex justify-between items-end mb-10">
+        <div className="flex flex-wrap gap-5 justify-between items-end mb-10">
           <div className="space-y-1">
             <nav className="flex items-center gap-2 text-xs text-gray-500 font-label mb-2">
               <span>{ambito === "institucional" ? "Institución" : "Nacional"}</span>
@@ -177,7 +180,13 @@ export default function BibliotecaPage() {
         </div>
 
         {/* Filter & Search Bar */}
-        <SearchAndFilter onSearch={setQuery} onFilter={() => console.log("Abrir filtros avanzados")} />
+        <SearchAndFilter onSearch={setQuery} onFilter={() => setFiltrosAbiertos(!filtrosAbiertos)} />
+        {filtrosAbiertos && <section aria-label="Filtros de biblioteca" className="flex flex-wrap items-end gap-4 mb-6 p-4 bg-surface-container border border-white/10 rounded-xl">
+          <label className="text-xs text-on-surface-variant">Tipo<select value={tipo} onChange={e => setTipo(e.target.value)} className="block mt-2 p-2.5 rounded-lg bg-background"><option value="todos">Todos los tipos</option>{Object.keys(ICONO_TIPO).map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}</select></label>
+          <label className="text-xs text-on-surface-variant">Categoría<select value={categoria} onChange={e => setCategoria(e.target.value)} className="block mt-2 p-2.5 rounded-lg bg-background"><option value="todas">Todas las categorías</option>{[...new Set(recursos?.map(r => r.categoria) ?? [])].map(c => <option key={c}>{c}</option>)}</select></label>
+          <button onClick={() => { setTipo("todos"); setCategoria("todas"); }} className="text-xs text-primary py-3">Limpiar filtros</button>
+        </section>}
+        {avisoError && <p role="alert" className="text-error text-sm mb-4">{avisoError}</p>}
 
         {/* Resource Cards Grid */}
         {cargando ? (

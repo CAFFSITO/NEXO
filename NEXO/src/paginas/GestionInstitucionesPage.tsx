@@ -10,8 +10,8 @@ import { useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import {
-  usarPlataforma,
-  usarPlantillas,
+  usePlataforma,
+  usePlantillas,
   crearInstitucion,
   crearPlantilla,
   aplicarPlantilla,
@@ -25,8 +25,8 @@ import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 
 export default function GestionInstitucionesPage() {
   const { navegar, cerrarSesion, usuario } = useNavegacion();
-  const { datos, cargando, error, recargar } = usarPlataforma();
-  const { plantillas, recargar: recargarPlantillas } = usarPlantillas();
+  const { datos, cargando, error, recargar } = usePlataforma();
+  const { plantillas, recargar: recargarPlantillas } = usePlantillas();
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalPlantilla, setModalPlantilla] = useState(false);
   const [aplicarEn, setAplicarEn] = useState<InstitucionPlataforma | null>(null);
@@ -38,7 +38,7 @@ export default function GestionInstitucionesPage() {
     <div className="flex bg-[#1C1030] min-h-screen text-on-background">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <header className="flex justify-between items-center px-10 h-16 sticky top-0 bg-[#1C1030]/80 backdrop-blur-md border-b border-fuchsia-900/10 z-40">
           <h1 className="text-fuchsia-500 font-headline font-bold">Instituciones</h1>
           <span className="text-xs text-slate-400">Administración de Plataforma · NEXO</span>
@@ -298,7 +298,7 @@ function ModalNuevaInstitucion({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4"
       onClick={onCerrar}
     >
       <form
@@ -395,7 +395,7 @@ function ModalNuevaPlantilla({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4" onClick={onCerrar}>
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={enviar}
@@ -501,7 +501,7 @@ function ModalAplicarPlantilla({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4" onClick={onCerrar}>
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md bg-[#2D1B4E] border border-surface-variant rounded-2xl p-8 shadow-2xl">
         <div className="flex justify-between items-start mb-4">
           <div>

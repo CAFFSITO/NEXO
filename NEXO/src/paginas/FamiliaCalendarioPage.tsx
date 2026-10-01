@@ -11,8 +11,8 @@ import {
   type EventoFamilia,
 } from "./components/familia-calendario/tipos";
 import { useNavegacion } from "../navegacion";
-import { usarCalendario } from "../servicios/calendario";
-import { subtituloInstitucional, usarInstitucion } from "../servicios/institucion";
+import { useCalendario } from "../servicios/calendario";
+import { subtituloInstitucional, useInstitucion } from "../servicios/institucion";
 import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 
 type Vista = "mes" | "agenda";
@@ -27,8 +27,8 @@ const HOY_ISO = toISO(HOY.getFullYear(), HOY.getMonth(), HOY.getDate());
 
 export default function FamiliaCalendarioPage() {
   const { navegar, cerrarSesion, usuario } = useNavegacion();
-  const { datos, cargando, error, recargar } = usarCalendario();
-  const { institucion } = usarInstitucion();
+  const { datos, cargando, error, recargar } = useCalendario();
+  const { institucion } = useInstitucion();
 
   // Abre en el mes actual, no en un mes fijo del pasado.
   const [anio, setAnio] = useState(HOY.getFullYear());
@@ -101,16 +101,16 @@ export default function FamiliaCalendarioPage() {
         onCerrarSesion={cerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content min-h-screen">
         {/* Top App Bar */}
-        <header className="flex justify-between items-center w-full px-6 py-4 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] sticky top-0 z-40">
+        <header className="flex flex-wrap gap-3 justify-between items-center w-full px-4 sm:px-6 py-4 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] sticky top-0 z-40">
           <div>
             <h1 className="text-lg font-black text-white font-headline">Calendario Institucional</h1>
             {/* Decía "Colegio San Martín — Ciclo 2025" a mano (Error 13.7). */}
             <p className="text-xs text-gray-400 font-medium">{subtituloInstitucional(institucion)}</p>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex bg-[#2D1B4E] p-1 rounded-full">
               {(["mes", "agenda"] as const).map((v) => (
                 <button
@@ -128,13 +128,13 @@ export default function FamiliaCalendarioPage() {
             </div>
             <div className="flex items-center gap-4 text-gray-400">
               <button
-                aria-label="Notificaciones"
+                aria-label="Notificaciones" onClick={() => navegar("/notificaciones")}
                 className="material-symbols-outlined hover:text-white transition-colors"
               >
                 notifications
               </button>
               <button
-                aria-label="Configuración"
+                aria-label="Configuración" onClick={() => navegar("/configuracion")}
                 className="material-symbols-outlined hover:text-white transition-colors"
               >
                 settings

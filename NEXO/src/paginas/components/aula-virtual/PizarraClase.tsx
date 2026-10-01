@@ -40,8 +40,12 @@ const COLORES = ["#C548F5", "#ffffff", "#f97316", "#22c55e", "#38bdf8"];
 
 export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const trazosRef = useRef<DatosTrazo[]>([]);
+  const trazosRef = useRef<Map<number, DatosTrazo>>(new Map());
   const dibujandoRef = useRef<DatosTrazo | null>(null);
+  const [error, setError] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const borradosRef = useRef(0);
   const [color, setColor] = useState(COLORES[0]);
 
   // ── Dibujar todo el lienzo desde la lista de trazos ────────────────────────
@@ -90,30 +94,34 @@ export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) 
   // ── Cargar los trazos que ya estaban (el que entra tarde ve la pizarra) ────
   useEffect(() => {
     let vigente = true;
+    const borrados = borradosRef.current;
     trazosDeClase(claseId)
       .then((trazos) => {
         if (!vigente) return;
-        trazosRef.current = trazos.map((t) => t.datos as DatosTrazo);
+        if (borrados !== borradosRef.current) return;
+        trazos.forEach((t) => trazosRef.current.set(t.secuencia, t.datos as DatosTrazo));
+        setError("");
         redibujar();
       })
-      .catch(() => {
-        /* Si falla, la pizarra queda vacía; no rompe la clase. */
+      .catch((e: unknown) => {
+        if (vigente) setError(e instanceof Error ? e.message : "No se pudo cargar la pizarra.");
       });
     return () => {
       vigente = false;
     };
-  }, [claseId, redibujar]);
+  }, [claseId, redibujar, revision]);
 
   // ── Escuchar trazos en vivo (los que dibuja el docente) ────────────────────
   const alRecibir = useCallback(
     (evento: EventoVivo) => {
       if (evento.claseId !== claseId) return;
       if (evento.tipo === "aula-trazo" && evento.trazo) {
-        const t = (evento.trazo as Trazo).datos as DatosTrazo;
-        trazosRef.current = [...trazosRef.current, t];
+        const t = evento.trazo as Trazo;
+        trazosRef.current.set(t.secuencia, t.datos as DatosTrazo);
         redibujar();
       } else if (evento.tipo === "aula-pizarra-limpia") {
-        trazosRef.current = [];
+        borradosRef.current += 1;
+        trazosRef.current.clear();
         redibujar();
       }
     },
@@ -131,7 +139,7 @@ export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) 
   };
 
   const alBajar = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!esDocente) return;
+    if (!esDocente || guardando) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     dibujandoRef.current = { color, ancho: 3, puntos: [puntoDe(e)] };
   };
@@ -145,18 +153,31 @@ export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) 
     const trazo = dibujandoRef.current;
     dibujandoRef.current = null;
     if (trazo.puntos.length < 1) return;
-    // Se ve al instante en la pizarra del docente y se manda a guardar/repartir.
-    trazosRef.current = [...trazosRef.current, trazo];
+    setGuardando(true);
+    setError("");
     redibujar();
-    enviarTrazo(claseId, trazo).catch(() => {
-      /* El servidor pudo rechazarlo (no docente); el trazo local no molesta. */
-    });
+    enviarTrazo(claseId, trazo).then(({ secuencia }) => {
+      trazosRef.current.set(secuencia, trazo);
+      redibujar();
+    }).catch((e: unknown) => {
+      setError(e instanceof Error ? e.message : "No se pudo guardar el trazo.");
+    }).finally(() => setGuardando(false));
   };
 
-  const borrarTodo = () => {
-    trazosRef.current = [];
-    redibujar();
-    limpiarPizarra(claseId).catch(() => {});
+  const borrarTodo = async () => {
+    if (guardando) return;
+    setGuardando(true);
+    setError("");
+    try {
+      await limpiarPizarra(claseId);
+      borradosRef.current += 1;
+      trazosRef.current.clear();
+      redibujar();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo limpiar la pizarra.");
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -182,6 +203,7 @@ export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) 
             ))}
             <button
               onClick={borrarTodo}
+              disabled={guardando}
               className="ml-1 px-2 py-1 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 text-xs flex items-center gap-1"
             >
               <span className="material-symbols-outlined text-sm">ink_eraser</span>
@@ -190,11 +212,14 @@ export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) 
           </div>
         )}
       </div>
+      {error && <div role="alert" className="text-sm text-rose-300">{error} <button onClick={() => setRevision((n) => n + 1)} className="underline">Recargar</button></div>}
+      {guardando && <p role="status" className="text-xs text-slate-400">Guardando pizarra…</p>}
       <canvas
         ref={canvasRef}
         onPointerDown={alBajar}
         onPointerMove={alMover}
         onPointerUp={alSoltar}
+        onPointerCancel={() => { dibujandoRef.current = null; redibujar(); }}
         className={`flex-1 w-full rounded-2xl bg-[#0f0820] border border-white/10 ${
           esDocente ? "cursor-crosshair touch-none" : "cursor-default"
         }`}

@@ -10,7 +10,8 @@
 // si salió bien): así una alta rechazada —por ejemplo un correo repetido— deja
 // el modal abierto mostrando el motivo, en vez de tragarse el problema.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import VinculosFamilia from "./VinculosFamilia";
 import { META_ROL, ROLES, type Perfil, type PerfilEditable, type Rol } from "./tipos";
 
 interface ModalPerfilProps {
@@ -34,24 +35,11 @@ export default function ModalPerfil({
   onCerrar,
   onGuardar,
 }: ModalPerfilProps) {
-  const [datos, setDatos] = useState<PerfilEditable>(VACIO);
+  const [datos, setDatos] = useState<PerfilEditable>(() => perfilEnEdicion ? { nombre: perfilEnEdicion.nombre, rol: perfilEnEdicion.rol, email: perfilEnEdicion.email ?? "", estado: perfilEnEdicion.estado === "papelera" ? "activo" : perfilEnEdicion.estado } : VACIO);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
 
-  // Precarga el formulario al abrir en modo edición; lo resetea en modo alta.
-  useEffect(() => {
-    if (perfilEnEdicion) {
-      setDatos({
-        nombre: perfilEnEdicion.nombre,
-        rol: perfilEnEdicion.rol,
-        email: perfilEnEdicion.email ?? "",
-        estado: perfilEnEdicion.estado === "papelera" ? "activo" : perfilEnEdicion.estado,
-      });
-    } else {
-      setDatos(VACIO);
-    }
-    setError("");
-  }, [perfilEnEdicion, abierto]);
+
 
   if (!abierto) return null;
 
@@ -88,13 +76,13 @@ export default function ModalPerfil({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4"
       onClick={onCerrar}
     >
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={handleSubmit}
-        className="w-full max-w-lg bg-[#2D1B4E] border border-surface-variant rounded-2xl p-8 shadow-2xl"
+        className="w-full max-w-lg max-h-[90dvh] overflow-y-auto bg-[#2D1B4E] border border-surface-variant rounded-2xl p-6 sm:p-8 shadow-2xl"
       >
         <div className="flex justify-between items-start mb-6">
           <div>
@@ -174,11 +162,12 @@ export default function ModalPerfil({
             className="bg-surface-container border border-outline-variant/40 rounded-lg px-3 py-2 text-white placeholder:text-on-surface-variant/50 focus:border-primary outline-none"
           />
           <span className="text-[11px] text-on-surface-variant/60">
-            El {meta.labelAsignacion.toLowerCase()} se asigna después, desde Gestión de Cursos.
+            {datos.rol === "familia" ? "Guardá el perfil para vincular sus estudiantes a cargo." : `El ${meta.labelAsignacion.toLowerCase()} se asigna desde Cursos y materias.`}
           </span>
         </label>
 
-        {error && <p className="text-error text-sm mb-2">{error}</p>}
+        {perfilEnEdicion?.rol === "familia" && perfilEnEdicion.estado === "activo" && <VinculosFamilia familiaId={perfilEnEdicion.id} />}
+        {error && <p role="alert" className="text-error text-sm mb-2">{error}</p>}
 
         <div className="flex gap-3 mt-6">
           <button

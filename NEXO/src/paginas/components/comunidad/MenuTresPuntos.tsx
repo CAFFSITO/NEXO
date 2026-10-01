@@ -12,6 +12,13 @@ interface MenuTresPuntosProps {
   onEliminar: (tipo: ObjetoVotable, id: string) => void;
   /** "horiz" (feed/debate) o "vert" (comentarios). Solo cambia el ícono. */
   orientacion?: "horiz" | "vert";
+  /** ¿Está fijado hoy? Decide si el menú ofrece "Fijar" o "Desfijar". */
+  fijado?: boolean;
+  /**
+   * Fijar/desfijar. Solo se pasa donde la acción tiene sentido (el feed) y el
+   * servidor la permite (la dirección). Si no viene, el menú no la muestra.
+   */
+  onFijar?: (id: string, fijado: boolean) => void;
 }
 
 // El ÚNICO menú de tres puntos de la comunidad (sección 1.4 y 14.4.4). Recibe el
@@ -27,9 +34,14 @@ export default function MenuTresPuntos({
   onDenunciar,
   onEliminar,
   orientacion = "horiz",
+  fijado = false,
+  onFijar,
 }: MenuTresPuntosProps) {
   const [abierto, setAbierto] = useState(false);
   const eliminar = puedeEliminar(rol, objetoTipo, esAutor);
+  // Fijar/desfijar es solo de la dirección y solo sobre publicaciones. El
+  // servidor vuelve a validarlo (403 si no es la dirección): esto es apariencia.
+  const puedeFijar = !!onFijar && rol === "admin-academico" && objetoTipo === "publicacion";
 
   return (
     <div className="relative">
@@ -52,6 +64,25 @@ export default function MenuTresPuntos({
           {/* Capa para cerrar tocando afuera. */}
           <div className="fixed inset-0 z-[60]" onClick={() => setAbierto(false)} />
           <div className="absolute right-0 top-8 z-[61] w-44 bg-[#241338] border border-white/10 rounded-xl shadow-2xl py-1 overflow-hidden">
+            {puedeFijar && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAbierto(false);
+                  onFijar?.(objetoId, !fijado);
+                }}
+                className="w-full text-left px-4 py-2.5 text-sm text-[#C548F5] hover:bg-fuchsia-500/10 flex items-center gap-2"
+              >
+                <span
+                  className="material-symbols-outlined text-[18px]"
+                  style={fijado ? { fontVariationSettings: "'FILL' 1" } : undefined}
+                >
+                  {fijado ? "keep_off" : "keep"}
+                </span>
+                {fijado ? "Desfijar" : "Fijar"}
+              </button>
+            )}
             {!esAutor && (
               <button
                 type="button"

@@ -8,7 +8,7 @@
 // el mensajero (ver servicios/tiempoReal.ts).
 
 import type { Rol } from "../paginas/components/shared/roles";
-import { enviar, pedir, usarDatos } from "./api";
+import { enviar, pedir, useDatos } from "./api";
 import { subirArchivo } from "./archivos";
 
 export interface Conversacion {
@@ -31,25 +31,41 @@ export interface Mensaje {
   mio: boolean;
   contenido: string;
   archivo: string | null;
+  archivoId?: string | null;
   enviadoEn: string;
 }
 
-export function usarConversaciones() {
+export function useConversaciones() {
   const { datos, cargando, error, recargar } =
-    usarDatos<{ conversaciones: Conversacion[] }>("/api/chat/conversaciones");
+    useDatos<{ conversaciones: Conversacion[] }>("/api/chat/conversaciones");
   return { conversaciones: datos?.conversaciones ?? null, cargando, error, recargar };
 }
 
-export function usarMensajes(conversacionId: string | null) {
+export function useMensajes(conversacionId: string | null) {
   // Cuando no hay conversación elegida se pide una ruta imposible que el hook
   // igual maneja; más simple es pedir siempre y dejar que el componente no
   // monte el hook hasta tener id. Acá se resuelve pidiendo una ruta vacía.
-  const { datos, cargando, error, recargar } = usarDatos<{ mensajes: Mensaje[] }>(
+  const { datos, cargando, error, recargar } = useDatos<{ mensajes: Mensaje[] }>(
     conversacionId
       ? `/api/chat/conversaciones/${conversacionId}/mensajes`
-      : "/api/chat/conversaciones/0/mensajes"
+      : null
   );
   return { mensajes: datos?.mensajes ?? null, cargando, error, recargar };
+}
+
+export interface ContactoChat {
+  id: string;
+  nombre: string;
+  rol: Rol;
+}
+
+export function useContactosChat() {
+  const { datos, cargando, error, recargar } = useDatos<{ contactos: ContactoChat[] }>("/api/chat/contactos");
+  return { contactos: datos?.contactos ?? [], cargando, error, recargar };
+}
+
+export function iniciarConversacion(destinatarioId: string) {
+  return enviar<{ id: string }>("/api/chat/conversaciones", "POST", { destinatarioId });
 }
 
 // ── Escritura (Etapa 6) ──────────────────────────────────────────────────────
@@ -103,9 +119,9 @@ export interface ConversacionModerable {
 }
 
 /** Los cursos a cargo del preceptor, con su comunidad asegurada. */
-export function usarCursosPreceptor() {
+export function useCursosPreceptor() {
   const { datos, cargando, error, recargar } =
-    usarDatos<{ cursos: CursoPreceptor[] }>("/api/chat/mis-cursos-preceptor");
+    useDatos<{ cursos: CursoPreceptor[] }>("/api/chat/mis-cursos-preceptor");
   return { cursos: datos?.cursos ?? null, cargando, error, recargar };
 }
 

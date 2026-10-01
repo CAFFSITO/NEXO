@@ -1,7 +1,7 @@
 // src/servicios/perfiles.ts
 // Puerta de las pantallas de Gestión de Perfiles y de Cursos hacia el servidor.
 
-import { usarDatos, pedir } from "./api";
+import { useDatos, pedir } from "./api";
 import type { Rol } from "../paginas/components/shared/roles";
 
 // ─── Escritura (Etapa 3) ────────────────────────────────
@@ -100,9 +100,9 @@ export interface Perfil {
   eliminadoEn?: string | null;
 }
 
-export function usarPerfiles() {
+export function usePerfiles() {
   const { datos, cargando, error, recargar } =
-    usarDatos<{ perfiles: Perfil[] }>("/api/perfiles");
+    useDatos<{ perfiles: Perfil[] }>("/api/perfiles");
   return { perfiles: datos?.perfiles ?? null, cargando, error, recargar };
 }
 
@@ -139,8 +139,8 @@ export interface DatosCursos {
   semana: ActividadSemanal;
 }
 
-export function usarCursos() {
-  const { datos, cargando, error, recargar } = usarDatos<DatosCursos>("/api/cursos");
+export function useCursos() {
+  const { datos, cargando, error, recargar } = useDatos<DatosCursos>("/api/cursos");
   return { datos, cargando, error, recargar };
 }
 

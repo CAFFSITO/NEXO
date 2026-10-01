@@ -1,4 +1,4 @@
-import { usarTendencias } from "../../../servicios/comunidad";
+import { useTendencias } from "../../../servicios/comunidad";
 
 interface SidebarTendenciasProps {
   /** Llevar a la pestaña Tendencias. La dispara la barra entera, cada ítem y el
@@ -9,12 +9,12 @@ interface SidebarTendenciasProps {
 // Previsualización de Tendencias en la columna derecha del Feed.
 //
 // No inventa nada: usa el MISMO servicio real que la pestaña Tendencias
-// (usarTendencias → /api/comunidad/tendencias). Muestra un resumen de lo más
+// (useTendencias → /api/comunidad/tendencias). Muestra un resumen de lo más
 // caliente de la propia escuela y, al tocarse, navega a la pestaña completa.
 // Si no hay actividad suficiente esta semana, lo dice con honestidad.
 export default function SidebarTendencias({ onVer }: SidebarTendenciasProps) {
   // Mismo alcance por defecto que abre la pestaña Tendencias ("Mi escuela").
-  const { tendencias, cargando, error } = usarTendencias("mi-escuela");
+  const { tendencias, cargando, error } = useTendencias("mi-escuela");
   const top = (tendencias ?? []).slice(0, 5);
 
   return (

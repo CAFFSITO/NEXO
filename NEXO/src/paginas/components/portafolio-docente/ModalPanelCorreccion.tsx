@@ -7,15 +7,14 @@
 // tabla que lee Calificaciones del alumno: una sola nota por trabajo (Error
 // 13.1). Antes "corregir" no existía: la tarjeta mostraba números fijos.
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import {
-  traerPanel,
   corregirEntrega,
   type PanelCorreccion,
   type FilaCorreccion,
 } from "../../../servicios/tareas";
 import { urlDescarga, tamanoLegible } from "../../../servicios/archivos";
-import { ErrorDeApi } from "../../../servicios/api";
+import { ErrorDeApi, useDatos } from "../../../servicios/api";
 import { textoRelativo } from "../../../servicios/fechas";
 
 const BADGE: Record<FilaCorreccion["estado"], { label: string; clase: string }> = {
@@ -32,32 +31,16 @@ interface Props {
 }
 
 export default function ModalPanelCorreccion({ tareaId, onCerrar, onCambio }: Props) {
-  const [panel, setPanel] = useState<PanelCorreccion | null>(null);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { datos: panel, cargando, error, recargar: cargar } = useDatos<PanelCorreccion>(`/api/tareas/${tareaId}/panel`);
   const [abierto, setAbierto] = useState<string | null>(null); // estudianteId expandido
 
-  const cargar = useCallback(() => {
-    setCargando(true);
-    setError(null);
-    traerPanel(tareaId)
-      .then((p) => {
-        setPanel(p);
-        setCargando(false);
-      })
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : "No se pudo abrir el panel.");
-        setCargando(false);
-      });
-  }, [tareaId]);
 
-  useEffect(() => cargar(), [cargar]);
 
   const entregados = panel?.alumnos.filter((a) => a.estado !== "no-entrego").length ?? 0;
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4"
       onClick={onCerrar}
     >
       <div

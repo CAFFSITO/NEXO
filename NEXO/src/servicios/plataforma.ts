@@ -3,7 +3,7 @@
 // Todo lo que trae sale de la base: instituciones con sus totales, salud del
 // sistema y los logs. Ningún dato interno de una escuela pasa por acá.
 
-import { enviar, usarDatos } from "./api";
+import { enviar, useDatos } from "./api";
 
 export interface InstitucionPlataforma {
   id: string;
@@ -36,9 +36,9 @@ export interface DatosPlataforma {
   logs: LogSistema[];
 }
 
-export function usarPlataforma() {
+export function usePlataforma() {
   const { datos, cargando, error, recargar } =
-    usarDatos<DatosPlataforma>("/api/plataforma");
+    useDatos<DatosPlataforma>("/api/plataforma");
   return { datos, cargando, error, recargar };
 }
 
@@ -105,9 +105,9 @@ export interface PlantillaPlataforma {
   competencias: string[];
 }
 
-export function usarPlantillas() {
+export function usePlantillas() {
   const { datos, cargando, error, recargar } =
-    usarDatos<{ plantillas: PlantillaPlataforma[] }>("/api/plataforma/plantillas");
+    useDatos<{ plantillas: PlantillaPlataforma[] }>("/api/plataforma/plantillas");
   return { plantillas: datos?.plantillas ?? null, cargando, error, recargar };
 }
 

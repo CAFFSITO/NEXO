@@ -1,9 +1,9 @@
+import { FILTROS_INICIALES } from "./components/biblioteca/estadoFiltros";
 import { useMemo, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TarjetaRecursoNacional from "./components/biblioteca/TarjetaRecursoNacional";
 import FiltrosNacional, {
-  FILTROS_INICIALES,
   type EstadoFiltros,
 } from "./components/biblioteca/FiltrosNacional";
 import PanelTendencias, { type Tendencia } from "./components/biblioteca/PanelTendencias";
@@ -11,7 +11,7 @@ import WidgetNovedades from "./components/biblioteca/WidgetNovedades";
 import type { RecursoNacional, TipoRecurso, Voto } from "./components/biblioteca/tiposNacional";
 import {
   normalizar,
-  usarBiblioteca,
+  useBiblioteca,
   votarRecurso,
   type Recurso,
   type ResultadoVotoRecurso,
@@ -44,7 +44,7 @@ const A_VOTO: Record<string, Voto> = { "a-favor": "positivo", "en-contra": "nega
 
 export default function BibliotecaNacionalPage() {
   const [filtros, setFiltros] = useState<EstadoFiltros>(FILTROS_INICIALES);
-  const { recursos, cargando, error, recargar } = usarBiblioteca("nacional");
+  const { recursos, cargando, error, recargar } = useBiblioteca("nacional");
 
   // Al votar, el servidor devuelve el estado fresco (mi voto + totales reales).
   // Se guarda acá para que la tarjeta se actualice al instante sin recargar todo;
@@ -149,11 +149,11 @@ export default function BibliotecaNacionalPage() {
       />
 
       {/* Top App Bar: tabs Nacional / Institucional */}
-      <header className="fixed top-0 right-0 left-[220px] h-16 bg-[#1C1030]/80 backdrop-blur-md border-b border-fuchsia-900/20 z-40 flex items-center justify-between px-8">
+      <header className="fixed top-0 right-0 app-fixed-header h-16 bg-[#1C1030]/80 backdrop-blur-md border-b border-fuchsia-900/20 z-40 flex items-center justify-between px-8">
         <div className="flex items-center gap-8">
           <h1 className="font-headline font-extrabold text-white text-lg tracking-tight">Biblioteca</h1>
           <nav className="flex gap-6">
-            <button className="text-sm font-medium text-fuchsia-500 border-b-2 border-fuchsia-500 pb-1">
+          <button aria-current="page" onClick={() => handleNavegar("/biblioteca/nacional")} className="text-sm font-medium text-fuchsia-500 border-b-2 border-fuchsia-500 pb-1">
               Nacional
             </button>
             <button
@@ -165,10 +165,10 @@ export default function BibliotecaNacionalPage() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <button className="p-2 text-slate-400 hover:text-fuchsia-400 transition-colors">
+          <button aria-label="Buscar sección" onClick={() => window.dispatchEvent(new Event("nexo:buscar"))} className="p-2 text-slate-400 hover:text-fuchsia-400 transition-colors">
             <span className="material-symbols-outlined">search</span>
           </button>
-          <button className="p-2 text-slate-400 hover:text-fuchsia-400 transition-colors relative">
+          <button aria-label="Notificaciones" onClick={() => handleNavegar("/notificaciones")} className="p-2 text-slate-400 hover:text-fuchsia-400 transition-colors relative">
             <span className="material-symbols-outlined">notifications</span>
             <span className="absolute top-2 right-2 w-2 h-2 bg-fuchsia-500 rounded-full" />
           </button>
@@ -176,7 +176,7 @@ export default function BibliotecaNacionalPage() {
       </header>
 
       {/* Main Content */}
-      <main className="ml-[220px] pt-24 px-8 pb-12 min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content pt-24 px-8 pb-12 min-h-screen">
         <FiltrosNacional
           filtros={filtros}
           materias={materias}

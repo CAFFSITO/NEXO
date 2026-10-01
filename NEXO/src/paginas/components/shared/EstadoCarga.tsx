@@ -14,9 +14,9 @@ interface CargandoProps {
 
 export function Cargando({ que }: CargandoProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+    <div role="status" className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
       <span className="material-symbols-outlined text-4xl animate-spin">progress_activity</span>
-      <p className="text-sm">Trayendo {que}…</p>
+      <p className="text-sm">Cargando {que}…</p>
     </div>
   );
 }
@@ -30,7 +30,7 @@ interface FalloProps {
 
 export function Fallo({ error, onReintentar }: FalloProps) {
   return (
-    <div className="bg-[#2D1B4E]/40 border border-red-500/20 rounded-[14px] p-10 text-center flex flex-col items-center gap-3">
+    <div role="alert" className="bg-[#2D1B4E]/40 border border-red-500/20 rounded-[14px] p-10 text-center flex flex-col items-center gap-3">
       <span className="material-symbols-outlined text-4xl text-red-400">cloud_off</span>
       {/* El texto del servidor tal cual: "no tenés permiso" y "la cocina está
           apagada" son problemas distintos y quien lee tiene que poder

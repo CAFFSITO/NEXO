@@ -1,12 +1,14 @@
 // src/servicios/aula.ts
 // Puerta del Aula Virtual hacia el servidor (Etapa 9, sección 14.3).
 //
-// El video y el audio los resuelve Jitsi dentro del navegador; TODO lo demás
+// El video y el audio los resuelven los navegadores entre sí (WebRTC en malla,
+// ver servicios/videollamada.ts; señalización por el WebSocket, sin servicios
+// externos). TODO lo demás
 // —planificación, etapas, quién está conectado, la pizarra, el pulso, la alerta
 // y el chat— sale de la cocina, que lee y escribe en nexo.db. Ningún dato de
 // esta pantalla se inventa (regla de oro 3).
 
-import { enviar, pedir, usarDatos } from "./api";
+import { enviar, pedir, useDatos } from "./api";
 
 // ─── Tipos ──────────────────────────────────────────────
 
@@ -97,15 +99,15 @@ export interface EntradaSala {
 // ─── Planificación (docente) ────────────────────────────
 
 /** Mis cátedras, para elegir al planificar una clase. */
-export function usarCatedras() {
-  const { datos, cargando, error } = usarDatos<{ catedras: Catedra[] }>("/api/aula/catedras");
+export function useCatedras() {
+  const { datos, cargando, error } = useDatos<{ catedras: Catedra[] }>("/api/aula/catedras");
   return { catedras: datos?.catedras ?? null, cargando, error };
 }
 
 /** Mis clases planificadas, con estado y si ya son iniciables (Errores 3.B.9/10). */
-export function usarClasesPlanificadas() {
+export function useClasesPlanificadas() {
   const { datos, cargando, error, recargar } =
-    usarDatos<{ clases: ClasePlanificada[] }>("/api/aula/clases");
+    useDatos<{ clases: ClasePlanificada[] }>("/api/aula/clases");
   return { clases: datos?.clases ?? null, cargando, error, recargar };
 }
 
@@ -138,9 +140,9 @@ export async function ajustarUmbral(claseId: string, pct: number, min: number): 
 // ─── Estudiante ─────────────────────────────────────────
 
 /** Las clases en vivo / próximas de mi curso (para entrar). */
-export function usarMisClases() {
+export function useMisClases() {
   const { datos, cargando, error, recargar } =
-    usarDatos<{ clases: ClaseEstudiante[] }>("/api/aula/mis-clases");
+    useDatos<{ clases: ClaseEstudiante[] }>("/api/aula/mis-clases");
   return { clases: datos?.clases ?? null, cargando, error, recargar };
 }
 
@@ -183,8 +185,8 @@ export async function trazosDeClase(claseId: string): Promise<Trazo[]> {
   return trazos;
 }
 
-export async function enviarTrazo(claseId: string, datos: unknown): Promise<void> {
-  await enviar(`/api/aula/clases/${claseId}/pizarra`, "POST", { datos });
+export async function enviarTrazo(claseId: string, datos: unknown): Promise<{ secuencia: number }> {
+  return enviar(`/api/aula/clases/${claseId}/pizarra`, "POST", { datos });
 }
 
 export async function limpiarPizarra(claseId: string): Promise<void> {

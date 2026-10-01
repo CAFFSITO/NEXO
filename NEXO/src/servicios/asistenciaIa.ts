@@ -5,7 +5,7 @@
 // config_ia + la conversación) y llama al proveedor de IA gratuito. La CLAVE
 // vive en el servidor (variable de entorno), nunca acá en el navegador.
 
-import { enviar, usarDatos, pedir } from "./api";
+import { enviar, useDatos, pedir } from "./api";
 
 export interface MensajeIa {
   id: string;
@@ -22,8 +22,8 @@ export interface EstadoIa {
   clavePresente: boolean;
 }
 
-export function usarEstadoIa() {
-  const { datos, cargando, error } = usarDatos<EstadoIa>("/api/asistencia-ia/estado");
+export function useEstadoIa() {
+  const { datos, cargando, error } = useDatos<EstadoIa>("/api/asistencia-ia/estado");
   return { estado: datos, cargando, error };
 }
 

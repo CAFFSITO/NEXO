@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
 import TarjetaTarea from "./components/portafolio/TarjetaTarea";
 import TarjetaTareaPersonal from "./components/portafolio/TarjetaTareaPersonal";
 import ModalNuevaTareaPersonal from "./components/portafolio/ModalNuevaTareaPersonal";
-import ModalDetalleTarea from "./components/portafolio/ModalDetalleTarea";
+import ModalDetalleTarea from "./components/shared/tareas/ModalDetalleTarea";
 import SubNavPortafolio from "./components/portafolio/SubNavPortafolio";
 import {
   estadoEfectivo,
@@ -13,7 +13,8 @@ import {
   type FiltroTarea,
   type TareaPersonal,
 } from "./components/portafolio/tiposTareas";
-import { usarPortafolio } from "../servicios/portafolio";
+import { usePortafolio } from "../servicios/portafolio";
+import { verEnfoque, limpiarEnfoque } from "../servicios/enfoque";
 import {
   crearPersonal,
   editarPersonal,
@@ -21,7 +22,7 @@ import {
   eliminarPersonal as eliminarPersonalServidor,
 } from "../servicios/tareas";
 import { diasHasta } from "../servicios/fechas";
-import { subtituloInstitucional, usarInstitucion } from "../servicios/institucion";
+import { subtituloInstitucional, useInstitucion } from "../servicios/institucion";
 import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 
 // Los datos de ejemplo que vivían acá se fueron a la base. Eran cuatro tareas
@@ -35,8 +36,8 @@ type Orden = "fecha" | "materia";
 // ─── PÁGINA ─────────────────────────────────────────────
 
 export default function MisTareasEstudiantePage() {
-  const { datos, cargando, error, recargar } = usarPortafolio();
-  const { institucion } = usarInstitucion();
+  const { datos, cargando, error, recargar } = usePortafolio();
+  const { institucion } = useInstitucion();
 
   const [busqueda, setBusqueda] = useState<string>("");
   const [filtro, setFiltro] = useState<FiltroTarea>("todas");
@@ -44,6 +45,8 @@ export default function MisTareasEstudiantePage() {
   const [modalAbierto, setModalAbierto] = useState<boolean>(false);
   // La tarea personal que se está editando (null = el modal crea una nueva).
   const [personalEditando, setPersonalEditando] = useState<TareaPersonal | null>(null);
+  const [errorPersonal, setErrorPersonal] = useState("");
+  const ocupadas = useRef(new Set<string>());
   // Qué tarea académica se abrió en detalle. Es la misma vista para "Ver
   // detalle", "Entregar" y "Ver feedback": el modal muestra el flujo que
   // corresponde según el estado real de la entrega.
@@ -55,6 +58,23 @@ export default function MisTareasEstudiantePage() {
     useNavegacion();
 
   const tareas = useMemo(() => datos?.tareas ?? [], [datos]);
+
+  // Objetivo pendiente de una notificación de corrección: abrir el detalle de
+  // ESA tarea. Se lee al montar (sin consumir) y se resuelve cuando cargan las
+  // tareas; si la tarea ya no está en la lista, se avisa honesto y no se abre nada.
+  const objetivoTarea = useRef(verEnfoque("tarea"));
+  const objetivoResuelto = useRef(false);
+  const [objetivoNoDisponible, setObjetivoNoDisponible] = useState(false);
+
+  useEffect(() => {
+    if (objetivoResuelto.current || !objetivoTarea.current) return;
+    if (cargando) return; // esperar a que carguen las tareas antes de decidir
+    objetivoResuelto.current = true;
+    limpiarEnfoque(); // consumir: una sola vez
+    const id = objetivoTarea.current;
+    if (tareas.some((t) => t.id === id)) setTareaDetalleId(id);
+    else setObjetivoNoDisponible(true);
+  }, [cargando, tareas]);
 
   // Las tareas personales ahora se guardan de verdad en `tareas_personales`
   // (Etapa 4): crear, marcar, editar y borrar pasan por el servidor y después se
@@ -112,24 +132,31 @@ export default function MisTareasEstudiantePage() {
   // ── Acciones de tareas personales (ahora persistidas) ──
   const togglePersonal = async (id: string) => {
     const actual = personales.find((t) => t.id === id);
-    if (!actual) return;
-    await completarPersonal(id, !actual.completada);
-    recargar();
+    if (!actual || ocupadas.current.has(id)) return;
+    ocupadas.current.add(id);
+    setErrorPersonal("");
+    try { await completarPersonal(id, !actual.completada); recargar(); }
+    catch (e) { setErrorPersonal(e instanceof Error ? e.message : "No se pudo actualizar la tarea."); }
+    finally { ocupadas.current.delete(id); }
   };
   const eliminarPersonal = async (id: string) => {
-    await eliminarPersonalServidor(id);
-    recargar();
+    if (ocupadas.current.has(id)) return;
+    ocupadas.current.add(id);
+    setErrorPersonal("");
+    try { await eliminarPersonalServidor(id); recargar(); }
+    catch (e) { setErrorPersonal(e instanceof Error ? e.message : "No se pudo eliminar la tarea."); }
+    finally { ocupadas.current.delete(id); }
   };
-  const guardarPersonal = async (titulo: string) => {
+  const guardarPersonal = async (titulo: string, descripcion: string, fecha: string | null) => {
     if (personalEditando) {
       await editarPersonal(
         personalEditando.id,
         titulo,
-        personalEditando.descripcion,
-        personalEditando.fechaLimite
+        descripcion,
+        fecha
       );
     } else {
-      await crearPersonal(titulo, "", null);
+      await crearPersonal(titulo, descripcion, fecha);
     }
     setModalAbierto(false);
     setPersonalEditando(null);
@@ -152,7 +179,7 @@ export default function MisTareasEstudiantePage() {
         onCerrarSesion={handleCerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen relative">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen relative">
         <TopBar title="Portafolio de aprendizaje" subtitle="Mis Tareas" />
 
         {/* Sub-navegación del módulo */}
@@ -160,8 +187,21 @@ export default function MisTareasEstudiantePage() {
 
         <div className="flex-1 overflow-y-auto bg-[#190d2d] p-8">
           <div className="max-w-6xl mx-auto">
+            {errorPersonal && <p role="alert" className="mb-4 rounded-xl bg-red-500/10 p-4 text-sm text-red-300">{errorPersonal}</p>}
+            {objetivoNoDisponible && (
+              <div className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                <span>Ese elemento ya no está disponible.</span>
+                <button
+                  onClick={() => setObjetivoNoDisponible(false)}
+                  className="text-amber-200/80 hover:text-amber-100"
+                  aria-label="Cerrar aviso"
+                >
+                  <span className="material-symbols-outlined text-base">close</span>
+                </button>
+              </div>
+            )}
             {/* Header de la vista */}
-            <div className="flex justify-between items-end mb-8">
+            <div className="flex flex-wrap gap-4 justify-between items-end mb-8">
               <div>
                 <h1 className="text-[30px] font-extrabold text-white font-headline leading-tight">
                   Mis Tareas
@@ -187,9 +227,9 @@ export default function MisTareasEstudiantePage() {
             </div>
 
             {/* Búsqueda + Filtros */}
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-10">
-              <div className="flex items-center gap-4 flex-1 min-w-[300px]">
-                <div className="relative flex-1">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-10">
+              <div className="flex flex-wrap items-center gap-4 flex-1 min-w-0">
+                <div className="relative flex-1 min-w-[220px]">
                   <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
                     search
                   </span>
@@ -201,7 +241,7 @@ export default function MisTareasEstudiantePage() {
                     className="w-full bg-[#2D1B4E] border-none rounded-[10px] py-3 pl-12 pr-4 text-white placeholder-slate-400 focus:ring-2 focus:ring-[#C548F5] transition-all"
                   />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {FILTROS.map((f) => {
                     const activo = filtro === f.valor;
                     return (
@@ -282,6 +322,8 @@ export default function MisTareasEstudiantePage() {
       {modalAbierto && (
         <ModalNuevaTareaPersonal
           tituloInicial={personalEditando?.titulo ?? ""}
+          descripcionInicial={personalEditando?.descripcion ?? ""}
+          fechaInicial={personalEditando?.fechaLimite}
           onGuardar={guardarPersonal}
           onCerrar={() => {
             setModalAbierto(false);

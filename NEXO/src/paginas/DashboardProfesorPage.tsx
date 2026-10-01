@@ -10,8 +10,8 @@ import { useMemo } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
-import { usarDatos } from "../servicios/api";
-import { usarClasesPlanificadas } from "../servicios/aula";
+import { useDatos } from "../servicios/api";
+import { useClasesPlanificadas } from "../servicios/aula";
 import type { Catedra, TareaDocente } from "../servicios/tareas";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 import { fechaCorta } from "../servicios/fechas";
@@ -19,18 +19,15 @@ import { fechaCorta } from "../servicios/fechas";
 export default function DashboardProfesorPage() {
   const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } = useNavegacion();
 
-  const catedrasEstado = usarDatos<{ catedras: Catedra[] }>("/api/tareas/catedras");
-  const tareasEstado = usarDatos<{ tareas: TareaDocente[] }>("/api/tareas/docente");
-  const { clases, cargando: cargandoClases, error: errorClases } = usarClasesPlanificadas();
+  const catedrasEstado = useDatos<{ catedras: Catedra[] }>("/api/tareas/catedras");
+  const tareasEstado = useDatos<{ tareas: TareaDocente[] }>("/api/tareas/docente");
+  const { clases, cargando: cargandoClases, error: errorClases } = useClasesPlanificadas();
 
   const catedras = catedrasEstado.datos?.catedras ?? [];
   const tareas = tareasEstado.datos?.tareas ?? [];
 
   // Alumnos totales = suma de los cursos de mis cátedras (dato real del padrón).
-  const alumnosTotales = useMemo(
-    () => catedras.reduce((acc, c) => acc + c.alumnos, 0),
-    [catedras]
-  );
+  const alumnosTotales = catedras.reduce((acc, c) => acc + c.alumnos, 0);
 
   // Clases que todavía no terminaron: las que le importan al docente al entrar.
   const clasesActivas = useMemo(
@@ -52,7 +49,7 @@ export default function DashboardProfesorPage() {
         onCerrarSesion={handleCerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <TopBar title="Portafolio Docente" subtitle="Dashboard" />
 
         <div className="flex-1 overflow-y-auto p-8 bg-[#190d2d]">

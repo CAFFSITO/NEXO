@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   presentarRecurso,
-  usarFiltros,
+  useFiltros,
   type DatosPresentarRecurso,
   type Recurso,
 } from "../../../servicios/biblioteca";
@@ -22,7 +22,7 @@ const TIPOS: { valor: Recurso["tipo"]; label: string }[] = [
 
 export default function ModalPresentarRecurso({ onPresentado, onCerrar }: ModalPresentarRecursoProps) {
   // Las materias salen de la base (Error 2.E.5): no es una lista fija.
-  const { filtros } = usarFiltros();
+  const { filtros } = useFiltros();
 
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -71,7 +71,7 @@ export default function ModalPresentarRecurso({ onPresentado, onCerrar }: ModalP
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4"
       onClick={onCerrar}
     >
       <div

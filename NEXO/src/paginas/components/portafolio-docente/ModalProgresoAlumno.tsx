@@ -1,7 +1,7 @@
 import GraficoProgresoAlumno from "./GraficoProgresoAlumno";
 import { Cargando, Fallo } from "../shared/EstadoCarga";
 import { fechaCorta } from "../../../servicios/fechas";
-import { usarProgresoAlumno } from "../../../servicios/materia";
+import { useProgresoAlumno } from "../../../servicios/materia";
 
 // Panel (modal) del progreso de UN alumno en la materia. Vista del PROFESOR.
 // Todo real, de nexo.db: la serie de notas sale de `correcciones`. El servidor
@@ -18,11 +18,11 @@ interface Props {
 }
 
 export default function ModalProgresoAlumno({ catedraId, alumnoId, alumnoNombre, onCerrar }: Props) {
-  const { progreso, cargando, error, recargar } = usarProgresoAlumno(catedraId, alumnoId);
+  const { progreso, cargando, error, recargar } = useProgresoAlumno(catedraId, alumnoId);
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4"
       onClick={onCerrar}
     >
       <div

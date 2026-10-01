@@ -40,7 +40,7 @@ export default function TarjetaCursoPreceptor({ curso, onModerar }: TarjetaCurso
             )}
 
             {/* Encabezado */}
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex flex-wrap gap-3 justify-between items-start mb-6">
                 <div>
                     <h3 className="text-2xl font-bold text-white font-headline">{curso.nombre}</h3>
                     <p className="text-slate-400 text-sm">{curso.cantidadEstudiantes} estudiantes</p>
@@ -78,7 +78,7 @@ export default function TarjetaCursoPreceptor({ curso, onModerar }: TarjetaCurso
             ) : activa ? (
                 <div className="flex items-center gap-2 text-slate-400 mb-8">
                     <span className="material-symbols-outlined text-sm">history</span>
-                    <p className="text-xs">Último posteo {curso.ultimoPosteo}</p>
+                    <p className="text-xs">{curso.ultimoPosteo ? `Último mensaje: ${curso.ultimoPosteo}` : "Sin mensajes recientes"}</p>
                 </div>
             ) : (
                 <div className="flex items-center gap-2 text-slate-400 mb-8">

@@ -89,9 +89,9 @@ const config: Config = {
         "role-admin": "#8B5CF6",
       },
       borderRadius: {
-        DEFAULT: "1rem",
-        lg: "2rem",
-        xl: "3rem",
+        DEFAULT: "0.5rem",
+        lg: "0.75rem",
+        xl: "1rem",
         full: "9999px",
       },
       fontFamily: {

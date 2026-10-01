@@ -293,6 +293,7 @@ CREATE TABLE evidencias (
     titulo         TEXT NOT NULL,
     descripcion    TEXT NOT NULL DEFAULT '',
     archivo_id     INTEGER REFERENCES archivos(id),
+    tarea_id       INTEGER REFERENCES tareas(id),
     creado_en      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -823,7 +824,11 @@ SELECT
 FROM (
     SELECT 'publicacion' AS objeto_tipo, id AS objeto_id, institucion_id,
            substr(contenido, 1, 80) AS titulo
-    FROM publicaciones WHERE eliminado_en IS NULL
+    FROM publicaciones
+    WHERE eliminado_en IS NULL
+      -- Una publicación programada todavía no existe para nadie salvo su autor
+      -- (Prompt 13): no puede figurar en Tendencias hasta que se publique.
+      AND (publicar_en IS NULL OR publicar_en <= datetime('now'))
     UNION ALL
     SELECT 'debate', id, institucion_id, titulo
     FROM debates WHERE eliminado_en IS NULL

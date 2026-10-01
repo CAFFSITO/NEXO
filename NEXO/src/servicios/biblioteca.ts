@@ -6,7 +6,7 @@
 // que los recursos que se ven existen de verdad.
 
 import type { Rol } from "../paginas/components/shared/roles";
-import { enviar, usarDatos } from "./api";
+import { enviar, useDatos } from "./api";
 import { subirArchivo } from "./archivos";
 
 export type AmbitoBiblioteca = "institucional" | "nacional";
@@ -42,8 +42,8 @@ export interface Recurso {
   esMio: boolean;
 }
 
-export function usarBiblioteca(ambito: AmbitoBiblioteca) {
-  const { datos, cargando, error, recargar } = usarDatos<{
+export function useBiblioteca(ambito: AmbitoBiblioteca) {
+  const { datos, cargando, error, recargar } = useDatos<{
     ambito: AmbitoBiblioteca;
     recursos: Recurso[];
   }>(`/api/biblioteca/recursos?ambito=${ambito}`);
@@ -92,9 +92,9 @@ export interface FiltrosBiblioteca {
   tipos: Recurso["tipo"][];
 }
 
-export function usarFiltros() {
+export function useFiltros() {
   const { datos, cargando, error } =
-    usarDatos<FiltrosBiblioteca>("/api/biblioteca/filtros");
+    useDatos<FiltrosBiblioteca>("/api/biblioteca/filtros");
   return { filtros: datos, cargando, error };
 }
 
@@ -149,7 +149,16 @@ export interface ItemCola {
   presentadoPorRol: Rol;
   presentadoEn: string;
   enlaceUrl: string | null;
+  /** Nombre original del archivo del recurso (o null si es solo un enlace). */
   archivo: string | null;
+  /** Id del archivo, para previsualizarlo/descargarlo vía /api/archivos/:id. */
+  archivoId: string | null;
+  /** Tipo MIME real (de la tabla archivos): decide si es imagen, PDF u otro. */
+  mime: string | null;
+  /** Etiqueta corta del archivo ("PDF", "PNG"…), o null si es un enlace. */
+  etiquetaArchivo: string | null;
+  /** Peso legible ("313 KB"), o null si es un enlace sin archivo. */
+  tamano: string | null;
 }
 
 export interface ConteoCola {
@@ -158,8 +167,8 @@ export interface ConteoCola {
   rechazado: number;
 }
 
-export function usarCola() {
-  const { datos, cargando, error, recargar } = usarDatos<{
+export function useCola() {
+  const { datos, cargando, error, recargar } = useDatos<{
     pendientes: ItemCola[];
     conteo: ConteoCola;
   }>("/api/biblioteca/cola");

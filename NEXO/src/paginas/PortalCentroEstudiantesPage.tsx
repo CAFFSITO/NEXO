@@ -7,7 +7,8 @@
 // escritos a mano, un usuario fijo y un calendario clavado en mayo de 2025
 // (tema transversal 2 y Error 6.E.10).
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import ModalDetalleComunidad from "./components/comunidad/ModalDetalleComunidad";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import ArticuloCard from "./components/centro-estudiantes/ArticuloCard";
@@ -16,21 +17,23 @@ import CalendarioWidget, {
 } from "./components/centro-estudiantes/CalendarioWidget";
 import QuejasWidget from "./components/centro-estudiantes/QuejasWidget";
 import DebatesWidget from "./components/centro-estudiantes/DebatesWidget";
-import { usarPublicaciones, usarDebates, votar } from "../servicios/comunidad";
-import { usarQuejas } from "../servicios/quejas";
-import { usarCalendario } from "../servicios/calendario";
-import { subtituloInstitucional, usarInstitucion } from "../servicios/institucion";
+import { usePublicaciones, useDebates, votar } from "../servicios/comunidad";
+import { useQuejas } from "../servicios/quejas";
+import { useCalendario } from "../servicios/calendario";
+import { subtituloInstitucional, useInstitucion } from "../servicios/institucion";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 import { fechaCorta } from "../servicios/fechas";
 
 export default function PortalCentroEstudiantesPage() {
   const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } = useNavegacion();
-  const { institucion } = usarInstitucion();
+  const { institucion } = useInstitucion();
+  const [detalleId, setDetalleId] = useState<string | null>(null);
+  const [errorAccion, setErrorAccion] = useState("");
 
-  const { publicaciones, cargando, error, recargar } = usarPublicaciones();
-  const { debates } = usarDebates();
-  const { noVistas, estadistica } = usarQuejas();
-  const { datos: calendario } = usarCalendario();
+  const { publicaciones, cargando, error, recargar } = usePublicaciones();
+  const { debates } = useDebates();
+  const { noVistas, estadistica } = useQuejas();
+  const { datos: calendario } = useCalendario();
 
   // "Nuestros artículos" = las publicaciones del Centro de Estudiantes en la
   // comunidad real: lo que se publica acá lo ven todos (nota transversal,
@@ -43,24 +46,23 @@ export default function PortalCentroEstudiantesPage() {
   // Votar acá es el MISMO voto de la comunidad (único y privado, Error 2.B.1).
   const handleVotar = async (id: string) => {
     try {
+      setErrorAccion("");
       await votar("publicacion", id, 1);
-    } finally {
       recargar();
-    }
+    } catch (e) { setErrorAccion(e instanceof Error ? e.message : "No se pudo registrar el voto."); }
   };
 
   // Eventos del mes actual real, para el widget (nada clavado en mayo 2025).
   const hoy = new Date();
   const eventosDelMes: EventoCentro[] = useMemo(() => {
-    const prefijo = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`;
     return (calendario?.eventos ?? [])
-      .filter((e) => e.fecha.startsWith(prefijo))
       .map((e) => ({
+        fecha: e.fecha,
         dia: Number(e.fecha.slice(8, 10)),
         titulo: e.titulo,
         detalle: e.tipo,
       }));
-  }, [calendario, hoy]);
+  }, [calendario]);
 
   const categoriasQuejas = useMemo(
     () => (estadistica?.porCategoria ?? []).map((c) => ({ categoria: c.categoria, cantidad: c.n })),
@@ -88,9 +90,9 @@ export default function PortalCentroEstudiantesPage() {
         onCerrarSesion={handleCerrarSesion}
       />
 
-      <main className="ml-[220px] flex-1 p-8">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex-1 p-8">
         {/* Header Banner */}
-        <header className="relative overflow-hidden rounded-lg mb-8 bg-gradient-to-r from-[#2D1B4E] to-[#3D2A6B] p-10 flex justify-between items-center shadow-lg border border-white/5">
+        <header className="relative overflow-hidden rounded-lg mb-8 bg-gradient-to-r from-[#2D1B4E] to-[#3D2A6B] p-6 lg:p-10 flex flex-col xl:flex-row gap-6 justify-between items-start xl:items-center shadow-lg border border-white/5">
           <div className="z-10">
             <h1 className="text-3xl font-headline font-extrabold text-white mb-2 tracking-tight">
               {["Centro de Estudiantes", institucion?.nombre].filter(Boolean).join(" — ")}
@@ -99,7 +101,7 @@ export default function PortalCentroEstudiantesPage() {
               {subtituloInstitucional(institucion) || "Representando a la comunidad estudiantil"}
             </p>
           </div>
-          <div className="flex gap-4 z-10">
+          <div className="flex flex-wrap gap-3 z-10 shrink-0">
             {/* Publicar un artículo es publicar en la comunidad real: se hace
                 desde el compositor del Feed, que guarda en `publicaciones`. */}
             <button
@@ -120,10 +122,11 @@ export default function PortalCentroEstudiantesPage() {
           <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-[#C548F5] opacity-10 rounded-full blur-[100px]" />
         </header>
 
-        <div className="flex gap-8 items-start">
+        {errorAccion && <p role="alert" className="text-red-300 text-sm mb-4">{errorAccion}</p>}
+        <div className="flex flex-col xl:flex-row gap-8 items-start">
           {/* Columna izquierda: Artículos (publicaciones reales del Centro) */}
-          <div className="flex-1 space-y-6">
-            <div className="flex justify-between items-center mb-4">
+          <div className="flex-1 min-w-0 w-full space-y-6">
+            <div className="flex flex-wrap gap-3 justify-between items-center mb-4">
               <h2 className="text-2xl font-headline font-bold text-white flex items-center gap-3">
                 <span className="material-symbols-outlined text-[#C548F5]">article</span>
                 Nuestros Artículos
@@ -156,13 +159,13 @@ export default function PortalCentroEstudiantesPage() {
                 votos={a.votosAFavor - a.votosEnContra}
                 votado={a.miVoto === "a-favor"}
                 onVotar={() => handleVotar(a.id)}
-                onLeerMas={() => handleNavegar("/comunidad")}
+                onLeerMas={() => setDetalleId(a.id)}
               />
             ))}
           </div>
 
           {/* Columna derecha: Widgets con datos reales */}
-          <div className="w-[320px] space-y-6">
+          <div className="w-full xl:w-80 shrink-0 space-y-6">
             <CalendarioWidget
               anioInicial={hoy.getFullYear()}
               mesInicial={hoy.getMonth()}
@@ -180,6 +183,7 @@ export default function PortalCentroEstudiantesPage() {
           </div>
         </div>
       </main>
+      {detalleId && <ModalDetalleComunidad tipo="publicacion" id={detalleId} rol={usuario.rol} usuarioId={usuario.id} onCerrar={()=>setDetalleId(null)} onCambio={recargar} />}
     </div>
   );
 }

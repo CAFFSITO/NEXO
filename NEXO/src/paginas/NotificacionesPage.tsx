@@ -6,20 +6,22 @@
 // todos los perfiles, que lee las notificaciones de quien mira (la campana y su
 // lista). Tocar una la marca leída y —si tiene a dónde ir— navega al objeto.
 
+import { useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import TopBar from "./components/shared/TopBar";
 import { useNavegacion } from "../navegacion";
 import {
-  usarNotificaciones,
+  useNotificaciones,
   marcarNotificacionLeida,
   marcarTodasLeidas,
   type Notificacion,
 } from "../servicios/notificaciones";
+import { marcarEnfoque } from "../servicios/enfoque";
 
-// A dónde lleva cada tipo de objeto al tocar la notificación. Es aproximado a
-// propósito: llevamos a la sección correcta (el chat, las tareas, el calendario)
-// aunque todavía no podamos abrir el elemento exacto. Un tipo desconocido no
-// navega: solo se marca leída.
+// A dónde lleva cada tipo de objeto al tocar la notificación. Lleva a la sección
+// correcta (el chat, las tareas, la cola) Y, con el objetoId real de la
+// notificación, la pantalla destino abre el elemento EXACTO (ver servicios/
+// enfoque.ts). Un tipo desconocido no navega: solo se marca leída.
 const RUTA_POR_OBJETO: Record<string, string> = {
   conversacion: "/chat",
   tarea: "/portafolio/mis-tareas",
@@ -39,7 +41,9 @@ const ICONO_POR_TIPO: Record<string, string> = {
 
 export default function NotificacionesPage() {
   const { navegar, cerrarSesion, usuario } = useNavegacion();
-  const { notificaciones, cargando, error, recargar } = usarNotificaciones();
+  const { notificaciones, cargando, error, recargar } = useNotificaciones();
+  const [fallo, setFallo] = useState("");
+  const [marcando, setMarcando] = useState(false);
 
   if (!usuario) return null;
 
@@ -53,15 +57,33 @@ export default function NotificacionesPage() {
         // Si no se pudo marcar, igual intentamos navegar: no bloqueamos al usuario.
       }
     }
-    const destino = n.objetoTipo ? RUTA_POR_OBJETO[n.objetoTipo] : undefined;
-    if (destino) navegar(destino);
-    else recargar();
+    let destino = n.objetoTipo ? RUTA_POR_OBJETO[n.objetoTipo] : undefined;
+    if (n.objetoTipo === "recurso" && usuario.rol !== "bibliotecario") destino = "/biblioteca/institucional";
+    if (n.objetoTipo === "evento" && usuario.rol === "familia") destino = "/familia/calendario";
+    if (n.objetoTipo === "tarea" && usuario.rol === "profesor") destino = "/portafolio/gestion";
+    if (n.objetoTipo === "queja" && ["centro-estudiantes", "admin-academico"].includes(usuario.rol)) destino = "/centro-estudiantes/quejas";
+    if (destino) {
+      // Con el objetoId real, la pantalla destino abre el elemento exacto (no
+      // solo la sección). Si la notificación no trae objetoId (p. ej. una queja
+      // anónima), igual navega a la sección: no hay elemento puntual que abrir.
+      if (n.objetoTipo && n.objetoId != null) {
+        marcarEnfoque(n.objetoTipo, String(n.objetoId));
+      }
+      navegar(destino);
+    } else {
+      recargar();
+    }
   };
 
   const marcarTodas = async () => {
+    if (marcando) return;
+    setMarcando(true); setFallo("");
     try {
       await marcarTodasLeidas();
+    } catch (e) {
+      setFallo(e instanceof Error ? e.message : "No se pudieron marcar las notificaciones.");
     } finally {
+      setMarcando(false);
       recargar();
     }
   };
@@ -70,7 +92,7 @@ export default function NotificacionesPage() {
     <div className="flex bg-[#190d2d] min-h-screen text-on-background">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <TopBar title="Notificaciones" />
 
         <div className="flex-1 overflow-y-auto p-8">
@@ -87,15 +109,17 @@ export default function NotificacionesPage() {
               {sinLeer > 0 && (
                 <button
                   onClick={marcarTodas}
+                  disabled={marcando}
                   className="px-4 py-2 rounded-lg bg-primary/20 text-sm font-medium text-primary hover:bg-primary/30 transition"
                 >
-                  Marcar todas como leídas
+                  {marcando ? "Marcando…" : "Marcar todas como leídas"}
                 </button>
               )}
             </div>
 
             {cargando && <p className="text-slate-400">Cargando…</p>}
             {error && <p className="text-red-400">{error}</p>}
+            {fallo && <p role="alert" className="text-error">{fallo}</p>}
 
             {notificaciones && notificaciones.length === 0 && (
               <div className="text-center py-16 text-slate-500">

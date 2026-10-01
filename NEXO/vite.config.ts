@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+const api = process.env.NEXO_API_ORIGIN || `http://127.0.0.1:${process.env.NEXO_PORT || 3000}`;
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -14,12 +15,12 @@ export default defineConfig({
     // que corre en el puerto 3000. Así la vidriera y la cocina se ven como
     // si fueran el mismo sitio (sin problemas de CORS).
     proxy: {
-      '/api': 'http://localhost:3000',
+      '/api': api,
       // El tubo en vivo del chat y las notificaciones (Etapa 6). `ws: true` le
       // dice al proxy que /ws no es un pedido común sino una conexión WebSocket
       // permanente, y la reenvía a la misma cocina del puerto 3000.
       '/ws': {
-        target: 'ws://localhost:3000',
+        target: api,
         ws: true,
       },
     },

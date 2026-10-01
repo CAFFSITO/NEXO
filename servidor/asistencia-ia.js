@@ -122,12 +122,9 @@ export function registrarAsistenciaIA(app, db) {
         });
       }
 
-      // El mensaje del alumno se guarda ANTES de llamar al proveedor: si la
-      // respuesta falla, igual queda registrado lo que preguntó.
-      guardarMensaje.run(usuario.id, "user", contenido);
-
       // Historial reciente (viejo → nuevo) para darle contexto al modelo.
       const previos = ultimosDe.all(usuario.id, MAX_HISTORIAL).reverse();
+      previos.push({ rol: "user", contenido });
 
       let respuesta;
       try {
@@ -136,12 +133,16 @@ export function registrarAsistenciaIA(app, db) {
         console.error("Fallo llamando al proveedor de IA:", fallo?.message ?? fallo);
         return res.status(502).json({
           error:
-            "El proveedor de IA no respondió. Revisá la clave (NEXO_IA_CLAVE) y el " +
-            "modelo configurado en config_ia.",
+            "El asistente no pudo responder en este momento. La conversación no se guardó: volvé a intentarlo.",
         });
       }
 
-      guardarMensaje.run(usuario.id, "ai", respuesta);
+      db.exec("BEGIN");
+      try {
+        guardarMensaje.run(usuario.id, "user", contenido);
+        guardarMensaje.run(usuario.id, "ai", respuesta);
+        db.exec("COMMIT");
+      } catch (error) { db.exec("ROLLBACK"); throw error; }
       res.json({ respuesta });
     } catch (error) {
       console.error("Error atendiendo POST /api/asistencia-ia/mensaje");
@@ -201,6 +202,7 @@ async function pedirAGoogle(cfg, historial, clave, temperatura) {
 
   const resp = await fetch(url, {
     method: "POST",
+    signal: AbortSignal.timeout(20000),
     headers: { "Content-Type": "application/json", "x-goog-api-key": clave },
     body: JSON.stringify(cuerpo),
   });
@@ -240,6 +242,7 @@ async function pedirAOpenAICompat(proveedor, cfg, historial, clave, temperatura)
 
   const resp = await fetch(url, {
     method: "POST",
+    signal: AbortSignal.timeout(20000),
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${clave}`,

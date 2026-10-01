@@ -1,6 +1,7 @@
 import { ROL_LABELS, type Rol } from "../shared/roles";
 import MenuTresPuntos from "./MenuTresPuntos";
 import type { ObjetoVotable } from "../../../servicios/comunidad";
+import { fechaHora } from "../../../servicios/fechas";
 
 interface TarjetaPosteoProps {
   id: string;
@@ -16,10 +17,18 @@ interface TarjetaPosteoProps {
   votosEnContra: number;
   comentarios: number;
   miVoto: "a-favor" | "en-contra" | null;
+  /** Fijada arriba por la dirección: dibuja el pin (dato real, no adorno). */
+  fijado?: boolean;
+  /** Programada a futuro (solo la ve su autor): dibuja la etiqueta y la fecha. */
+  programada?: boolean;
+  /** Cuándo se publica (ISO), para la etiqueta de programada. */
+  publicarEn?: string | null;
   onVotar?: (postura: "a-favor" | "en-contra") => void;
   onComentar?: () => void;
   onDenunciar?: (tipo: ObjetoVotable, id: string) => void;
   onEliminar?: (tipo: ObjetoVotable, id: string) => void;
+  /** Fijar/desfijar (solo se pasa para la dirección). */
+  onFijar?: (id: string, fijado: boolean) => void;
 }
 
 // Color del pill de rol. Antes solo contemplaba tres roles ("estudiante",
@@ -50,14 +59,46 @@ export default function TarjetaPosteo({
   votosEnContra,
   comentarios,
   miVoto,
+  fijado = false,
+  programada = false,
+  publicarEn,
   onVotar,
   onComentar,
   onDenunciar,
   onEliminar,
+  onFijar,
 }: TarjetaPosteoProps) {
 
   return (
-    <div className="bg-[#2D1B4E] border border-[#3b2f50] hover:border-primary/30 transition-all p-6 rounded-lg space-y-4">
+    <div
+      className={`bg-[#2D1B4E] border transition-all p-6 rounded-lg space-y-4 ${
+        fijado ? "border-[#C548F5]/50" : "border-[#3b2f50] hover:border-primary/30"
+      }`}
+    >
+      {/* Etiquetas de estado: fijada por la dirección y/o programada a futuro.
+          Ambas salen de datos reales (fijado_en / publicar_en), no de adorno. */}
+      {(fijado || programada) && (
+        <div className="flex items-center gap-2 -mt-1">
+          {fijado && (
+            <span className="flex items-center gap-1 text-[11px] font-bold text-[#C548F5] bg-fuchsia-500/10 px-2 py-0.5 rounded-full">
+              <span
+                className="material-symbols-outlined text-[14px]"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                keep
+              </span>
+              Fijada por la dirección
+            </span>
+          )}
+          {programada && (
+            <span className="flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full">
+              <span className="material-symbols-outlined text-[14px]">schedule</span>
+              Programada · {fechaHora(publicarEn)}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -89,6 +130,8 @@ export default function TarjetaPosteo({
             esAutor={esAutor}
             onDenunciar={onDenunciar}
             onEliminar={onEliminar}
+            fijado={fijado}
+            onFijar={onFijar}
           />
         )}
       </div>

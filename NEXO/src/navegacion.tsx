@@ -289,6 +289,7 @@ interface NavegacionValor {
     // true mientras se le pregunta al servidor si la sesión guardada sigue viva
     // (el instante posterior a recargar la página).
     revisandoSesion: boolean;
+    sesionFinalizada: "manual" | "vencida" | null;
     navegar: (ruta: string) => void;
     cerrarSesion: () => void;
     // Ahora el ingreso viaja al servidor, así que la respuesta tarda: es una
@@ -300,6 +301,7 @@ export const NavegacionContext = createContext<NavegacionValor>({
     usuario: null,
     rutaActiva: "/comunidad",
     revisandoSesion: true,
+    sesionFinalizada: null,
     navegar: () => { },
     cerrarSesion: () => { },
     login: async () => ({ ok: false }),

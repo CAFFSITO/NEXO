@@ -57,6 +57,10 @@ export function asegurarComunidadCurso(db, cursoId) {
     `INSERT OR IGNORE INTO conversacion_miembros (conversacion_id, usuario_id)
      VALUES (?, ?)`
   );
+  // Cambiar preceptor o matrícula también debe retirar los accesos anteriores.
+  db.prepare(`DELETE FROM conversacion_miembros WHERE conversacion_id = ?
+    AND usuario_id NOT IN (SELECT estudiante_id FROM inscripciones WHERE curso_id = ?)
+    AND usuario_id <> COALESCE(?, -1)`).run(conv.id, cursoId, curso.preceptor_id);
   if (curso.preceptor_id) sumarMiembro.run(conv.id, curso.preceptor_id);
   const inscriptos = db
     .prepare("SELECT estudiante_id FROM inscripciones WHERE curso_id = ?")
@@ -157,6 +161,41 @@ export function asegurarConversacionClase(db, claseId, sumarUsuarioId) {
 }
 
 export function registrarChat(app, db, mensajero, notificaciones) {
+  const contactosPosibles = db.prepare(`SELECT id, nombre, rol FROM usuarios
+    WHERE institucion_id = ? AND estado = 'activo' AND id <> ?
+      AND rol IN ('estudiante', 'profesor', 'preceptor', 'bibliotecario', 'familia', 'admin-academico') ORDER BY nombre`);
+  const familiaDelPreceptor = db.prepare(`SELECT 1 FROM familiares f
+    JOIN inscripciones i ON i.estudiante_id = f.estudiante_id
+    JOIN cursos c ON c.id = i.curso_id
+    WHERE f.usuario_familia_id = ? AND c.preceptor_id = ? LIMIT 1`);
+  function contactosDe(usuario) {
+    return contactosPosibles.all(usuario.institucionId, usuario.id).filter((otro) => {
+      if (usuario.rol === "familia") return otro.rol === "admin-academico" || (otro.rol === "preceptor" && Boolean(familiaDelPreceptor.get(usuario.id, otro.id)));
+      if (otro.rol === "familia") return usuario.rol === "admin-academico" || (usuario.rol === "preceptor" && Boolean(familiaDelPreceptor.get(otro.id, usuario.id)));
+      return true;
+    }).map((otro) => ({ ...otro, id: String(otro.id) }));
+  }
+  app.get("/api/chat/contactos", ventanilla((req, res) => {
+    const usuario = exigirAcceso(db, req, res, "chat");
+    if (!usuario) return;
+    res.json({ contactos: contactosDe(usuario) });
+  }));
+  app.post("/api/chat/conversaciones", ventanilla((req, res) => {
+    const usuario = exigirAcceso(db, req, res, "chat");
+    if (!usuario) return;
+    const destinatario = contactosDe(usuario).find((p) => p.id === String(req.body?.destinatarioId));
+    if (!destinatario) return res.status(403).json({ error: "No podés iniciar una conversación con ese perfil." });
+    db.exec("BEGIN");
+    try {
+      const id = asegurarConversacionDirecta(db, usuario.id, Number(destinatario.id));
+      db.exec("COMMIT");
+      res.status(201).json({ id: String(id) });
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  }));
+
   // Mis conversaciones, con su último mensaje y sus no leídos.
   //
   // Los no leídos salen de la vista `v_no_leidos` del esquema, que los define
@@ -248,6 +287,7 @@ export function registrarChat(app, db, mensajero, notificaciones) {
   const mensajesDe = db.prepare(
     `SELECT m.id,
             m.autor_id,
+            m.archivo_id,
             m.contenido,
             m.enviado_en,
             u.nombre     AS autor,
@@ -291,6 +331,7 @@ export function registrarChat(app, db, mensajero, notificaciones) {
         mio: fila.autor_id === usuario.id,
         contenido: fila.contenido,
         archivo: fila.archivo ?? null,
+        archivoId: fila.archivo_id == null ? null : String(fila.archivo_id),
         enviadoEn: fila.enviado_en,
       }));
 
@@ -360,6 +401,7 @@ export function registrarChat(app, db, mensajero, notificaciones) {
         autorAvatar: usuario.avatarUrl,
         contenido,
         archivo: fila?.archivo ?? null,
+        archivoId: archivoId == null ? null : String(archivoId),
         enviadoEn: fila?.enviado_en ?? new Date().toISOString(),
       };
 
@@ -468,6 +510,20 @@ export function registrarChat(app, db, mensajero, notificaciones) {
     })
   );
 
+  app.get("/api/chat/actividad-preceptor", ventanilla((req, res) => {
+    const usuario = exigirAcceso(db, req, res, "mis-cursos-preceptor");
+    if (!usuario) return;
+    const actividades = db.prepare(`SELECT m.id, u.nombre AS autor, c.anio, c.division,
+      c.id AS cursoId, m.enviado_en AS enviadoEn
+      FROM mensajes m JOIN conversaciones cv ON cv.id=m.conversacion_id
+      JOIN cursos c ON c.id=cv.curso_id JOIN usuarios u ON u.id=m.autor_id
+      WHERE cv.tipo='grupo-curso' AND c.preceptor_id=? AND c.institucion_id=?
+      AND m.eliminado_en IS NULL ORDER BY m.enviado_en DESC, m.id DESC LIMIT 8`)
+      .all(usuario.id, usuario.institucionId).map(a => ({ id:String(a.id), autor:a.autor,
+        cursoId:String(a.cursoId), curso:`${a.anio}° ${a.division}`, enviadoEn:a.enviadoEn }));
+    res.json({ actividades });
+  }));
+
   // Las conversaciones a moderar de un curso: la comunidad del curso y las
   // charlas directas entre dos estudiantes de ese curso. La regla de convivencia
   // (14.2 paso 6) es que esas charlas son visibles para el preceptor; las de
@@ -550,6 +606,7 @@ export function registrarChat(app, db, mensajero, notificaciones) {
         mio: false, // el preceptor modera: ningún mensaje es "suyo"
         contenido: fila.contenido,
         archivo: fila.archivo ?? null,
+        archivoId: fila.archivo_id == null ? null : String(fila.archivo_id),
         enviadoEn: fila.enviado_en,
       }));
 

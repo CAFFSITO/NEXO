@@ -8,7 +8,7 @@ import {
   traerHistorialIa,
   enviarMensajeIa,
   borrarHistorialIa,
-  usarEstadoIa,
+  useEstadoIa,
 } from "../servicios/asistenciaIa";
 
 // Asistencia IA real (sección 14.16, Errores 2.G.1 y 2.G.2). Ya no hay respuesta
@@ -33,7 +33,7 @@ function aHtmlSeguro(texto: string): string {
 
 export default function AsistenciaIAPage() {
   const { usuario, navegar, cerrarSesion } = useNavegacion();
-  const { estado } = usarEstadoIa();
+  const { estado } = useEstadoIa();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [pensando, setPensando] = useState(false);
@@ -56,7 +56,7 @@ export default function AsistenciaIAPage() {
         );
       })
       .catch(() => {
-        /* si falla, se queda vacío: el banner de estado explica */
+        if (vigente) setErrorEnvio("No se pudo cargar el historial. Recargá la página para volver a intentarlo.");
       });
     return () => {
       vigente = false;
@@ -64,24 +64,27 @@ export default function AsistenciaIAPage() {
   }, []);
 
   const handleSendMessage = async (content: string) => {
+    if (pensando) return false;
     setErrorEnvio("");
     const propio: Message = {
       id: `local-${Date.now()}`,
       role: "user",
       content: aHtmlSeguro(content),
     };
-    setMessages((prev) => [...prev, propio]);
     setPensando(true);
     try {
       const respuesta = await enviarMensajeIa(content);
       setMessages((prev) => [
         ...prev,
+        propio,
         { id: `ai-${Date.now()}`, role: "ai", content: aHtmlSeguro(respuesta) },
       ]);
+      return true;
     } catch (fallo) {
       setErrorEnvio(
         fallo instanceof Error ? fallo.message : "No se pudo obtener la respuesta."
       );
+      return false;
     } finally {
       setPensando(false);
     }
@@ -120,7 +123,7 @@ export default function AsistenciaIAPage() {
     <div className="flex bg-[#1C1030] h-screen">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col h-full relative">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col h-full relative">
         <TopBar
           title="Asistencia Académica"
           subtitle={estado?.proveedor ? `Tutor NEXO · ${estado.proveedor}` : "Tutor NEXO"}
@@ -162,7 +165,7 @@ export default function AsistenciaIAPage() {
         )}
         {errorEnvio && <p className="px-8 pb-2 text-xs text-error">{errorEnvio}</p>}
 
-        <MessageInput onSendMessage={handleSendMessage} />
+        <MessageInput onSendMessage={handleSendMessage} pensando={pensando} disabled={!estado || !!claveFalta} />
 
         {/* FAQ / ayuda — ahora abre contenido real (Error 2.G.2) */}
         {faqAbierto && (

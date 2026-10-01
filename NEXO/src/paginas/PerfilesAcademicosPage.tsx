@@ -5,14 +5,14 @@
 import Sidebar from "./components/shared/Sidebar";
 import PanelPerfiles from "./components/perfiles/PanelPerfiles";
 import { useNavegacion } from "../navegacion";
-import { subtituloInstitucional, usarInstitucion } from "../servicios/institucion";
+import { subtituloInstitucional, useInstitucion } from "../servicios/institucion";
 
 export default function PerfilesAcademicosPage() {
   // Quién está mirando sale de la sesión. Antes esta página tenía escrito
   // `useState({ nombre: "Directora Romero" })`: entrara quien entrara, el menú
   // lateral saludaba a Romero. Ahora es quien realmente inició sesión.
   const { navegar, cerrarSesion, usuario } = useNavegacion();
-  const { institucion } = usarInstitucion();
+  const { institucion } = useInstitucion();
 
   if (!usuario) return null;
 
@@ -24,7 +24,7 @@ export default function PerfilesAcademicosPage() {
         onCerrarSesion={cerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         {/* Header de la vista */}
         <header className="flex justify-between items-center h-24 px-8 bg-[#1C1030]/80 backdrop-blur-md border-b border-white/10 sticky top-0 z-40">
           <div className="flex flex-col">

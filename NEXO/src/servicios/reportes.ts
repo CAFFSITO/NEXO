@@ -5,7 +5,7 @@
 // La generación NO termina en un "generando…" vacío (ese era el Error 6.C.4):
 // el servidor arma un archivo real desde nexo.db y esta puerta lo descarga.
 
-import { enviar, usarDatos, pedir } from "./api";
+import { enviar, useDatos, pedir } from "./api";
 
 export interface BloqueReporte {
   clave: string;
@@ -23,9 +23,9 @@ export interface OpcionesReportes {
   alumnos: OpcionAlumno[];
 }
 
-export function usarOpcionesReportes() {
+export function useOpcionesReportes() {
   const { datos, cargando, error, recargar } =
-    usarDatos<OpcionesReportes>("/api/reportes/opciones");
+    useDatos<OpcionesReportes>("/api/reportes/opciones");
   return { opciones: datos, cargando, error, recargar };
 }
 
@@ -66,8 +66,8 @@ export interface ReporteHistorial {
   generadoEn: string;
   archivoId: string | null;
 }
-export function usarHistorialReportes() {
-  const { datos, cargando, error, recargar } = usarDatos<{
+export function useHistorialReportes() {
+  const { datos, cargando, error, recargar } = useDatos<{
     reportes: ReporteHistorial[];
   }>("/api/reportes/historial");
   return { reportes: datos?.reportes ?? null, cargando, error, recargar };

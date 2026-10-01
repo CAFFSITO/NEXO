@@ -6,13 +6,13 @@ import Sidebar from "./components/shared/Sidebar";
 import TopBar from "./components/shared/TopBar";
 import PanelCursos from "./components/cursos/PanelCursos";
 import { useNavegacion } from "../navegacion";
-import { usarInstitucion } from "../servicios/institucion";
+import { useInstitucion } from "../servicios/institucion";
 
 export default function CursosActivosPage() {
   // El usuario sale de la sesión: antes esta página decía "Directora Romero"
   // aunque entrara otra persona.
   const { navegar, cerrarSesion, usuario } = useNavegacion();
-  const { institucion } = usarInstitucion();
+  const { institucion } = useInstitucion();
 
   if (!usuario) return null;
 
@@ -24,7 +24,7 @@ export default function CursosActivosPage() {
         onCerrarSesion={cerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         {/* El nombre del colegio estaba escrito acá. Sale de la base: el día que
             haya un segundo colegio, esta pantalla no tiene que cambiar. */}
         <TopBar title="Gestión Institucional" subtitle={institucion?.nombre ?? ""} />

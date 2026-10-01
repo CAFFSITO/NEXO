@@ -121,7 +121,7 @@ export function registrarObjetivos(app, db) {
   );
 
   const evidenciasDe = db.prepare(
-    `SELECT id, titulo, descripcion
+    `SELECT id, titulo, descripcion, tarea_id
        FROM evidencias
       WHERE competencia_id = ? AND estudiante_id = ?
       ORDER BY creado_en`
@@ -199,6 +199,7 @@ export function registrarObjetivos(app, db) {
         // Las evidencias con su título, no solo cuántas: la tarjeta las lista
         // una por una (Error 2.D.12).
         evidencias: evidenciasDe.all(fila.id, usuario.id).map((e) => ({
+          tareaId: e.tarea_id == null ? null : String(e.tarea_id),
           id: String(e.id),
           titulo: e.titulo,
           descripcion: e.descripcion,
@@ -563,6 +564,55 @@ export function registrarObjetivos(app, db) {
   // evidencia solo tocaban la memoria de la pantalla y se perdían al cambiar de
   // sección. Ahora persisten, y el servidor comprueba que cada estudiante solo
   // toque SUS competencias y evidencias.
+
+  app.get("/api/objetivos/competencias/catalogo", ventanilla((req, res) => {
+    const usuario = exigirAcceso(db, req, res, "competencias");
+    if (!usuario) return;
+    const competencias = db.prepare(`
+      SELECT c.id, c.nombre, p.nombre AS padre
+      FROM competencias c LEFT JOIN competencias p ON p.id = c.padre_id
+      WHERE c.institucion_id = ? ORDER BY COALESCE(p.nombre, c.nombre), c.nombre
+    `).all(usuario.institucionId).map((c) => ({ id: String(c.id), nombre: c.nombre, padre: c.padre ?? null }));
+    res.json({ competencias });
+  }));
+
+  app.post("/api/objetivos/competencias/:id/evidencias", ventanilla((req, res) => {
+    const usuario = exigirAcceso(db, req, res, "competencias");
+    if (!usuario) return;
+    const competenciaId = Number(req.params.id);
+    if (!Number.isSafeInteger(competenciaId) || !competenciaEnEscuela.get(competenciaId, usuario.institucionId)) {
+      return res.status(404).json({ error: "Esa competencia no existe en tu escuela." });
+    }
+    const titulo = String(req.body?.titulo ?? "").trim();
+    const descripcion = String(req.body?.descripcion ?? "").trim();
+    if (!titulo || titulo.length > 200 || descripcion.length > 10000) {
+      return res.status(400).json({ error: "Escribí un título de hasta 200 caracteres y una descripción de hasta 10.000." });
+    }
+    const crudo = req.body?.tareaId;
+    const tareaId = crudo == null || crudo === "" ? null : Number(crudo);
+    if (tareaId !== null && (!Number.isSafeInteger(tareaId) || !db.prepare(`
+      SELECT 1 FROM entregas e JOIN tareas t ON t.id = e.tarea_id
+      JOIN catedras ca ON ca.id = t.catedra_id JOIN cursos c ON c.id = ca.curso_id
+      WHERE t.id = ? AND e.estudiante_id = ? AND e.anulada_en IS NULL
+        AND t.eliminado_en IS NULL AND c.institucion_id = ?
+    `).get(tareaId, usuario.id, usuario.institucionId))) {
+      return res.status(400).json({ error: "Elegí una tarea que hayas entregado en tu institución." });
+    }
+    db.exec("BEGIN");
+    try {
+      const info = db.prepare(`INSERT INTO evidencias
+        (competencia_id, estudiante_id, titulo, descripcion, tarea_id) VALUES (?, ?, ?, ?, ?)
+      `).run(competenciaId, usuario.id, titulo, descripcion, tareaId);
+      db.prepare(`INSERT INTO competencia_avances (competencia_id, estudiante_id, nivel)
+        VALUES (?, ?, 'iniciado') ON CONFLICT(competencia_id, estudiante_id)
+        DO UPDATE SET actualizado_en = datetime('now')`).run(competenciaId, usuario.id);
+      db.exec("COMMIT");
+      res.status(201).json({ id: String(info.lastInsertRowid) });
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  }));
 
   // Upsert sobre competencia_avances respetando UNIQUE(competencia_id,
   // estudiante_id): si el estudiante todavía no había marcado nivel en esa

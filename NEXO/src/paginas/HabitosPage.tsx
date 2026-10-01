@@ -6,9 +6,11 @@ import TarjetaHabito from "./components/objetivos/TarjetaHabito";
 import ModalNuevoHabito from "./components/objetivos/ModalNuevoHabito";
 import { useState } from "react";
 import {
-  usarObjetivos,
+  useObjetivos,
   registrarHabito,
   crearHabito,
+  editarHabito,
+  archivarHabito,
 } from "../servicios/objetivos";
 import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 
@@ -30,8 +32,10 @@ const RUTA_ACTIVA = "/objetivos/habitos";
 // ─── PÁGINA ─────────────────────────────────────────────
 
 export default function HabitosPage() {
-  const { datos, cargando, error, recargar } = usarObjetivos();
+  const { datos, cargando, error, recargar } = useObjetivos();
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [editando, setEditando] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState<string | null>(null);
 
   const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } =
     useNavegacion();
@@ -55,24 +59,32 @@ export default function HabitosPage() {
   // recalcula sola de `habito_registros`. Dashboard y Hábitos leen la misma
   // tabla, así que ya no se contradicen (Error 13.5).
   const toggleHabito = async (id: string) => {
+    if (ocupado) return;
     const h = habitos.find((x) => x.id === id);
     if (!h) return;
+    setOcupado(id); setAviso(null);
     try {
       await registrarHabito(id, !h.cumplidoHoy);
       recargar();
     } catch (e) {
       setAviso(e instanceof Error ? e.message : "No se pudo registrar el hábito.");
-    }
+    } finally { setOcupado(null); }
   };
 
   const agregarHabito = async (nombre: string, frecuencia: "diario" | "semanal") => {
-    try {
-      await crearHabito(nombre, frecuencia);
+      if (editando) await editarHabito(editando, nombre, frecuencia);
+      else await crearHabito(nombre, frecuencia);
       setModalAbierto(false);
+      setEditando(null);
       recargar();
-    } catch (e) {
-      setAviso(e instanceof Error ? e.message : "No se pudo crear el hábito.");
-    }
+  };
+
+  const archivar = async (id: string) => {
+    if (ocupado || !window.confirm("¿Archivar este hábito? Se conservará su historial.")) return;
+    setOcupado(id); setAviso(null);
+    try { await archivarHabito(id); recargar(); }
+    catch (e) { setAviso(e instanceof Error ? e.message : "No se pudo archivar."); }
+    finally { setOcupado(null); }
   };
 
   if (!usuario) return null;
@@ -85,7 +97,7 @@ export default function HabitosPage() {
         onCerrarSesion={handleCerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen relative">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen relative">
         <TopBar title="Objetivos Personales" subtitle="Hábitos" />
 
         {/* Sub-navegación del módulo */}
@@ -121,7 +133,7 @@ export default function HabitosPage() {
                 </p>
               </div>
               <button
-                onClick={() => setModalAbierto(true)}
+                onClick={() => { setEditando(null); setModalAbierto(true); }}
                 className="bg-[#C548F5] text-white px-6 py-2.5 rounded-full font-bold flex items-center gap-2 hover:brightness-110 transition-all shadow-lg shadow-[#C548F5]/20"
               >
                 <span className="material-symbols-outlined text-sm">add</span>
@@ -143,7 +155,7 @@ export default function HabitosPage() {
             ) : habitos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {habitos.map((habito) => (
-                  <TarjetaHabito key={habito.id} habito={habito} onToggle={toggleHabito} />
+                  <TarjetaHabito key={habito.id} habito={habito} onToggle={toggleHabito} ocupado={ocupado !== null} onEditar={id => { setEditando(id); setModalAbierto(true); }} onArchivar={archivar} />
                 ))}
               </div>
             ) : (
@@ -182,7 +194,7 @@ export default function HabitosPage() {
       </main>
 
       {modalAbierto && (
-        <ModalNuevoHabito onGuardar={agregarHabito} onCerrar={() => setModalAbierto(false)} />
+        <ModalNuevoHabito inicial={habitos.find(h => h.id === editando)} onGuardar={agregarHabito} onCerrar={() => setModalAbierto(false)} />
       )}
     </div>
   );

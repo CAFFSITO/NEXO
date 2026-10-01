@@ -31,6 +31,9 @@ export default function LoginForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <InputField
         label="Correo institucional"
+        required
+        disabled={ingresando}
+        autoComplete="username"
         type="email"
         placeholder="tu@escuela.edu.ar"
         value={email}
@@ -39,6 +42,9 @@ export default function LoginForm({
 
       <InputField
         label="Contraseña"
+        required
+        disabled={ingresando}
+        autoComplete="current-password"
         type="password"
         placeholder="••••••••"
         value={contrasena}
@@ -47,7 +53,7 @@ export default function LoginForm({
 
       {/* Mensaje de error */}
       {error && (
-        <p className="text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+        <p role="alert" className="text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
           {error}
         </p>
       )}

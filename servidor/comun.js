@@ -120,6 +120,38 @@ export function hoyISO() {
   return `${ahora.getFullYear()}-${mes}-${dia}`;
 }
 
+/**
+ * Normaliza la fecha-hora de publicación programada de un posteo o comunicado
+ * (Prompt 13). La usan la comunidad y los comunicados, así que la regla —qué
+ * cuenta como "publicar ya" y qué como "programado a futuro"— vive una sola vez.
+ *
+ * Devuelve:
+ *   · null      → publicar YA (no vino, vino vacía, o es una fecha del pasado)
+ *   · string    → fecha-hora futura en el formato que guarda SQLite y con el que
+ *                 se compara `datetime('now')`: "YYYY-MM-DD HH:MM:SS" en UTC.
+ *   · undefined → el texto no es una fecha válida (la ventanilla responde 400).
+ *
+ * Guardar siempre en UTC y en el mismo formato es lo que permite comparar
+ * `publicar_en <= datetime('now')` con un simple orden de texto: si se guardara
+ * el ISO con 'T' y 'Z' la comparación mentiría (la 'T' ordena después del espacio).
+ */
+export function normalizarPublicarEn(valor) {
+  if (valor === undefined || valor === null || valor === "") return null;
+  const ms = Date.parse(String(valor));
+  if (Number.isNaN(ms)) return undefined;
+  if (ms <= Date.now()) return null; // pasado o ahora → se publica ya
+  return new Date(ms).toISOString().slice(0, 19).replace("T", " ");
+}
+
+/**
+ * El inverso de `normalizarPublicarEn` para devolvérselo a la vidriera: pasa el
+ * "YYYY-MM-DD HH:MM:SS" (UTC) de la base a un ISO con 'T' y 'Z', para que el
+ * navegador lo interprete como UTC y lo muestre en la hora local de quien mira.
+ */
+export function publicarEnISO(valor) {
+  return valor ? valor.replace(" ", "T") + "Z" : null;
+}
+
 // ── Voto único, con regla de alternancia (Error 2.B.1) ──────────────────────
 
 /**

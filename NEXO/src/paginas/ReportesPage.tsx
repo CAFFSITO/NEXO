@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import {
-  usarOpcionesReportes,
-  usarHistorialReportes,
+  useOpcionesReportes,
+  useHistorialReportes,
   generarInstitucional,
   generarExpediente,
   descargarArchivo,
@@ -19,8 +19,8 @@ type Modo = "institucional" | "expediente";
 
 export default function ReportesPage() {
   const { usuario, navegar, cerrarSesion } = useNavegacion();
-  const { opciones, cargando, error } = usarOpcionesReportes();
-  const { reportes, recargar: recargarHistorial } = usarHistorialReportes();
+  const { opciones, cargando, error } = useOpcionesReportes();
+  const { reportes, recargar: recargarHistorial } = useHistorialReportes();
 
   const [modo, setModo] = useState<Modo>("institucional");
   const [marcadosInst, setMarcadosInst] = useState<Record<string, boolean>>({});
@@ -31,7 +31,7 @@ export default function ReportesPage() {
   const [aviso, setAviso] = useState<string>("");
   const [avisoError, setAvisoError] = useState<string>("");
 
-  const alumnos = opciones?.alumnos ?? [];
+  const alumnos = useMemo(() => opciones?.alumnos ?? [], [opciones]);
   const alumnoElegido = useMemo(
     () => alumnos.find((a) => a.id === alumnoId) ?? null,
     [alumnos, alumnoId]
@@ -75,7 +75,7 @@ export default function ReportesPage() {
     <div className="flex bg-[#1C1030] min-h-screen text-on-surface">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content min-h-screen">
         <header className="flex items-center gap-3 w-full px-8 h-16 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] sticky top-0 z-40">
           <span className="material-symbols-outlined text-fuchsia-500">assessment</span>
           <h1 className="text-fuchsia-500 font-headline font-extrabold text-xl tracking-tight">

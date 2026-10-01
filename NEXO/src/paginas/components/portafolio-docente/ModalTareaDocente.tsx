@@ -7,7 +7,7 @@
 // Ahora la cátedra sale de `/api/tareas/catedras` (las que realmente doy) y los
 // adjuntos pasan por el servicio de archivos.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Catedra, DatosNuevaTarea, TareaDocente } from "../../../servicios/tareas";
 import { subirArchivo, tamanoLegible } from "../../../servicios/archivos";
 import { ErrorDeApi } from "../../../servicios/api";
@@ -47,30 +47,14 @@ export default function ModalTareaDocente({
   onGuardar,
   onCerrar,
 }: ModalTareaDocenteProps) {
-  const [datos, setDatos] = useState(VACIO);
+  const [datos, setDatos] = useState<FormTarea>(() => tareaEditando ? { catedraId: tareaEditando.catedraId, titulo: tareaEditando.titulo, consigna: tareaEditando.consigna, fechaLimite: tareaEditando.fechaLimite, metodoEstudio: tareaEditando.metodoEstudio, tipoAsignacion: tareaEditando.tipoAsignacion } : { ...VACIO, catedraId: catedras[0]?.id ?? "" });
   const [adjuntos, setAdjuntos] = useState<File[]>([]);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
 
   const esEdicion = tareaEditando !== null;
 
-  useEffect(() => {
-    if (!abierto) return;
-    if (tareaEditando) {
-      setDatos({
-        catedraId: tareaEditando.catedraId,
-        titulo: tareaEditando.titulo,
-        consigna: tareaEditando.consigna,
-        fechaLimite: tareaEditando.fechaLimite,
-        metodoEstudio: tareaEditando.metodoEstudio,
-        tipoAsignacion: tareaEditando.tipoAsignacion,
-      });
-    } else {
-      setDatos({ ...VACIO, catedraId: catedras[0]?.id ?? "" });
-    }
-    setAdjuntos([]);
-    setError("");
-  }, [abierto, tareaEditando, catedras]);
+
 
   if (!abierto) return null;
 
@@ -118,7 +102,7 @@ export default function ModalTareaDocente({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4"
       onClick={onCerrar}
     >
       <div

@@ -25,7 +25,7 @@ export default function ArticuloCard({
 }: ArticuloCardProps) {
   return (
     <article className="bg-[#2D1B4E] rounded-lg border border-white/5 overflow-hidden hover:border-[#C548F5]/30 transition-all group">
-      <div className="flex h-48">
+      <div className="flex min-h-48">
         <div className="w-1/3 overflow-hidden bg-[#1C1030]">
           {imagenUrl ? (
             <img
@@ -39,12 +39,12 @@ export default function ArticuloCard({
             </div>
           )}
         </div>
-        <div className="w-2/3 p-6 flex flex-col justify-between">
+        <div className="w-2/3 min-w-0 p-4 sm:p-6 flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-start mb-2">
               <h3 className="text-xl font-headline font-bold text-white">{titulo}</h3>
-              <button className="text-on-surface-variant hover:text-white transition-colors">
-                <span className="material-symbols-outlined">more_vert</span>
+              <button onClick={onLeerMas} aria-label={`Abrir ${titulo}`} className="text-on-surface-variant hover:text-white transition-colors">
+                <span className="material-symbols-outlined">arrow_outward</span>
               </button>
             </div>
             <div className="flex gap-2 mb-4 flex-wrap">

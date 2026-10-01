@@ -2,10 +2,13 @@
 // NEXO — Aula Virtual y clases en vivo (Etapa 9, sección 14.3)
 // ----------------------------------------------------------------------------
 // Toda la lógica PROPIA de NEXO alrededor de la videollamada. El video y el
-// audio los resuelve Jitsi en el navegador (motor externo gratuito); acá vive
-// lo nuestro, que es lo que Jitsi no sabe: planificación, etapas, quién está
-// conectado, la pizarra del docente, el pulso con nombres, la alerta de ritmo
-// y el chat de la clase (que se reusa del chat de la Etapa 6).
+// audio los resuelven los NAVEGADORES entre sí con WebRTC (RTCPeerConnection),
+// en malla, sin ningún servicio externo: la señalización viaja por nuestro
+// WebSocket (tiempo-real.js) y el media va directo navegador‑a‑navegador. Acá
+// vive lo nuestro alrededor: planificación, etapas, quién está conectado, la
+// pizarra del docente, el pulso con nombres, la alerta de ritmo y el chat de la
+// clase (que se reusa del chat de la Etapa 6). El permiso de sala que valida
+// esta lógica es EL MISMO que reusa la señalización de video (esMiembroDeClase).
 //
 // Ventanillas:
 //   Planificación (docente, Errores 3.B.9 y 3.B.10)
@@ -21,7 +24,7 @@
 //
 //   Sala en vivo (docente y estudiantes de la clase)
 //     GET  /api/aula/clases/:id          → detalle: etapas, estado, sala, conversación
-//     POST /api/aula/clases/:id/entrar   → registra asistencia y devuelve la sala Jitsi (3.B.2, 3.B.11)
+//     POST /api/aula/clases/:id/entrar   → registra asistencia y devuelve la sala de video (3.B.2, 3.B.11)
 //     POST /api/aula/clases/:id/salir    → marca la hora de salida
 //     GET  /api/aula/clases/:id/conectados → lista NOMINAL de conectados (3.B.11)
 //
@@ -109,11 +112,12 @@ export function registrarAula(app, db, mensajero, notificaciones) {
       return null;
     }
 
-    if (clase.profesor_id === usuario.id) {
-      return { usuario, clase, esDocente: true };
-    }
-    if (usuario.rol === "estudiante" && estaInscriptoEn.get(clase.curso_id, usuario.id)) {
-      return { usuario, clase, esDocente: false };
+    // La MISMA regla de fila que usa el video (esMiembroDeClase): docente dueño de
+    // la cátedra o estudiante inscripto en su curso. Una sola definición para que
+    // la ventanilla /api y la señalización del WebSocket no puedan discrepar.
+    const esDocente = clase.profesor_id === usuario.id;
+    if (esDocente || (usuario.rol === "estudiante" && estaInscriptoEn.get(clase.curso_id, usuario.id))) {
+      return { usuario, clase, esDocente };
     }
     res.status(403).json({ error: "No sos parte de esta clase." });
     return null;
@@ -127,8 +131,10 @@ export function registrarAula(app, db, mensajero, notificaciones) {
     return ids;
   }
 
-  /** Nombre determinista de la sala Jitsi: igual para todos los de la clase, y
-   *  con la institución adelante para que no choque con salas de otras escuelas. */
+  /** Nombre determinista de la sala de video: igual para todos los de la clase, y
+   *  con la institución adelante para que no choque con salas de otras escuelas.
+   *  Es sólo una ETIQUETA estable; la malla WebRTC se agrupa por el id de clase
+   *  en el WebSocket, no por este texto. */
   function salaDeClase(clase) {
     return `nexo-inst${clase.institucion_id}-clase${clase.id}`;
   }
@@ -195,7 +201,7 @@ export function registrarAula(app, db, mensajero, notificaciones) {
           // "Iniciar" aparece cuando llegó la fecha y todavía no terminó (3.B.10):
           // que el botón esté o no es una decisión del servidor, no del reloj de
           // la vidriera. Ya en vivo, el botón dice "Entrar".
-          iniciable: cp.estado === "planificada" && cp.fecha_hora <= ahora,
+          iniciable: cp.estado === "planificada" && Date.parse(cp.fecha_hora) <= Date.parse(ahora),
           enVivo: cp.estado === "en-vivo",
         }));
       res.json({ clases });
@@ -237,6 +243,10 @@ export function registrarAula(app, db, mensajero, notificaciones) {
       }
       if (!titulo) return res.status(400).json({ error: "Falta el título de la clase." });
       if (!fechaHora) return res.status(400).json({ error: "Falta la fecha y hora." });
+      if (!Number.isFinite(Date.parse(fechaHora))) return res.status(400).json({ error: "La fecha y hora no son válidas." });
+      if (titulo.length > 200 || objetivos.length > 10000 || materiales.length > 10000 || etapas.length > 50) {
+        return res.status(400).json({ error: "La planificación excede el tamaño permitido: título de 200 caracteres y hasta 50 etapas." });
+      }
 
       const info = insertarClase.run(catedraId, titulo, fechaHora, objetivos, materiales);
       const claseId = info.lastInsertRowid;
@@ -350,6 +360,7 @@ export function registrarAula(app, db, mensajero, notificaciones) {
       if (clase.estado === "finalizada" || clase.estado === "cancelada") {
         return res.status(409).json({ error: "Esta clase ya terminó." });
       }
+      if (Date.parse(clase.fecha_hora) > Date.now()) return res.status(409).json({ error: "Todavía no llegó la hora programada para esta clase." });
       db.prepare("UPDATE clases_planificadas SET estado = 'en-vivo' WHERE id = ?").run(clase.id);
 
       // El chat de la clase (3.B.7) es una conversación normal del chat de la
@@ -400,8 +411,10 @@ export function registrarAula(app, db, mensajero, notificaciones) {
         // Nueva fila de asistencia por entrada (14.3, paso 2): un mismo alumno
         // puede entrar y salir varias veces; cada tramo queda registrado.
         db.prepare(
-          "INSERT INTO clase_asistencias (clase_id, estudiante_id) VALUES (?, ?)"
-        ).run(clase.id, usuario.id);
+          `INSERT INTO clase_asistencias (clase_id, estudiante_id)
+           SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM clase_asistencias
+           WHERE clase_id=? AND estudiante_id=? AND desconectado_en IS NULL)`
+        ).run(clase.id, usuario.id, clase.id, usuario.id);
         // Sumarlo al chat de la clase (por si entró después de que se creó).
         conversacionId = asegurarConversacionClase(db, clase.id, usuario.id);
         // El docente ve entrar a alguien: se refresca la lista nominal.
@@ -702,6 +715,35 @@ export function registrarAula(app, db, mensajero, notificaciones) {
   }, INTERVALO_ALERTA_MS);
   // El temporizador no debe impedir que el proceso se apague (Ctrl+C).
   if (typeof timer.unref === "function") timer.unref();
+}
+
+/**
+ * ¿Este usuario es miembro de esta clase? La MISMA regla de fila que `accesoAClase`
+ * (docente dueño de la cátedra o estudiante inscripto en su curso), pero pura y sin
+ * req/res, para que la señalización de video del WebSocket (tiempo-real.js) valide
+ * el permiso EN EL SERVIDOR antes de reenviar nada. Devuelve boolean; no filtra
+ * ninguna otra pista de la clase a quien no es miembro.
+ */
+export function esMiembroDeClase(db, usuario, claseId) {
+  const id = Number(claseId);
+  if (!Number.isInteger(id)) return false;
+  const clase = db
+    .prepare(
+      `SELECT c.profesor_id, c.curso_id
+         FROM clases_planificadas cp
+         JOIN catedras c ON c.id = cp.catedra_id
+        WHERE cp.id = ?`
+    )
+    .get(id);
+  if (!clase) return false;
+  if (clase.profesor_id === usuario.id) return true;
+  if (
+    usuario.rol === "estudiante" &&
+    db.prepare("SELECT 1 FROM inscripciones WHERE curso_id = ? AND estudiante_id = ?").get(clase.curso_id, usuario.id)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /** Da forma a una etapa para la vidriera, deduciendo su estado de las marcas. */

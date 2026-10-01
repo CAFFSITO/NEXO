@@ -27,7 +27,18 @@ export interface EventoVivo {
     | "aula-conectados"     // entró o salió alguien de la clase (3.B.11)
     | "aula-pregunta"       // llegó una pregunta de un estudiante (3.B.6)
     | "aula-alerta"         // saltó la alerta de ritmo (3.B.5)
-    | "aula-estado";        // la clase pasó a en-vivo / finalizada
+    | "aula-estado"         // la clase pasó a en-vivo / finalizada
+    // Señalización de la videollamada propia (WebRTC en malla, reemplazo de Jitsi).
+    // El servidor sólo REENVÍA estas señales entre los navegadores de la misma
+    // clase; el video/audio va directo entre pares. Ver servicios/videollamada.ts.
+    | "video-participantes" // al entrar: mi peerId + quiénes ya estaban
+    | "video-entra"         // entró un par nuevo a la sala de video
+    | "video-sale"          // se fue un par de la sala de video
+    | "oferta"              // oferta SDP dirigida de otro par
+    | "respuesta"           // respuesta SDP dirigida de otro par
+    | "candidato-ice"       // candidato ICE dirigido de otro par
+    | "video-rechazado"     // el servidor negó la entrada al video (no sos miembro)
+    | "video-lleno";        // la sala llegó al tope de cámaras (malla saturada)
   conversacionId?: string;
   mensaje?: unknown;
   notificacion?: unknown;
@@ -38,6 +49,14 @@ export interface EventoVivo {
   estado?: string;
   pct?: number;
   mensajeAlerta?: string;
+  // Campos de la señalización de video (cada uno lo lee videollamada.ts).
+  miPeerId?: string;
+  participantes?: { peerId: string; nombre: string }[];
+  peerId?: string;
+  de?: string;
+  nombre?: string;
+  sdp?: RTCSessionDescriptionInit;
+  candidato?: RTCIceCandidateInit;
 }
 
 type Oyente = (evento: EventoVivo) => void;
@@ -127,4 +146,19 @@ export function useTiempoReal(alRecibir: Oyente) {
       quizasCerrar();
     };
   }, [alRecibir]);
+}
+
+/**
+ * Manda un mensaje por el MISMO tubo (no abre otro). Lo usa la señalización de
+ * video para empujar sus ofertas/respuestas/candidatos. Devuelve true si salió;
+ * false si el tubo todavía no estaba abierto (el que llama puede reintentar al
+ * recibir el evento "conectado"). No reintenta ni encola por su cuenta: la
+ * señalización de video es efímera y se rehace sola en la próxima negociación.
+ */
+export function enviarPorTubo(mensaje: unknown): boolean {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(mensaje));
+    return true;
+  }
+  return false;
 }

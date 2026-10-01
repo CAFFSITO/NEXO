@@ -61,6 +61,16 @@ export function urlDescarga(archivoId: string): string {
   return `/api/archivos/${archivoId}`;
 }
 
+/**
+ * La misma dirección, pero pidiéndole al servidor que MUESTRE el archivo en la
+ * página (Content-Disposition: inline) en vez de descargarlo. Sirve para
+ * previsualizar: una imagen en un <img> o un PDF en un <iframe>. El permiso es
+ * el mismo que para descargar; solo cambia cómo lo entrega el servidor.
+ */
+export function urlPreview(archivoId: string): string {
+  return `/api/archivos/${archivoId}?inline=1`;
+}
+
 /** Tamaño legible ("1.4 MB", "820 KB") para mostrar al lado del nombre. */
 export function tamanoLegible(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

@@ -6,34 +6,18 @@ interface TopBarProps {
 }
 
 export default function TopBar({ title, subtitle, onHelpClick, onMenuClick }: TopBarProps) {
-  return (
-    <header className="flex justify-between items-center h-16 px-6 border-b border-purple-900/30">
-      <div className="flex items-center gap-4">
-        <h2 className="font-headline text-lg font-bold text-white">{title}</h2>
-        {subtitle && (
-          <span className="px-2 py-0.5 bg-primary/20 text-primary text-[10px] rounded-full font-bold uppercase tracking-wider">
-            {subtitle}
-          </span>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        {onHelpClick && (
-          <button
-            onClick={onHelpClick}
-            className="p-2 hover:bg-white/5 rounded-full text-gray-400 transition-opacity active:opacity-70"
-          >
-            <span className="material-symbols-outlined">help_outline</span>
-          </button>
-        )}
-        {onMenuClick && (
-          <button
-            onClick={onMenuClick}
-            className="p-2 hover:bg-white/5 rounded-full text-gray-400 transition-opacity active:opacity-70"
-          >
-            <span className="material-symbols-outlined">more_vert</span>
-          </button>
-        )}
-      </div>
-    </header>
-  );
+  return <header className="nexo-topbar">
+    <div className="flex items-center gap-3 min-w-0">
+      <span className="text-on-surface-variant/45 text-sm hidden sm:inline">Mi espacio</span>
+      <span className="text-on-surface-variant/30 hidden sm:inline" aria-hidden="true">/</span>
+      <h2 className="font-headline text-sm font-semibold truncate">{title}</h2>
+      {subtitle && <span className="nexo-pill hidden sm:inline-flex">{subtitle}</span>}
+    </div>
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-on-surface-variant/65 hidden lg:inline mr-3">{new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long" }).format(new Date())}</span>
+      <button className="nexo-icon-button" aria-label="Buscar sección" title="Buscar sección (Ctrl K)" onClick={() => window.dispatchEvent(new Event("nexo:buscar"))}><span className="material-symbols-outlined">search</span></button>
+      {onHelpClick && <button onClick={onHelpClick} className="nexo-icon-button" aria-label="Ayuda"><span className="material-symbols-outlined">help_outline</span></button>}
+      {onMenuClick && <button onClick={onMenuClick} className="nexo-icon-button" aria-label="Más opciones"><span className="material-symbols-outlined">more_vert</span></button>}
+    </div>
+  </header>;
 }

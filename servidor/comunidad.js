@@ -19,7 +19,14 @@
 // este colegio ni de ningún otro).
 // ============================================================================
 
-import { exigirAcceso, ventanilla, aplicarVoto, nombreDeVoto } from "./comun.js";
+import {
+  exigirAcceso,
+  ventanilla,
+  aplicarVoto,
+  nombreDeVoto,
+  normalizarPublicarEn,
+  publicarEnISO,
+} from "./comun.js";
 
 export function registrarComunidad(app, db) {
   // ── Feed ──────────────────────────────────────────────────────────────────
@@ -27,12 +34,19 @@ export function registrarComunidad(app, db) {
   // tarjeta mostraba tres números ("likes", "comentarios", "compartidos");
   // "compartidos" no existe en la base ni en el producto: no hay forma de
   // compartir una publicación en NEXO, así que ese número no se manda.
+  // Una publicación PROGRAMADA (publicar_en en el futuro) no aparece en el feed
+  // hasta su hora, con una excepción: su propio autor la ve desde el minuto cero,
+  // marcada como programada, para saber que quedó agendada (Prompt 13). Un
+  // posteo FIJADO por la dirección va arriba de todo (fijado_en real, no adorno).
   const publicaciones = db.prepare(
     `SELECT p.id,
             p.contenido,
             p.creado_en,
             p.imagen_id,
             p.autor_id,
+            p.publicar_en,
+            p.fijado_en,
+            (p.publicar_en IS NOT NULL AND p.publicar_en > datetime('now')) AS programada,
             u.nombre     AS autor,
             u.rol        AS autor_rol,
             u.avatar_url AS autor_avatar,
@@ -52,7 +66,8 @@ export function registrarComunidad(app, db) {
        JOIN usuarios u ON u.id = p.autor_id
       WHERE p.institucion_id = ?1
         AND p.eliminado_en IS NULL
-      ORDER BY p.creado_en DESC`
+        AND (p.publicar_en IS NULL OR p.publicar_en <= datetime('now') OR p.autor_id = ?2)
+      ORDER BY (p.fijado_en IS NOT NULL) DESC, p.creado_en DESC`
   );
 
   app.get(
@@ -79,6 +94,11 @@ export function registrarComunidad(app, db) {
             // El voto propio es privado: cada quien recibe el suyo y nada más
             // (Error 2.B.1 pide que el voto sea privado y único por persona).
             miVoto: fila.mi_voto === 1 ? "a-favor" : fila.mi_voto === -1 ? "en-contra" : null,
+            // Fijado y programada salen de la base (fijado_en / publicar_en), no
+            // de decoración de la vidriera (Prompt 13).
+            fijado: fila.fijado_en !== null,
+            programada: fila.programada === 1,
+            publicarEn: publicarEnISO(fila.publicar_en),
           })),
       });
     })
@@ -261,6 +281,14 @@ export function registrarComunidad(app, db) {
       const imagenId = req.body?.imagenId != null ? Number(req.body.imagenId) : null;
       if (!contenido) return res.status(400).json({ error: "La publicación está vacía." });
 
+      // Fecha de publicación opcional (Prompt 13): futura = programada; ausente o
+      // pasada = se publica ya. `undefined` significa que el texto no era una
+      // fecha válida. La regla vive en comun.js (la comparte con comunicados).
+      const publicarEn = normalizarPublicarEn(req.body?.publicarEn);
+      if (publicarEn === undefined) {
+        return res.status(400).json({ error: "La fecha de publicación no es válida." });
+      }
+
       // El archivo de imagen, si viene, tiene que haberlo subido esta persona.
       let imagen = null;
       if (imagenId) {
@@ -271,13 +299,44 @@ export function registrarComunidad(app, db) {
       }
 
       const info = db.prepare(
-        `INSERT INTO publicaciones (institucion_id, autor_id, contenido, imagen_id)
-         VALUES (?, ?, ?, ?)`
-      ).run(usuario.institucionId, usuario.id, contenido, imagen);
+        `INSERT INTO publicaciones (institucion_id, autor_id, contenido, imagen_id, publicar_en)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run(usuario.institucionId, usuario.id, contenido, imagen, publicarEn);
 
       res.status(201).json({ id: String(info.lastInsertRowid) });
     })
   );
+
+  // ── Fijar / desfijar una publicación (Prompt 13) ───────────────────────────
+  // SOLO la dirección (admin-academico) de la MISMA institución. El permiso se
+  // decide acá, no escondiendo el botón: si un estudiante pide el endpoint a
+  // mano, recibe 403. Fijar setea fijado_en/fijado_por_id; desfijar los limpia.
+  function fijarPublicacion(fijar) {
+    return ventanilla((req, res) => {
+      const usuario = exigirAcceso(db, req, res, "comunidad");
+      if (!usuario) return;
+      if (usuario.rol !== "admin-academico") {
+        return res.status(403).json({ error: "Solo la dirección puede fijar publicaciones." });
+      }
+      const id = Number(req.params.id);
+      if (institucionDe("publicacion", id) !== usuario.institucionId) {
+        return res.status(404).json({ error: "Esa publicación no existe en tu comunidad." });
+      }
+      if (fijar) {
+        db.prepare(
+          "UPDATE publicaciones SET fijado_en = datetime('now'), fijado_por_id = ? WHERE id = ?"
+        ).run(usuario.id, id);
+      } else {
+        db.prepare(
+          "UPDATE publicaciones SET fijado_en = NULL, fijado_por_id = NULL WHERE id = ?"
+        ).run(id);
+      }
+      res.json({ ok: true });
+    });
+  }
+
+  app.post("/api/comunidad/publicaciones/:id/fijar", fijarPublicacion(true));
+  app.post("/api/comunidad/publicaciones/:id/desfijar", fijarPublicacion(false));
 
   // ── Crear debate (Error 3.A.2: creación rica) ──────────────────────────────
   // Lo crean los perfiles participativos. La postura se fija después, y solo
@@ -367,12 +426,18 @@ export function registrarComunidad(app, db) {
         const p = db.prepare(
           `SELECT p.id, p.contenido, p.creado_en, p.autor_id, u.nombre AS autor, u.rol AS autor_rol,
                   u.avatar_url AS autor_avatar,
+                  (p.publicar_en IS NOT NULL AND p.publicar_en > datetime('now')) AS programada,
                   (SELECT COUNT(*) FROM votos v WHERE v.objeto_tipo='publicacion' AND v.objeto_id=p.id AND v.valor=1)  AS a_favor,
                   (SELECT COUNT(*) FROM votos v WHERE v.objeto_tipo='publicacion' AND v.objeto_id=p.id AND v.valor=-1) AS en_contra,
                   (SELECT v.valor FROM votos v WHERE v.objeto_tipo='publicacion' AND v.objeto_id=p.id AND v.usuario_id=?) AS mi_voto
              FROM publicaciones p JOIN usuarios u ON u.id = p.autor_id
             WHERE p.id = ?`
         ).get(usuario.id, objetoId);
+        // Una publicación programada solo la abre su autor: para el resto todavía
+        // no existe (coherente con que el feed no la muestre).
+        if (p.programada && p.autor_id !== usuario.id) {
+          return res.status(404).json({ error: "Ese contenido no existe en tu comunidad." });
+        }
         objeto = {
           tipo, id: String(p.id), titulo: null, contenido: p.contenido,
           autorId: String(p.autor_id),

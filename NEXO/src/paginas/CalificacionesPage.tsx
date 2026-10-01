@@ -5,14 +5,14 @@ import TopBar from "./components/shared/TopBar";
 import TarjetaCalificacion from "./components/portafolio/TarjetaCalificacion";
 import ResumenCalificaciones from "./components/portafolio/ResumenCalificaciones";
 import ModalDevolucion from "./components/portafolio/ModalDevolucion";
-import ModalDetalleTarea from "./components/portafolio/ModalDetalleTarea";
+import ModalDetalleTarea from "./components/shared/tareas/ModalDetalleTarea";
 import SubNavPortafolio from "./components/portafolio/SubNavPortafolio";
 import {
   estiloMateria,
   type Calificacion,
   type EstadoCalificacion,
 } from "./components/portafolio/tiposCalificaciones";
-import { calcularPromedio, estadoDeNota, usarPortafolio } from "../servicios/portafolio";
+import { calcularPromedio, estadoDeNota, usePortafolio } from "../servicios/portafolio";
 import { textoRelativo } from "../servicios/fechas";
 import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 
@@ -32,7 +32,7 @@ const FILTROS: { label: string; valor: EstadoCalificacion | "todas" }[] = [
 // ─── PÁGINA ─────────────────────────────────────────────
 
 export default function CalificacionesPage() {
-  const { datos, cargando, error, recargar } = usarPortafolio();
+  const { datos, cargando, error, recargar } = usePortafolio();
   const [filtro, setFiltro] = useState<EstadoCalificacion | "todas">("todas");
   const [devolucionActivaId, setDevolucionActivaId] = useState<string | null>(null);
   // La tarea que se abre al tocar "Correcciones en camino" (Error 2.C.7).
@@ -111,7 +111,7 @@ export default function CalificacionesPage() {
         onCerrarSesion={handleCerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <TopBar title="Portafolio de Aprendizaje" subtitle="Calificaciones" />
 
         {/* Sub-navegación del módulo */}

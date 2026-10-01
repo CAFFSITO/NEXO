@@ -12,7 +12,7 @@
 // través del servidor (regla de oro 3). El permiso de crear/iniciar se valida
 // en la cocina (regla de oro 4): esta página solo dibuja lo que el servidor deja.
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Sidebar from "./components/shared/Sidebar";
 import TopBar from "./components/shared/TopBar";
@@ -22,8 +22,8 @@ import SalaClase from "./components/aula-virtual/SalaClase";
 import {
   crearClase,
   iniciarClase,
-  usarCatedras,
-  usarClasesPlanificadas,
+  useCatedras,
+  useClasesPlanificadas,
   type ClasePlanificada,
 } from "../servicios/aula";
 import { fechaCorta } from "../servicios/fechas";
@@ -38,11 +38,11 @@ export default function AulaVirtualProfesorPage() {
   return (
     <div className="flex bg-[#1C1030] min-h-screen">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <TopBar title="Aula Virtual" subtitle={claseActiva ? "En vivo" : undefined} />
         <div className="flex-1 overflow-y-auto bg-[#190d2d] p-6">
           {claseActiva ? (
-            <SalaClase
+            <SalaClase key={claseActiva}
               claseId={claseActiva}
               onSalir={() => navegar("/portafolio-docente/aula-virtual")}
             />
@@ -58,12 +58,13 @@ export default function AulaVirtualProfesorPage() {
 // ── Vista de planificación: lista + formulario ────────────────────────────────
 
 function Planificacion({ onEntrar }: { onEntrar: (claseId: string) => void }) {
-  const { clases, cargando, error, recargar } = usarClasesPlanificadas();
+  const { clases, cargando, error, recargar } = useClasesPlanificadas();
   const [creando, setCreando] = useState(false);
+  useEffect(() => { const t = window.setInterval(recargar, 30000); return () => window.clearInterval(t); }, [recargar]);
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap gap-4 items-center justify-between">
         <div>
           <h1 className="text-3xl font-black text-white">Mis clases</h1>
           <p className="text-slate-400 mt-1">Planificá tus clases y entrá en vivo cuando llegue la hora.</p>
@@ -110,6 +111,15 @@ function TarjetaClase({
   onEntrar: (id: string) => void;
   onIniciada: () => void;
 }) {
+  const [iniciando, setIniciando] = useState(false);
+  const [errorInicio, setErrorInicio] = useState("");
+  const iniciar = async () => {
+    if (iniciando) return;
+    setIniciando(true); setErrorInicio("");
+    try { await iniciarClase(clase.id); onIniciada(); onEntrar(clase.id); }
+    catch (e) { setErrorInicio(e instanceof Error ? e.message : "No se pudo iniciar la clase."); }
+    finally { setIniciando(false); }
+  };
   const etiquetaEstado: Record<ClasePlanificada["estado"], { texto: string; clase: string }> = {
     planificada: { texto: "Planificada", clase: "bg-slate-500/20 text-slate-300" },
     "en-vivo": { texto: "En vivo", clase: "bg-red-500/20 text-red-400 animate-pulse" },
@@ -119,9 +129,9 @@ function TarjetaClase({
   const badge = etiquetaEstado[clase.estado];
 
   return (
-    <div className="bg-surface-container-low/60 rounded-2xl border border-white/5 p-4 flex items-center gap-4">
+    <div className="bg-surface-container-low/60 rounded-2xl border border-white/5 p-4 flex flex-wrap items-center gap-4">
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-white font-bold truncate">{clase.titulo}</h3>
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${badge.clase}`}>{badge.texto}</span>
         </div>
@@ -129,6 +139,7 @@ function TarjetaClase({
           {clase.materiaCurso} · {fechaCorta(clase.fechaHora)}{" "}
           {new Date(clase.fechaHora).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
         </p>
+        {errorInicio && <p role="alert" className="mt-2 text-sm text-red-300">{errorInicio}</p>}
       </div>
       {clase.enVivo ? (
         <button
@@ -140,16 +151,17 @@ function TarjetaClase({
         </button>
       ) : clase.iniciable ? (
         <button
-          onClick={() => iniciarClase(clase.id).then(() => { onIniciada(); onEntrar(clase.id); }).catch(() => {})}
+          onClick={iniciar}
+          disabled={iniciando}
           className="px-4 py-2 bg-primary text-white rounded-full font-bold flex items-center gap-2 hover:opacity-90 active:scale-95"
         >
           <span className="material-symbols-outlined">play_circle</span>
-          Iniciar
+          {iniciando ? "Iniciando…" : "Iniciar"}
         </button>
       ) : clase.estado === "finalizada" ? (
         <span className="text-xs text-slate-500">Terminada</span>
       ) : (
-        <span className="text-xs text-slate-500">Aún no es la hora</span>
+        <span className="text-xs text-slate-500">{clase.estado === "cancelada" ? "Cancelada" : "Aún no es la hora"}</span>
       )}
     </div>
   );
@@ -163,7 +175,7 @@ interface EtapaBorrador {
 }
 
 function FormularioClase({ onCreada }: { onCreada: () => void }) {
-  const { catedras, cargando } = usarCatedras();
+  const { catedras, cargando, error: errorCatedras } = useCatedras();
   const [catedraId, setCatedraId] = useState<number | "">("");
   const [titulo, setTitulo] = useState("");
   const [fechaHora, setFechaHora] = useState("");
@@ -173,9 +185,7 @@ function FormularioClase({ onCreada }: { onCreada: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
-  const catedraInicial = useMemo(() => catedras?.[0]?.id ?? "", [catedras]);
-  // Elegir la primera cátedra por defecto cuando llegan.
-  if (catedraId === "" && catedraInicial !== "") setCatedraId(catedraInicial);
+  const catedraElegida = catedraId || catedras?.[0]?.id || "";
 
   const cambiarEtapa = (i: number, campo: keyof EtapaBorrador, valor: string) => {
     setEtapas((prev) => prev.map((e, idx) => (idx === i ? { ...e, [campo]: valor } : e)));
@@ -185,18 +195,19 @@ function FormularioClase({ onCreada }: { onCreada: () => void }) {
 
   const guardar = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (guardando) return;
     setError(null);
-    if (catedraId === "") return setError("Elegí la materia y el curso.");
+    if (catedraElegida === "") return setError("Elegí la materia y el curso.");
     if (!titulo.trim()) return setError("Escribí el título de la clase.");
     if (!fechaHora) return setError("Elegí la fecha y la hora.");
 
     setGuardando(true);
     try {
       await crearClase({
-        catedraId: Number(catedraId),
+        catedraId: Number(catedraElegida),
         titulo: titulo.trim(),
         // El input datetime-local da "2026-07-20T10:00"; le sumamos segundos.
-        fechaHora: fechaHora.length === 16 ? `${fechaHora}:00` : fechaHora,
+        fechaHora: new Date(fechaHora).toISOString(),
         objetivos: objetivos.trim(),
         materiales: materiales.trim(),
         etapas: etapas
@@ -224,12 +235,13 @@ function FormularioClase({ onCreada }: { onCreada: () => void }) {
         <label className="text-xs text-slate-400 flex flex-col gap-1">
           Materia y curso
           <select
-            value={catedraId}
+            value={catedraElegida}
             onChange={(e) => setCatedraId(e.target.value === "" ? "" : Number(e.target.value))}
             className={campo}
-            disabled={cargando}
+            disabled={cargando || !!errorCatedras}
           >
             {cargando && <option>Cargando…</option>}
+            {!cargando && !catedras?.length && <option value="">Sin cátedras asignadas</option>}
             {catedras?.map((c) => (
               <option key={c.id} value={c.id} className="bg-[#190d2d]">
                 {c.etiqueta}
@@ -272,7 +284,7 @@ function FormularioClase({ onCreada }: { onCreada: () => void }) {
                 value={et.titulo}
                 onChange={(e) => cambiarEtapa(i, "titulo", e.target.value)}
                 placeholder={`Etapa ${i + 1} (ej: Repaso)`}
-                className={`${campo} flex-1`}
+                className={`${campo} flex-1 min-w-0`}
               />
               <input
                 type="number"
@@ -280,7 +292,7 @@ function FormularioClase({ onCreada }: { onCreada: () => void }) {
                 value={et.duracion}
                 onChange={(e) => cambiarEtapa(i, "duracion", e.target.value)}
                 placeholder="min"
-                className={`${campo} w-20`}
+                className={`${campo} !w-20 shrink-0`}
               />
               {etapas.length > 1 && (
                 <button type="button" onClick={() => quitarEtapa(i)} className="text-slate-400 hover:text-red-400" aria-label="Quitar etapa">
@@ -296,12 +308,12 @@ function FormularioClase({ onCreada }: { onCreada: () => void }) {
         </button>
       </div>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {(error || errorCatedras) && <p role="alert" className="text-sm text-red-400">{error || errorCatedras}</p>}
 
       <div className="flex justify-end">
         <button
           type="submit"
-          disabled={guardando}
+          disabled={guardando || cargando || !!errorCatedras || !catedras?.length}
           className="px-6 py-2 bg-primary text-white rounded-full font-bold hover:opacity-90 active:scale-95 disabled:opacity-50"
         >
           {guardando ? "Guardando…" : "Crear clase"}

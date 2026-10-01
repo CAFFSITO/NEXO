@@ -11,6 +11,7 @@ const API = "/api/permisos/acceso";
 
 export interface ResultadoAcceso {
   permitido: boolean;
+  temporal?: boolean;
   /** Por qué se negó, con las palabras del servidor. Se le muestra al usuario. */
   error?: string;
 }
@@ -34,11 +35,11 @@ export async function consultarAcceso(
 
   let respuesta: Response;
   try {
-    respuesta = await fetch(`${API}?pagina=${encodeURIComponent(pagina)}`);
+    respuesta = await fetch(`${API}?pagina=${encodeURIComponent(pagina)}`, { signal: AbortSignal.timeout(15000) });
   } catch {
     // Falla de red: casi siempre es que la cocina está apagada. Se dice tal
     // cual, porque no es lo mismo que "no tenés permiso".
-    return { permitido: false, error: "No se pudo contactar al servidor de NEXO." };
+    return { permitido: false, temporal: true, error: "No se pudo contactar al servidor de NEXO." };
   }
 
   const datos = await respuesta.json().catch(() => ({}));
@@ -51,13 +52,15 @@ export async function consultarAcceso(
 
   const resultado: ResultadoAcceso = {
     permitido: false,
+    temporal: respuesta.status !== 403,
     error: datos.error ?? "No se pudo comprobar el permiso.",
   };
 
   // Un 401 significa que la sesión venció recién, no que la pantalla esté
   // prohibida: no se recuerda, para que al volver a entrar no arrastre una
   // negativa que ya no corresponde.
-  if (respuesta.status !== 401) recordadas.set(pagina, resultado);
+  if (respuesta.status === 403) recordadas.set(pagina, resultado);
+  if (respuesta.status === 401) window.dispatchEvent(new Event("nexo:sesion-vencida"));
 
   return resultado;
 }

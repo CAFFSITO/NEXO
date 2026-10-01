@@ -38,10 +38,11 @@
 
 import express from "express";
 import { createServer } from "node:http";
+import { createServer as createServerSeguro } from "node:https";
 import { DatabaseSync } from "node:sqlite";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { registrarSesiones } from "./sesiones.js";
 import { registrarPermisos } from "./permisos.js";
 import { registrarCuenta } from "./cuenta.js";
@@ -65,10 +66,16 @@ import { registrarTareas } from "./tareas.js";
 import { registrarAula } from "./aula.js";
 import { crearMensajero, conectarMensajero } from "./tiempo-real.js";
 import { crearNotificaciones, registrarNotificaciones } from "./notificaciones.js";
+import { registrarGestionAcademica } from "./gestion-academica.js";
+import { migrarBase } from "./migraciones.js";
 
 const carpeta = dirname(fileURLToPath(import.meta.url));
-const rutaBase = join(carpeta, "..", "base-de-datos", "nexo.db");
-const PUERTO = 3000;
+const rutaBase = process.env.NEXO_DB_PATH || join(carpeta, "..", "base-de-datos", "nexo.db");
+const carpetaDatos = process.env.NEXO_STORAGE_DIR || carpeta;
+const PUERTO = Number(process.env.NEXO_PORT ?? 3000);
+if (!Number.isInteger(PUERTO) || PUERTO < 0 || PUERTO > 65535) {
+  throw new Error("NEXO_PORT debe ser un puerto entre 0 y 65535.");
+}
 
 // ── 1. Abrir el archivador ──────────────────────────────────────────────────
 // Si la base todavía no existe, avisamos claro en vez de fallar con un error
@@ -86,9 +93,21 @@ const db = new DatabaseSync(rutaBase);
 // Reglas de integridad activadas: que la base rechace datos incoherentes
 // (por ejemplo, un comentario apuntando a un usuario que no existe).
 db.exec("PRAGMA foreign_keys = ON;");
+db.exec("PRAGMA busy_timeout = 5000;");
+migrarBase(db);
 
 // ── 2. Armar la cocina ──────────────────────────────────────────────────────
 const app = express();
+app.disable("x-powered-by");
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "same-origin");
+  next();
+});
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
 app.use(express.json()); // entender pedidos con cuerpo en formato JSON
 
 // El mensajero (Etapa 6): el "tubo" en vivo para chat y notificaciones. Se crea
@@ -127,10 +146,14 @@ registrarCuenta(app, db);
 // después pantalla por pantalla.
 registrarInstitucion(app, db);
 registrarPerfiles(app, db);
+registrarGestionAcademica(app, db);
 // Etapa 4: servicio transversal de archivos (14.19) y circuito de tareas (14.7).
 // El de archivos va antes que el de tareas porque las tareas lo referencian.
-registrarArchivos(app, db, carpeta);
-registrarTareas(app, db);
+registrarArchivos(app, db, carpetaDatos);
+// Recibe el servicio de notificaciones para avisarle al estudiante cuando su
+// entrega queda corregida (con nota y devolución): así la notificación abre la
+// tarea EXACTA en su portafolio.
+registrarTareas(app, db, notificaciones);
 registrarPortafolio(app, db);
 // Detalle de materia del estudiante (detalles finales): profesor, horarios,
 // avisos del docente con reacciones/respuestas y tareas de la cátedra. Permiso
@@ -166,24 +189,78 @@ registrarPlataforma(app, db);
 // Reportes y expedientes de la dirección (Etapa 8, 14.18): casillas → archivo
 // descargable de verdad. Recibe `carpeta` para guardar el archivo generado en el
 // mismo almacén que las subidas (reutiliza archivos.js).
-registrarReportes(app, db, carpeta);
+registrarReportes(app, db, carpetaDatos);
 // Asistencia IA real (Etapa 8, 14.16): arma el pedido con config_ia + la
 // conversación y llama al proveedor gratuito. La clave vive en una variable de
 // entorno del servidor (NEXO_IA_CLAVE), nunca en la base ni en el navegador.
 registrarAsistenciaIA(app, db);
-// Aula virtual y clases en vivo (Etapa 9, 14.3): planificación, sala con Jitsi,
-// asistencia nominal, pizarra del docente, pulso con nombres, alerta de ritmo
-// (regla con umbral, no IA) y trayectoria en vivo. Recibe el mensajero (para
-// empujar trazos, pulso, etapas y la alerta) y las notificaciones.
+// Aula virtual y clases en vivo (Etapa 9, 14.3): planificación, videollamada
+// PROPIA (WebRTC en malla; la señalización va por el WebSocket de tiempo-real.js,
+// sin servicios externos), asistencia nominal, pizarra del docente, pulso con
+// nombres, alerta de ritmo (regla con umbral, no IA) y trayectoria en vivo.
+// Recibe el mensajero (para empujar trazos, pulso, etapas y la alerta) y las
+// notificaciones.
 registrarAula(app, db, mensajero, notificaciones);
+
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "Ese servicio no existe en NEXO." });
+});
+// Express también envía aquí los errores asíncronos y los del parser JSON.
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
+  if (error.type === "entity.too.large") {
+    return res.status(413).json({ error: "El contenido supera el tamaño permitido." });
+  }
+  if (error.type === "entity.parse.failed" || error instanceof URIError) {
+    return res.status(400).json({ error: "El contenido del pedido no es válido." });
+  }
+  console.error("Error atendiendo " + req.method + " " + req.path, error);
+  res.status(500).json({ error: "No pudimos completar el pedido. Intentá nuevamente." });
+});
+
+// ── 7.b Servir la aplicación compilada (producción, opcional) ───────────────
+// En desarrollo, la vidriera la sirve Vite (yarn dev, puerto 5173) y le habla a
+// esta cocina por un proxy. En PRODUCCIÓN se compila (yarn build → NEXO/dist) y
+// conviene servir esos archivos desde ACÁ: un solo origen para la app, /api y
+// /ws. Eso, además, es lo que hace que la CÁMARA funcione entre computadoras:
+// getUserMedia sólo anda en https (o localhost), y con TLS abajo todo el sitio
+// —incluida la videollamada— queda en contexto seguro. Si no hay dist, no pasa
+// nada: seguimos como siempre (sólo /api y /ws).
+const rutaApp = join(carpeta, "..", "NEXO", "dist");
+if (existsSync(join(rutaApp, "index.html"))) {
+  app.use(express.static(rutaApp));
+  // Fallback de app de una sola página: cualquier GET que no sea /api ni un
+  // archivo real devuelve index.html, para que las rutas del navegador anden al
+  // recargar. /ws no pasa por acá: lo atiende el WebSocket en el "upgrade".
+  app.use((req, res, next) => {
+    if (req.method !== "GET" || req.path.startsWith("/api")) return next();
+    res.sendFile(join(rutaApp, "index.html"));
+  });
+  console.log("Sirviendo la aplicación compilada desde " + rutaApp);
+}
 
 // ── 8. Encender ─────────────────────────────────────────────────────────────
 // Antes bastaba con `app.listen`. Ahora el mensajero (WebSocket) tiene que
 // compartir el MISMO puerto que las ventanillas /api, así que se arma el
-// servidor HTTP a mano y se le enganchan las dos cosas: Express para /api/* y
-// el mensajero para /ws.
-const servidor = createServer(app);
-conectarMensajero(servidor, db, mensajero);
+// servidor a mano y se le enganchan las dos cosas: Express para /api/* y el
+// mensajero para /ws.
+//
+// TLS opcional (producción): si se definen NEXO_TLS_CERT y NEXO_TLS_KEY (rutas a
+// un certificado y su clave PROPIOS de la institución), la cocina sirve por
+// HTTPS/WSS y la cámara funciona desde cualquier computadora de la red, sin
+// depender de ningún túnel ni servicio externo. Sin esas variables, sigue en
+// HTTP (que ya alcanza para localhost).
+const rutaCert = process.env.NEXO_TLS_CERT;
+const rutaClave = process.env.NEXO_TLS_KEY;
+if ((rutaCert || rutaClave) && !(rutaCert && rutaClave && existsSync(rutaCert) && existsSync(rutaClave))) {
+  throw new Error("La configuración HTTPS está incompleta: revisá NEXO_TLS_CERT y NEXO_TLS_KEY.");
+}
+const usaTls = Boolean(rutaCert && rutaClave);
+
+const servidor = usaTls
+  ? createServerSeguro({ cert: readFileSync(rutaCert), key: readFileSync(rutaClave) }, app)
+  : createServer(app);
+const sockets = conectarMensajero(servidor, db, mensajero);
 
 // Mantenimiento del calendario (Error 6.E.7): borra los eventos pasados con más
 // de un año al arrancar y una vez por día. El temporizador no impide el apagado.
@@ -195,16 +272,28 @@ programarLimpiezaEventos(db);
 // dirección abra la lista. El temporizador tampoco impide el apagado.
 programarPurgaPapelera(db);
 
-servidor.listen(PUERTO, () => {
-  console.log("Cocina de NEXO encendida en http://localhost:" + PUERTO);
-  console.log("Ventanilla de prueba:      http://localhost:" + PUERTO + "/api/salud");
-  console.log("Mensajero en vivo:         ws://localhost:" + PUERTO + "/ws");
+const esquema = usaTls ? "https" : "http";
+const esquemaWs = usaTls ? "wss" : "ws";
+servidor.listen(PUERTO, process.env.NEXO_HOST || undefined, () => {
+  const puertoReal = servidor.address().port;
+  console.log(`Cocina de NEXO encendida en ${esquema}://localhost:` + puertoReal);
+  console.log(`Ventanilla de prueba:      ${esquema}://localhost:` + puertoReal + "/api/salud");
+  console.log(`Mensajero en vivo:         ${esquemaWs}://localhost:` + puertoReal + "/ws");
 });
 
 // Apagado ordenado (Ctrl+C): cerrar la base antes de salir.
-process.on("SIGINT", () => {
+let apagando = false;
+function apagar() {
+  if (apagando) return;
+  apagando = true;
   console.log("\nApagando la cocina...");
-  servidor.close();
-  db.close();
-  process.exit(0);
-});
+  for (const ws of sockets.clients) ws.terminate();
+  sockets.close();
+  servidor.close(() => {
+    db.close();
+    process.exit(0);
+  });
+  servidor.closeIdleConnections();
+}
+process.on("SIGINT", apagar);
+process.on("SIGTERM", apagar);

@@ -11,6 +11,7 @@ export interface Adjunto {
 export interface Comunicado {
   id: string;
   titulo: string;
+  contenido: string;
   fecha: string; // formato dd/MM/yyyy para mostrar
   fechaISO: string; // yyyy-MM-dd para ordenar
   emisor: string;
@@ -18,6 +19,8 @@ export interface Comunicado {
   adjunto?: Adjunto;
   leido: boolean;
   fechaLeido?: string; // dd/MM cuando se marcó como leído
+  /** Fijado arriba por la dirección (fijado_en real, Prompt 13). */
+  fijado?: boolean;
 }
 
 // Ícono de Material Symbols según el tipo de emisor

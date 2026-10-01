@@ -5,8 +5,8 @@ import TopBar from "./components/shared/TopBar";
 import TarjetaMeta from "./components/objetivos/TarjetaMeta";
 import TarjetaRacha from "./components/objetivos/TarjetaRacha";
 import ResumenCompetenciasCard from "./components/objetivos/ResumenCompetenciasCard";
-import { usarObjetivos, registrarHabito } from "../servicios/objetivos";
-import { usarPortafolio } from "../servicios/portafolio";
+import { useObjetivos, registrarHabito } from "../servicios/objetivos";
+import { usePortafolio } from "../servicios/portafolio";
 import { diaDeHoy, saludoSegunLaHora } from "../servicios/fechas";
 import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 
@@ -27,13 +27,13 @@ const RUTA_ACTIVA = "/objetivos";
 // ─── PÁGINA ─────────────────────────────────────────────
 
 export default function DashboardObjetivosPage() {
-  const { datos, cargando, error, recargar } = usarObjetivos();
+  const { datos, cargando, error, recargar } = useObjetivos();
 
   // El Dashboard pide TAMBIÉN el portafolio, que es de donde salen las tareas
   // pendientes del saludo. Es la misma ventanilla que usa Mis Tareas: por eso
   // el número del saludo y el de Mis Tareas no pueden discrepar, que es lo que
   // pide el Error 2.D.13 ("leída de la misma información que usa Mis Tareas").
-  const { datos: portafolio } = usarPortafolio();
+  const { datos: portafolio } = usePortafolio();
 
   const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } =
     useNavegacion();
@@ -91,7 +91,7 @@ export default function DashboardObjetivosPage() {
         onCerrarSesion={handleCerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen relative">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen relative">
         <TopBar title="Objetivos Personales" subtitle="Dashboard" />
 
         {/* Sub-navegación del módulo */}

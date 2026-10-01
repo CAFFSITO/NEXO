@@ -4,8 +4,8 @@ import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
 import TarjetaCurso, { type Curso, type TemaCurso } from "./components/portafolio/TarjetaCurso";
 import SubNavPortafolio from "./components/portafolio/SubNavPortafolio";
-import { usarMisClases, type ClaseEstudiante } from "../servicios/aula";
-import { usarPortafolio, type TareaAcademica } from "../servicios/portafolio";
+import { useMisClases, type ClaseEstudiante } from "../servicios/aula";
+import { usePortafolio, type TareaAcademica } from "../servicios/portafolio";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 import { fechaCorta } from "../servicios/fechas";
 
@@ -53,7 +53,7 @@ export default function MisCursosEstudiantePage() {
 
     // La "clase en vivo" ya no es una maqueta (Error 2.C.1): sale de nexo.db, y
     // el aula virtual real vive en su propia pantalla, adonde se entra desde acá.
-    const { clases, cargando, error, recargar } = usarMisClases();
+    const { clases, cargando, error, recargar } = useMisClases();
 
     // Misma ventanilla que Mis Tareas y Calificaciones (/api/portafolio).
     const {
@@ -61,7 +61,7 @@ export default function MisCursosEstudiantePage() {
         cargando: cargandoCursos,
         error: errorCursos,
         recargar: recargarCursos,
-    } = usarPortafolio();
+    } = usePortafolio();
 
     const cursos = useMemo(
         () => cursosDesdeTareas(portafolio?.tareas ?? []),
@@ -83,7 +83,7 @@ export default function MisCursosEstudiantePage() {
                 onCerrarSesion={handleCerrarSesion}
             />
 
-            <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+            <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
                 <TopBar title="Mis Cursos & Aula Virtual" />
 
                 {/* Sub-navegación del módulo: la misma barra que Mis Tareas y

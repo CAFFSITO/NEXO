@@ -298,7 +298,7 @@ export function registrarBiblioteca(app, db, notificaciones) {
             m.nombre AS materia,
             u.nombre AS presentado_por_nombre,
             u.rol    AS presentado_por_rol,
-            a.nombre_original, a.tamano_bytes
+            a.nombre_original, a.tamano_bytes, a.tipo_mime
        FROM cola_revision cr
        JOIN recursos r ON r.id = cr.recurso_id
        JOIN usuarios u ON u.id = cr.presentado_por
@@ -332,7 +332,15 @@ export function registrarBiblioteca(app, db, notificaciones) {
         presentadoPorRol: c.presentado_por_rol,
         presentadoEn: c.presentado_en,
         enlaceUrl: c.enlace_url ?? null,
+        // El archivo real del recurso, para que el modal PREVISUALICE de verdad
+        // (no solo el nombre): el id arma /api/archivos/:id, el mime decide si es
+        // imagen o PDF, la etiqueta y el peso salen de los mismos helpers que la
+        // lista de recursos (nada duplicado, nada inventado).
         archivo: c.nombre_original ?? null,
+        archivoId: c.archivo_id ? String(c.archivo_id) : null,
+        mime: c.tipo_mime ?? null,
+        etiquetaArchivo: c.archivo_id ? etiquetaDeArchivo(c) : null,
+        tamano: tamanoLegible(c.tamano_bytes),
       }));
 
       // Estadísticas del panel (14.11 paso 5): totales por estado, de datos reales.

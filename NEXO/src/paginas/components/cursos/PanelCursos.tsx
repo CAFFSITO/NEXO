@@ -14,24 +14,19 @@ import EstadoCicloLectivo from "./EstadoCicloLectivo";
 import ReporteSemanalCard from "./ReporteSemanalCard";
 import ModalNuevoCurso from "./ModalNuevoCurso";
 import ModalDetalleCurso from "./ModalDetalleCurso";
-import { usarCursos, type Curso } from "../../../servicios/perfiles";
+import { useCursos } from "../../../servicios/perfiles";
+import { crearCurso, type DatosCurso } from "../../../servicios/gestionAcademica";
+import { generarInstitucional, descargarArchivo } from "../../../servicios/reportes";
 import { Cargando, Fallo } from "../shared/EstadoCarga";
 
 export default function PanelCursos() {
-  const { datos, cargando, error, recargar } = usarCursos();
+  const { datos, cargando, error, recargar } = useCursos();
   const [busqueda, setBusqueda] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [detalleId, setDetalleId] = useState<string | null>(null);
   const [generandoPDF, setGenerandoPDF] = useState(false);
-
-  // Alta en memoria hasta la Etapa 3, igual que en Perfiles: lo que se crea acá
-  // todavía no llega a la base y se pierde al recargar.
-  const [creadosLocalmente, setCreadosLocalmente] = useState<Curso[]>([]);
-
-  const cursos = useMemo(
-    () => [...(datos?.cursos ?? []), ...creadosLocalmente],
-    [datos, creadosLocalmente],
-  );
+  const [aviso, setAviso] = useState("");
+  const cursos = useMemo(() => datos?.cursos ?? [], [datos]);
 
   // ── Filtro por año/división/preceptor ──
   const cursosFiltrados = useMemo(() => {
@@ -50,26 +45,30 @@ export default function PanelCursos() {
   );
 
   // ── Handlers ──
-  const handleCrearCurso = (nuevo: Omit<Curso, "id" | "activo">) => {
-    setCreadosLocalmente((prev) => [
-      ...prev,
-      { ...nuevo, id: `nuevo-${Date.now()}`, activo: true },
-    ]);
+  const handleCrearCurso = async (nuevo: DatosCurso) => {
+    const creado = await crearCurso(nuevo);
     setModalAbierto(false);
+    recargar();
+    setDetalleId(creado.id);
   };
 
   // "Ver detalle" abre la vista de solo lectura del curso. Los cursos creados en
   // memoria (id "nuevo-...") todavía no están en la base, así que no tienen
   // detalle que pedir: se ignora el clic hasta que se persistan (Etapa 3).
   const handleVerDetalle = (id: string) => {
-    if (id.startsWith("nuevo-")) return;
     setDetalleId(id);
   };
 
-  const handleGenerarPDF = () => {
+  const handleGenerarPDF = async () => {
+    if (generandoPDF) return;
     setGenerandoPDF(true);
-    // Simula la generación asíncrona del reporte (servicio de archivos / backend).
-    setTimeout(() => setGenerandoPDF(false), 1500);
+    setAviso("");
+    try {
+      const reporte = await generarInstitucional({ cursos: true, entregas: true, calificaciones: true });
+      await descargarArchivo(reporte.archivoId, reporte.nombreArchivo);
+    } catch (fallo) {
+      setAviso(fallo instanceof Error ? fallo.message : "No se pudo generar el reporte.");
+    } finally { setGenerandoPDF(false); }
   };
 
   if (cargando) return <Cargando que="los cursos del colegio" />;
@@ -87,6 +86,7 @@ export default function PanelCursos() {
 
   return (
     <>
+      {aviso && <p role="alert" className="mb-5 rounded-xl bg-rose-500/10 border border-rose-400/20 px-4 py-3 text-rose-300">{aviso}</p>}
       {/* ── Hero header + acción ── */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-8">
         <div>
@@ -157,14 +157,14 @@ export default function PanelCursos() {
         />
       </div>
 
-      <ModalNuevoCurso
+      {modalAbierto && <ModalNuevoCurso
         abierto={modalAbierto}
         cursosExistentes={cursos}
         onCerrar={() => setModalAbierto(false)}
         onCrear={handleCrearCurso}
-      />
+      />}
 
-      <ModalDetalleCurso cursoId={detalleId} onCerrar={() => setDetalleId(null)} />
+      {detalleId && <ModalDetalleCurso key={detalleId} cursoId={detalleId} onCambio={recargar} onCerrar={() => setDetalleId(null)} />}
     </>
   );
 }

@@ -38,7 +38,7 @@ import { exigirAcceso, ventanilla, estaInscripto } from "./comun.js";
 const PAGINA_DOCENTE = "gestion-tareas-profesor";
 const PAGINA_ESTUDIANTE = "mis-tareas-estudiante";
 
-export function registrarTareas(app, db) {
+export function registrarTareas(app, db, notificaciones) {
   // ── Consultas reutilizadas ────────────────────────────────────────────────
 
   // La cátedra de una tarea, con su docente y su curso. Es el centro de casi
@@ -397,7 +397,8 @@ export function registrarTareas(app, db) {
       const entregaId = Number(req.params.id);
       const entrega = db
         .prepare(
-          `SELECT e.id, ca.profesor_id
+          `SELECT e.id, e.estudiante_id, e.tarea_id, t.titulo AS tarea_titulo,
+                  ca.profesor_id
              FROM entregas e
              JOIN tareas t    ON t.id = e.tarea_id
              JOIN catedras ca ON ca.id = t.catedra_id
@@ -430,6 +431,20 @@ export function registrarTareas(app, db) {
                        devolucion = excluded.devolucion,
                        corregido_en = datetime('now')`
       ).run(entregaId, nota, devolucion);
+
+      // Avisar al estudiante que su entrega quedó corregida. El objeto es la
+      // TAREA (objetoId real = tarea_id): al tocar la notificación, su portafolio
+      // abre el detalle de esa tarea con la nota y la devolución. Dato real, no
+      // inventado. `notificaciones` puede faltar si algún día se registra sin él:
+      // corregir no debe romperse por el aviso.
+      notificaciones?.crear({
+        usuarioId: entrega.estudiante_id,
+        tipo: "correccion",
+        titulo: "Tu entrega fue corregida",
+        cuerpo: `"${entrega.tarea_titulo}": nota ${nota}.`,
+        objetoTipo: "tarea",
+        objetoId: entrega.tarea_id,
+      });
 
       res.json({ ok: true });
     })

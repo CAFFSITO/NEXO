@@ -16,7 +16,7 @@ import TopBar from "./components/shared/TopBar";
 import { useNavegacion } from "../navegacion";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 import SalaClase from "./components/aula-virtual/SalaClase";
-import { usarMisClases, type ClaseEstudiante } from "../servicios/aula";
+import { useMisClases, type ClaseEstudiante } from "../servicios/aula";
 import { fechaCorta } from "../servicios/fechas";
 
 export default function AulaVirtualEstudiantePage() {
@@ -29,11 +29,11 @@ export default function AulaVirtualEstudiantePage() {
   return (
     <div className="flex bg-[#1C1030] min-h-screen">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <TopBar title="Aula Virtual" subtitle={claseActiva ? "En vivo" : undefined} />
         <div className="flex-1 overflow-y-auto bg-[#190d2d] p-6">
           {claseActiva ? (
-            <SalaClase claseId={claseActiva} onSalir={() => navegar("/aula-virtual")} />
+            <SalaClase key={claseActiva} claseId={claseActiva} onSalir={() => navegar("/aula-virtual")} />
           ) : (
             <ListaClases onEntrar={(id) => navegar(`/aula-virtual?clase=${id}`)} />
           )}
@@ -44,7 +44,7 @@ export default function AulaVirtualEstudiantePage() {
 }
 
 function ListaClases({ onEntrar }: { onEntrar: (id: string) => void }) {
-  const { clases, cargando, error, recargar } = usarMisClases();
+  const { clases, cargando, error, recargar } = useMisClases();
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

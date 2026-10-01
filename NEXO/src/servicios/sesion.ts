@@ -27,6 +27,7 @@ export async function iniciarSesion(
   try {
     respuesta = await fetch(API, {
       method: "POST",
+      signal: AbortSignal.timeout(15000),
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, contrasena }),
     });
@@ -51,7 +52,7 @@ export async function iniciarSesion(
  */
 export async function sesionActual(): Promise<Usuario | null> {
   try {
-    const respuesta = await fetch(API);
+    const respuesta = await fetch(API, { signal: AbortSignal.timeout(15000) });
     if (!respuesta.ok) return null;
     const datos = await respuesta.json();
     return datos.usuario ?? null;
@@ -63,7 +64,7 @@ export async function sesionActual(): Promise<Usuario | null> {
 /** Cierra la sesión en el servidor y borra la cookie. */
 export async function cerrarSesionEnServidor(): Promise<void> {
   try {
-    await fetch(API, { method: "DELETE" });
+    await fetch(API, { method: "DELETE", signal: AbortSignal.timeout(15000) });
   } catch {
     // Si la cocina no responde, igual se limpia la sesión local: el usuario
     // pidió salir y tiene que salir.

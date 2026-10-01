@@ -9,16 +9,18 @@
 //   · crear, editar y eliminar escriben de verdad,
 //   · "Corregir" abre el panel con la lista real del curso (14.7 paso 4).
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useDatos } from "../servicios/api";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
-import TarjetaTareaDocente from "./components/portafolio-docente/TarjetaTareaDocente";
+import TarjetaTareaBase from "./components/shared/tareas/TarjetaTareaBase";
+import ModalDetalleTarea from "./components/shared/tareas/ModalDetalleTarea";
+import { colorMateria } from "./components/shared/tareas/tiposTareas";
 import ModalTareaDocente from "./components/portafolio-docente/ModalTareaDocente";
 import ModalPanelCorreccion from "./components/portafolio-docente/ModalPanelCorreccion";
 import { Cargando, Fallo } from "./components/shared/EstadoCarga";
+import { textoVencimiento, colorVencimiento } from "../servicios/fechas";
 import {
-  traerCatedras,
-  traerTareasDocente,
   crearTarea,
   editarTarea,
   eliminarTarea,
@@ -31,32 +33,21 @@ export default function GestionTareasProfesorPage() {
   const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } =
     useNavegacion();
 
-  const [catedras, setCatedras] = useState<Catedra[]>([]);
-  const [tareas, setTareas] = useState<TareaDocente[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const estadoCatedras = useDatos<{ catedras: Catedra[] }>("/api/tareas/catedras");
+  const estadoTareas = useDatos<{ tareas: TareaDocente[] }>("/api/tareas/docente");
+  const catedras = estadoCatedras.datos?.catedras ?? [];
+  const tareas = useMemo(() => estadoTareas.datos?.tareas ?? [], [estadoTareas.datos]);
+  const cargando = estadoCatedras.cargando || estadoTareas.cargando;
+  const error = estadoCatedras.error ?? estadoTareas.error;
 
   const [busqueda, setBusqueda] = useState<string>("");
   const [modalAbierto, setModalAbierto] = useState<boolean>(false);
   const [tareaEditando, setTareaEditando] = useState<TareaDocente | null>(null);
   const [correccionId, setCorreccionId] = useState<string | null>(null);
+  // Qué tarea se abrió en "Ver detalle" (modal compartido con el estudiante).
+  const [detalleId, setDetalleId] = useState<string | null>(null);
 
-  const cargar = useCallback(() => {
-    setCargando(true);
-    setError(null);
-    Promise.all([traerCatedras(), traerTareasDocente()])
-      .then(([c, t]) => {
-        setCatedras(c.catedras);
-        setTareas(t.tareas);
-        setCargando(false);
-      })
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : "No se pudieron traer las tareas.");
-        setCargando(false);
-      });
-  }, []);
-
-  useEffect(() => cargar(), [cargar]);
+  const cargar = () => { estadoCatedras.recargar(); estadoTareas.recargar(); };
 
   // ── Derivados ──
   const tareasVisibles = useMemo(() => {
@@ -132,7 +123,7 @@ export default function GestionTareasProfesorPage() {
         onCerrarSesion={handleCerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         {/* Top nav del portafolio docente */}
         <header className="flex justify-between items-center w-full px-8 py-4 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] sticky top-0 z-40">
           <div className="flex items-center gap-8">
@@ -141,7 +132,7 @@ export default function GestionTareasProfesorPage() {
               <button onClick={() => handleNavegar("/portafolio-docente")} className="text-slate-400 pb-2 hover:text-[#C548F5] transition-all font-label">
                 Dashboard
               </button>
-              <button className="text-[#C548F5] border-b-2 border-[#C548F5] pb-2 font-bold font-label">
+              <button aria-current="page" onClick={() => handleNavegar("/portafolio/gestion")} className="text-[#C548F5] border-b-2 border-[#C548F5] pb-2 font-bold font-label">
                 Gestión de Tareas
               </button>
               <button onClick={() => handleNavegar("/portafolio-docente/diario")} className="text-slate-400 pb-2 hover:text-[#C548F5] transition-all font-label">
@@ -233,15 +224,95 @@ export default function GestionTareasProfesorPage() {
                       : "Todavía no creaste ninguna tarea. Empezá con “Nueva Tarea”."}
                   </div>
                 ) : (
-                  tareasVisibles.map((tarea) => (
-                    <TarjetaTareaDocente
-                      key={tarea.id}
-                      tarea={tarea}
-                      onCorregir={setCorreccionId}
-                      onEditar={abrirEdicion}
-                      onEliminar={borrarTarea}
-                    />
-                  ))
+                  tareasVisibles.map((tarea) => {
+                    const total = tarea.alDia + tarea.tarde + tarea.pendiente;
+                    const entregadas = tarea.alDia + tarea.tarde;
+                    // La MISMA tarjeta base que ve el estudiante, con los badges,
+                    // metadatos y acciones propios del profesor por props.
+                    return (
+                      <TarjetaTareaBase
+                        key={tarea.id}
+                        className="border border-outline-variant/20 hover:border-primary/40"
+                        badges={
+                          <div className="flex gap-2">
+                            <span
+                              className={`px-3 py-1 text-[10px] font-bold rounded-full tracking-wider ${colorMateria(
+                                tarea.materia
+                              )}`}
+                            >
+                              {tarea.materia.toUpperCase()}
+                            </span>
+                            <span className="px-3 py-1 text-[10px] font-bold rounded-full tracking-wider bg-[#1C1030] text-slate-300">
+                              {entregadas}/{total} ENTREGADAS
+                            </span>
+                          </div>
+                        }
+                        titulo={
+                          <h3 className="text-xl font-bold font-headline text-white group-hover:text-primary transition-colors">
+                            {tarea.titulo}
+                          </h3>
+                        }
+                        meta={
+                          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-400">
+                            <div className="flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-lg">school</span>
+                              <span>{tarea.curso}</span>
+                            </div>
+                            <div className={`flex items-center gap-1.5 ${colorVencimiento(tarea.fechaLimite)}`}>
+                              <span className="material-symbols-outlined text-lg">schedule</span>
+                              <span>{textoVencimiento(tarea.fechaLimite)}</span>
+                            </div>
+                            {/* Estado de entregas real (al día / tarde / pendiente). */}
+                            <div className="flex items-center gap-3">
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                                {tarea.alDia} al día
+                              </span>
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                                {tarea.tarde} tarde
+                              </span>
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                                {tarea.pendiente} pend.
+                              </span>
+                            </div>
+                          </div>
+                        }
+                        acciones={
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => setDetalleId(tarea.id)}
+                              className="px-4 py-2 text-slate-300 font-semibold hover:text-white transition-colors"
+                            >
+                              Ver detalle
+                            </button>
+                            <button
+                              onClick={() => setCorreccionId(tarea.id)}
+                              className="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold hover:opacity-90 transition-opacity active:scale-95"
+                            >
+                              <span className="material-symbols-outlined text-lg">grading</span>
+                              <span>Corregir</span>
+                            </button>
+                            <button
+                              onClick={() => abrirEdicion(tarea.id)}
+                              aria-label="Editar tarea"
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-white hover:bg-surface-bright transition-colors active:scale-95"
+                            >
+                              <span className="material-symbols-outlined text-lg">edit</span>
+                            </button>
+                            <button
+                              onClick={() => borrarTarea(tarea.id)}
+                              aria-label="Eliminar tarea"
+                              className="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-rose-400 hover:bg-rose-500/10 transition-colors active:scale-95"
+                            >
+                              <span className="material-symbols-outlined text-lg">delete</span>
+                            </button>
+                          </div>
+                        }
+                      />
+                    );
+                  })
                 )}
               </div>
 
@@ -300,13 +371,51 @@ export default function GestionTareasProfesorPage() {
       </main>
 
       {/* Modal crear/editar */}
-      <ModalTareaDocente
+      {modalAbierto && <ModalTareaDocente
+        key={tareaEditando?.id ?? "nueva"}
         abierto={modalAbierto}
         tareaEditando={tareaEditando}
         catedras={catedras}
         onGuardar={guardarTarea}
         onCerrar={cerrarModal}
-      />
+      />}
+
+      {/* Detalle de la tarea (mismo modal que el estudiante, en modo docente:
+          consigna de solo lectura + las acciones propias del profesor). */}
+      {detalleId && (() => {
+        const tarea = tareas.find((t) => t.id === detalleId);
+        if (!tarea) return null;
+        return (
+          <ModalDetalleTarea
+            tareaDocente={tarea}
+            onCerrar={() => setDetalleId(null)}
+            acciones={
+              <>
+                <button
+                  onClick={() => {
+                    setDetalleId(null);
+                    abrirEdicion(tarea.id);
+                  }}
+                  className="flex items-center gap-2 bg-surface-container-high text-white px-5 py-2.5 rounded-full font-bold hover:bg-surface-bright transition-colors active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-lg">edit</span>
+                  Editar tarea
+                </button>
+                <button
+                  onClick={() => {
+                    setDetalleId(null);
+                    setCorreccionId(tarea.id);
+                  }}
+                  className="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold hover:opacity-90 transition-opacity active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-lg">grading</span>
+                  Corregir entregas
+                </button>
+              </>
+            }
+          />
+        );
+      })()}
 
       {/* Panel de corrección */}
       {correccionId && (

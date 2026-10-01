@@ -5,7 +5,7 @@
 // pantalla recibe solo los eventos que le tocan y no tiene que filtrar nada
 // (esa es justamente la regla de oro 4 — el permiso se decide en la cocina).
 
-import { enviar, usarDatos } from "./api";
+import { enviar, useDatos } from "./api";
 
 // ─── Calendario ─────────────────────────────────────────
 
@@ -36,9 +36,9 @@ export interface DatosCalendario {
   feriados: Feriado[];
 }
 
-export function usarCalendario() {
+export function useCalendario() {
   const { datos, cargando, error, recargar } =
-    usarDatos<DatosCalendario>("/api/calendario");
+    useDatos<DatosCalendario>("/api/calendario");
   return { datos, cargando, error, recargar };
 }
 
@@ -72,10 +72,10 @@ export interface DestinosCalendario {
   estudiantes: { id: number; nombre: string; curso: string }[];
 }
 
-export function usarDestinosCalendario() {
+export function useDestinosCalendario() {
   // Se llama desde el modal de nuevo evento, que solo abre quien puede editar:
   // por eso pedir los destinos acá siempre corresponde.
-  const { datos, cargando, error } = usarDatos<DestinosCalendario>(
+  const { datos, cargando, error } = useDatos<DestinosCalendario>(
     "/api/calendario/destinos",
   );
   return { destinos: datos, cargando, error };
@@ -121,10 +121,12 @@ export interface Comunicado {
   archivoId: string | null;
   enviadoEn: string;
   leido: boolean;
+  /** Fijado arriba por la dirección (sale de fijado_en, Prompt 13). */
+  fijado: boolean;
 }
 
-export function usarComunicados() {
-  const { datos, cargando, error, recargar } = usarDatos<{
+export function useComunicados() {
+  const { datos, cargando, error, recargar } = useDatos<{
     comunicados: Comunicado[];
     noLeidos: number;
   }>("/api/comunicados");
@@ -140,6 +142,45 @@ export function usarComunicados() {
 /** Registrar que leí un comunicado: borra su globito de no leído (Error 10.A.3). */
 export async function marcarComunicadoLeido(id: string): Promise<void> {
   await enviar(`/api/comunicados/${id}/leer`, "POST");
+}
+
+// ─── Comunicados emitidos (los que ve/gestiona la dirección) ────────────────
+
+export interface ComunicadoEnviado {
+  id: string;
+  titulo: string;
+  contenido: string;
+  enviadoEn: string;
+  destino: string;
+  leidos: number;
+  destinatarios: number;
+  /** Fijado arriba para las familias (fijado_en real, Prompt 13). */
+  fijado: boolean;
+  /** Programado a futuro: todavía no le llegó a las familias. */
+  programada: boolean;
+  /** Cuándo se publica (ISO), si está programado. null si ya se envió. */
+  publicarEn: string | null;
+}
+
+export function useComunicadosEnviados() {
+  const { datos, cargando, error, recargar } = useDatos<{
+    comunicados: ComunicadoEnviado[];
+  }>("/api/comunicados/enviados");
+  return {
+    comunicados: datos?.comunicados ?? null,
+    cargando,
+    error,
+    recargar,
+  };
+}
+
+/**
+ * Fijar / desfijar un comunicado (Prompt 13). El servidor solo lo permite a la
+ * dirección de la misma institución; la vidriera solo refleja ese permiso.
+ */
+export async function fijarComunicado(id: string, fijado: boolean): Promise<void> {
+  const accion = fijado ? "fijar" : "desfijar";
+  await enviar(`/api/comunicados/${id}/${accion}`, "POST");
 }
 
 /**

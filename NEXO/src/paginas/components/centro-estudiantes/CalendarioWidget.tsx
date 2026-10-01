@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 export interface EventoCentro {
+  fecha: string;
   dia: number;
   titulo: string;
   detalle: string;
@@ -18,16 +19,18 @@ const MESES = [
 ];
 
 export default function CalendarioWidget({
-  anioInicial = 2025,
-  mesInicial = 4, // Mayo
+  anioInicial = new Date().getFullYear(),
+  mesInicial = new Date().getMonth(),
   eventos,
 }: CalendarioWidgetProps) {
   const [anio, setAnio] = useState(anioInicial);
   const [mes, setMes] = useState(mesInicial);
+  const prefijo = `${anio}-${String(mes + 1).padStart(2,"0")}`;
+  const eventosDelMes = useMemo(() => eventos.filter(e=>e.fecha.startsWith(prefijo)), [eventos,prefijo]);
 
   const diasConEvento = useMemo(
-    () => new Set(eventos.map((e) => e.dia)),
-    [eventos]
+    () => new Set(eventosDelMes.map((e) => e.dia)),
+    [eventosDelMes]
   );
 
   // Celdas del calendario: huecos previos + días del mes
@@ -66,12 +69,14 @@ export default function CalendarioWidget({
           <div className="flex gap-2">
             <button
               onClick={() => cambiarMes(-1)}
+              aria-label="Mes anterior"
               className="material-symbols-outlined text-sm cursor-pointer text-on-surface-variant hover:text-white"
             >
               chevron_left
             </button>
             <button
               onClick={() => cambiarMes(1)}
+              aria-label="Mes siguiente"
               className="material-symbols-outlined text-sm cursor-pointer text-on-surface-variant hover:text-white"
             >
               chevron_right
@@ -99,7 +104,8 @@ export default function CalendarioWidget({
         </div>
       </div>
       <ul className="space-y-3">
-        {eventos.map((evento) => (
+        {eventosDelMes.length === 0 && <li className="text-xs text-slate-400">No hay eventos este mes.</li>}
+        {eventosDelMes.map((evento) => (
           <li key={`${evento.dia}-${evento.titulo}`} className="flex gap-3 items-start group">
             <div className="w-1.5 h-1.5 rounded-full bg-[#F97316] mt-2 group-hover:scale-125 transition-transform" />
             <div>

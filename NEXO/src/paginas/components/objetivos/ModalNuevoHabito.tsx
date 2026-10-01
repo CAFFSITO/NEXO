@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FRECUENCIA_LABELS } from "./tiposDashboard";
 
 interface ModalNuevoHabitoProps {
+  inicial?: { nombre: string; frecuencia: "diario" | "semanal" };
   onGuardar: (nombre: string, frecuencia: "diario" | "semanal") => Promise<void> | void;
   onCerrar: () => void;
 }
@@ -13,15 +14,20 @@ const FRECUENCIAS = ["diario", "semanal"] as const;
 
 // Modal "Crear Hábito" (Etapa 5): el hábito viaja a la base y aparece al instante
 // en Hábitos y en el Dashboard, que leen la misma tabla.
-export default function ModalNuevoHabito({ onGuardar, onCerrar }: ModalNuevoHabitoProps) {
-  const [nombre, setNombre] = useState<string>("");
-  const [frecuencia, setFrecuencia] = useState<(typeof FRECUENCIAS)[number]>("diario");
+export default function ModalNuevoHabito({ onGuardar, onCerrar, inicial }: ModalNuevoHabitoProps) {
+  const [nombre, setNombre] = useState(inicial?.nombre ?? "");
+  const [frecuencia, setFrecuencia] = useState<(typeof FRECUENCIAS)[number]>(inicial?.frecuencia ?? "diario");
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
 
   const puedeGuardar = nombre.trim().length > 0;
 
-  const handleGuardar = () => {
-    if (!puedeGuardar) return;
-    onGuardar(nombre.trim(), frecuencia);
+  const handleGuardar = async () => {
+    if (!puedeGuardar || guardando) return;
+    setGuardando(true); setError("");
+    try { await onGuardar(nombre.trim(), frecuencia); }
+    catch (e) { setError(e instanceof Error ? e.message : "No se pudo guardar."); }
+    finally { setGuardando(false); }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -31,7 +37,7 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar }: ModalNuevoHabi
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4"
       onClick={onCerrar}
     >
       <form
@@ -42,7 +48,7 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar }: ModalNuevoHabi
         {/* Header */}
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h2 className="text-xl font-bold font-headline text-white">Nuevo Hábito</h2>
+            <h2 className="text-xl font-bold font-headline text-white">{inicial ? "Editar hábito" : "Nuevo hábito"}</h2>
             <p className="text-xs text-slate-400 mt-1">
               Sumá una rutina y empezá a construir tu racha.
             </p>
@@ -69,6 +75,8 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar }: ModalNuevoHabi
             id="nombre-habito"
             type="text"
             value={nombre}
+            required
+            maxLength={200}
             onChange={(e) => setNombre(e.target.value)}
             autoFocus
             placeholder="Ej: Estudiar 30 min sin distracciones"
@@ -98,6 +106,7 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar }: ModalNuevoHabi
           </select>
         </div>
 
+        {error && <p role="alert" className="text-error text-sm mb-4">{error}</p>}
         {/* Acciones */}
         <div className="flex justify-end gap-3">
           <button
@@ -109,10 +118,10 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar }: ModalNuevoHabi
           </button>
           <button
             type="submit"
-            disabled={!puedeGuardar}
+            disabled={!puedeGuardar || guardando}
             className="px-6 py-2.5 bg-[#C548F5] hover:bg-[#b039df] text-white rounded-full text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Guardar hábito
+            {guardando ? "Guardando…" : "Guardar hábito"}
           </button>
         </div>
       </form>

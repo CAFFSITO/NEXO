@@ -306,11 +306,17 @@ export function registrarArchivos(app, db, carpetaServidor) {
       }
 
       res.setHeader("Content-Type", archivo.tipo_mime);
-      // attachment = el navegador lo descarga; el nombre que ve la persona es el
-      // original, no el hexadecimal con que lo guardamos.
+      // Con `?inline=1` el navegador MUESTRA el archivo en la misma página (una
+      // imagen en un <img>, un PDF en un <iframe>): así el bibliotecario lo
+      // previsualiza antes de decidir. Sin ese parámetro es `attachment` y se
+      // descarga, como siempre. El permiso ya se validó igual para los dos casos
+      // (archivoDescargable): `inline` solo cambia cómo se entrega, no a quién.
+      const inline = req.query?.inline === "1" || req.query?.inline === "true";
+      // El nombre que ve la persona es el original, no el hexadecimal con que lo
+      // guardamos.
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename*=UTF-8''${encodeURIComponent(archivo.nombre_original)}`
+        `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(archivo.nombre_original)}`
       );
       res.send(readFileSync(ruta));
     })

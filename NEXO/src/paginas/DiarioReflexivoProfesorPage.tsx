@@ -11,9 +11,9 @@
 import { useMemo, useRef, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
-import { usarCatedras } from "../servicios/aula";
+import { useCatedras } from "../servicios/aula";
 import {
-  usarDiario,
+  useDiario,
   crearRegistro,
   editarRegistro,
   eliminarRegistro,
@@ -97,14 +97,14 @@ export default function DiarioReflexivoProfesorPage() {
   const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } = useNavegacion();
 
   // Las materias del selector son las cátedras reales del docente logueado.
-  const { catedras } = usarCatedras();
+  const { catedras } = useCatedras();
   const materiasCurso = useMemo(
     () => (catedras ?? []).map((c) => c.etiqueta),
     [catedras]
   );
 
   // Los registros salen de la base: lo que se ve es lo que el docente escribió.
-  const { datos, cargando, error, recargar } = usarDiario();
+  const { datos, cargando, error, recargar } = useDiario();
   const registros = useMemo(
     () => (datos?.registros ?? []).map(aRegistro),
     [datos]
@@ -203,7 +203,7 @@ export default function DiarioReflexivoProfesorPage() {
         onCerrarSesion={handleCerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         {/* Top nav del portafolio docente */}
         <header className="flex justify-between items-center w-full px-8 py-4 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] sticky top-0 z-40">
           <div className="flex items-center gap-8">
@@ -215,7 +215,7 @@ export default function DiarioReflexivoProfesorPage() {
               <button onClick={() => handleNavegar("/portafolio/gestion")} className="text-slate-400 pb-2 hover:text-[#C548F5] transition-all font-label">
                 Gestión de Tareas
               </button>
-              <button className="text-[#C548F5] border-b-2 border-[#C548F5] pb-2 font-bold font-label">
+              <button aria-current="page" onClick={() => handleNavegar("/portafolio-docente/diario")} className="text-[#C548F5] border-b-2 border-[#C548F5] pb-2 font-bold font-label">
                 Diario Reflexivo
               </button>
               <button onClick={() => handleNavegar("/portafolio-docente/aula-virtual")} className="text-slate-400 pb-2 hover:text-[#C548F5] transition-all font-label">
@@ -224,10 +224,10 @@ export default function DiarioReflexivoProfesorPage() {
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            <button className="material-symbols-outlined text-slate-400 hover:text-[#C548F5] cursor-pointer">
+            <button aria-label="Notificaciones" onClick={() => handleNavegar("/notificaciones")} className="material-symbols-outlined text-slate-400 hover:text-[#C548F5] cursor-pointer">
               notifications
             </button>
-            <button className="material-symbols-outlined text-slate-400 hover:text-[#C548F5] cursor-pointer">
+            <button aria-label="Configuración" onClick={() => handleNavegar("/configuracion")} className="material-symbols-outlined text-slate-400 hover:text-[#C548F5] cursor-pointer">
               settings
             </button>
           </div>

@@ -2,7 +2,12 @@
   "name": "nexo-root",
   "private": true,
   "scripts": {
-    "dev": "yarn --cwd NEXO dev",
+    "dev": "node scripts/dev.mjs",
+    "dev:frontend": "yarn --cwd NEXO dev",
+    "dev:backend": "node servidor/servidor.js",
+    "start": "node servidor/servidor.js",
+    "test": "node --test servidor/tests/*.test.js",
+    "check": "npm run lint && npm run build && npm test",
     "build": "yarn --cwd NEXO build",
     "preview": "yarn --cwd NEXO preview",
     "lint": "yarn --cwd NEXO lint"

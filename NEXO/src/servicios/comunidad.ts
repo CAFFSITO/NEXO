@@ -7,7 +7,7 @@
 // funcionan: eso es escritura y va en la Etapa 5.
 
 import type { Rol } from "../paginas/components/shared/roles";
-import { enviar, pedir, usarDatos } from "./api";
+import { enviar, pedir, useDatos } from "./api";
 
 export type Voto = "a-favor" | "en-contra";
 export type ObjetoTipo = "publicacion" | "debate";
@@ -29,11 +29,17 @@ export interface Publicacion {
   comentarios: number;
   /** Mi voto, privado. null = todavía no voté (Error 2.B.1). */
   miVoto: "a-favor" | "en-contra" | null;
+  /** Fijada arriba por la dirección (sale de fijado_en, Prompt 13). */
+  fijado: boolean;
+  /** Programada a futuro: solo su autor la ve, con la etiqueta (Prompt 13). */
+  programada: boolean;
+  /** Cuándo se publica (ISO), si está programada. null si se publicó ya. */
+  publicarEn: string | null;
 }
 
-export function usarPublicaciones() {
+export function usePublicaciones() {
   const { datos, cargando, error, recargar } =
-    usarDatos<{ publicaciones: Publicacion[] }>("/api/comunidad/publicaciones");
+    useDatos<{ publicaciones: Publicacion[] }>("/api/comunidad/publicaciones");
   return { publicaciones: datos?.publicaciones ?? null, cargando, error, recargar };
 }
 
@@ -57,9 +63,9 @@ export interface Debate {
   miPostura: "a-favor" | "en-contra" | null;
 }
 
-export function usarDebates() {
+export function useDebates() {
   const { datos, cargando, error, recargar } =
-    usarDatos<{ debates: Debate[] }>("/api/comunidad/debates");
+    useDatos<{ debates: Debate[] }>("/api/comunidad/debates");
   return { debates: datos?.debates ?? null, cargando, error, recargar };
 }
 
@@ -75,8 +81,8 @@ export interface Tendencia {
   institucion: string;
 }
 
-export function usarTendencias(alcance: AlcanceTendencias) {
-  const { datos, cargando, error, recargar } = usarDatos<{
+export function useTendencias(alcance: AlcanceTendencias) {
+  const { datos, cargando, error, recargar } = useDatos<{
     alcance: AlcanceTendencias;
     tendencias: Tendencia[];
   }>(`/api/comunidad/tendencias?alcance=${alcance}`);
@@ -164,11 +170,29 @@ export function fijarPostura(debateId: string, postura: Voto) {
 
 // ─── Crear ──
 
-export function crearPublicacion(contenido: string, imagenId?: string) {
+/**
+ * Crea una publicación. `publicarEn` es opcional (Prompt 13): un ISO a futuro la
+ * deja programada; ausente o en el pasado, se publica ya. El servidor valida el
+ * formato y decide qué es "futuro".
+ */
+export function crearPublicacion(
+  contenido: string,
+  opciones?: { imagenId?: string; publicarEn?: string | null },
+) {
   return enviar<{ id: string }>("/api/comunidad/publicaciones", "POST", {
     contenido,
-    imagenId: imagenId ? Number(imagenId) : undefined,
+    imagenId: opciones?.imagenId ? Number(opciones.imagenId) : undefined,
+    publicarEn: opciones?.publicarEn ?? undefined,
   });
+}
+
+/**
+ * Fijar / desfijar una publicación (Prompt 13). El servidor solo lo permite a la
+ * dirección de la misma institución; la vidriera solo refleja ese permiso.
+ */
+export function fijarPublicacion(id: string, fijado: boolean) {
+  const accion = fijado ? "fijar" : "desfijar";
+  return enviar(`/api/comunidad/publicaciones/${id}/${accion}`, "POST");
 }
 
 export function crearDebate(titulo: string, descripcion: string, cierraEn: string | null) {

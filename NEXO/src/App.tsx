@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ErrorBoundary from "./paginas/components/shared/ErrorBoundary";
+import EstadoConexion from "./paginas/components/shared/EstadoConexion";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import {
   NavegacionContext,
@@ -12,45 +14,45 @@ import {
 } from "./navegacion";
 import { iniciarSesion, sesionActual, cerrarSesionEnServidor } from "./servicios/sesion";
 import { consultarAcceso, olvidarPermisos, type ResultadoAcceso } from "./servicios/permisos";
-import LoginPage from "./paginas/LoginPage.tsx";
-import ConfiguracionCuentaPage from "./paginas/ConfiguracionCuentaPage.tsx";
-import RecuperarContrasenaPage from "./paginas/RecuperarContrasenaPage.tsx";
-import AyudaDeAccesoPage from "./paginas/AyudaDeAccesoPage.tsx";
-import AsistenciaIAPage from "./paginas/AsistenciaIAPage.tsx";
-import BibliotecaPage from "./paginas/BibliotecaPage.tsx";
-import BibliotecaNacionalPage from "./paginas/BibliotecaNacionalPage.tsx";
-import ComunidadPage from "./paginas/ComunidadPage.tsx";
-import DebatesPage from "./paginas/DebatesPage.tsx";
-import ChatPage from "./paginas/ChatPage.tsx";
-import NotificacionesPage from "./paginas/NotificacionesPage.tsx";
-import DashboardProfesorPage from "./paginas/DashboardProfesorPage.tsx";
-import PanelBibliotecarioPage from "./paginas/PanelBibliotecarioPage.tsx";
-import PortalCentroEstudiantesPage from "./paginas/PortalCentroEstudiantesPage.tsx";
-import GestionQuejasPage from "./paginas/GestionQuejasPage.tsx";
-import CalendarioInstitucionalPage from "./paginas/CalendarioInstitucionalPage.tsx";
-import CursosActivosPage from "./paginas/CursosActivosPage.tsx";
-import PerfilesAcademicosPage from "./paginas/PerfilesAcademicosPage.tsx";
-import PanelInstitucionalPage from "./paginas/PanelInstitucionalPage.tsx";
-import ReportesPage from "./paginas/ReportesPage.tsx";
-import GestionInstitucionesPage from "./paginas/GestionInstitucionesPage.tsx";
-import SaludSistemaPage from "./paginas/SaludSistemaPage.tsx";
-import TendenciasPage from "./paginas/TendenciasPage.tsx";
-import CompetenciasPage from "./paginas/CompetenciasPage.tsx";
-import DashboardObjetivosPage from "./paginas/DashboardObjetivosPage.tsx";
-import HabitosPage from "./paginas/HabitosPage.tsx";
-import MisMetasPage from "./paginas/MisMetasPage.tsx";
-import CalificacionesPage from "./paginas/CalificacionesPage.tsx";
-import AulaVirtualEstudiantePage from "./paginas/AulaVirtualEstudiantePage.tsx";
-import AulaVirtualProfesorPage from "./paginas/AulaVirtualProfesorPage.tsx";
-import MisCursosEstudiantePage from "./paginas/MisCursosEstudiantePage.tsx";
-import MisTareasEstudiantePage from "./paginas/MisTareasEstudiantePage.tsx";
-import DetalleMateriaPage from "./paginas/DetalleMateriaPage.tsx";
-import FamiliaCalendarioPage from "./paginas/FamiliaCalendarioPage.tsx";
-import FamiliaComunicadosPage from "./paginas/FamiliaComunicadosPage.tsx";
-import MisCursosPreceptorPage from "./paginas/MisCursosPreceptorPage.tsx";
-import DiarioReflexivoProfesorPage from "./paginas/DiarioReflexivoProfesorPage.tsx";
-import GestionTareasProfesorPage from "./paginas/GestionTareasProfesorPage.tsx";
-import EnviarQuejaPage from "./paginas/EnviarQuejaPage.tsx";
+const LoginPage = lazy(() => import("./paginas/LoginPage.tsx"));
+const ConfiguracionCuentaPage = lazy(() => import("./paginas/ConfiguracionCuentaPage.tsx"));
+const RecuperarContrasenaPage = lazy(() => import("./paginas/RecuperarContrasenaPage.tsx"));
+const AyudaDeAccesoPage = lazy(() => import("./paginas/AyudaDeAccesoPage.tsx"));
+const AsistenciaIAPage = lazy(() => import("./paginas/AsistenciaIAPage.tsx"));
+const BibliotecaPage = lazy(() => import("./paginas/BibliotecaPage.tsx"));
+const BibliotecaNacionalPage = lazy(() => import("./paginas/BibliotecaNacionalPage.tsx"));
+const ComunidadPage = lazy(() => import("./paginas/ComunidadPage.tsx"));
+const DebatesPage = lazy(() => import("./paginas/DebatesPage.tsx"));
+const ChatPage = lazy(() => import("./paginas/ChatPage.tsx"));
+const NotificacionesPage = lazy(() => import("./paginas/NotificacionesPage.tsx"));
+const DashboardProfesorPage = lazy(() => import("./paginas/DashboardProfesorPage.tsx"));
+const PanelBibliotecarioPage = lazy(() => import("./paginas/PanelBibliotecarioPage.tsx"));
+const PortalCentroEstudiantesPage = lazy(() => import("./paginas/PortalCentroEstudiantesPage.tsx"));
+const GestionQuejasPage = lazy(() => import("./paginas/GestionQuejasPage.tsx"));
+const CalendarioInstitucionalPage = lazy(() => import("./paginas/CalendarioInstitucionalPage.tsx"));
+const CursosActivosPage = lazy(() => import("./paginas/CursosActivosPage.tsx"));
+const PerfilesAcademicosPage = lazy(() => import("./paginas/PerfilesAcademicosPage.tsx"));
+const PanelInstitucionalPage = lazy(() => import("./paginas/PanelInstitucionalPage.tsx"));
+const ReportesPage = lazy(() => import("./paginas/ReportesPage.tsx"));
+const GestionInstitucionesPage = lazy(() => import("./paginas/GestionInstitucionesPage.tsx"));
+const SaludSistemaPage = lazy(() => import("./paginas/SaludSistemaPage.tsx"));
+const TendenciasPage = lazy(() => import("./paginas/TendenciasPage.tsx"));
+const CompetenciasPage = lazy(() => import("./paginas/CompetenciasPage.tsx"));
+const DashboardObjetivosPage = lazy(() => import("./paginas/DashboardObjetivosPage.tsx"));
+const HabitosPage = lazy(() => import("./paginas/HabitosPage.tsx"));
+const MisMetasPage = lazy(() => import("./paginas/MisMetasPage.tsx"));
+const CalificacionesPage = lazy(() => import("./paginas/CalificacionesPage.tsx"));
+const AulaVirtualEstudiantePage = lazy(() => import("./paginas/AulaVirtualEstudiantePage.tsx"));
+const AulaVirtualProfesorPage = lazy(() => import("./paginas/AulaVirtualProfesorPage.tsx"));
+const MisCursosEstudiantePage = lazy(() => import("./paginas/MisCursosEstudiantePage.tsx"));
+const MisTareasEstudiantePage = lazy(() => import("./paginas/MisTareasEstudiantePage.tsx"));
+const DetalleMateriaPage = lazy(() => import("./paginas/DetalleMateriaPage.tsx"));
+const FamiliaCalendarioPage = lazy(() => import("./paginas/FamiliaCalendarioPage.tsx"));
+const FamiliaComunicadosPage = lazy(() => import("./paginas/FamiliaComunicadosPage.tsx"));
+const MisCursosPreceptorPage = lazy(() => import("./paginas/MisCursosPreceptorPage.tsx"));
+const DiarioReflexivoProfesorPage = lazy(() => import("./paginas/DiarioReflexivoProfesorPage.tsx"));
+const GestionTareasProfesorPage = lazy(() => import("./paginas/GestionTareasProfesorPage.tsx"));
+const EnviarQuejaPage = lazy(() => import("./paginas/EnviarQuejaPage.tsx"));
 
 // Registro central: qué componente concreto dibuja cada página.
 const PAGINAS: Record<Exclude<Page, "login">, () => React.ReactElement> = {
@@ -125,7 +127,7 @@ function Cargando() {
  * creía que la aplicación estaba fallada (Error 12.6). Ahora se le explica,
  * con el mensaje que mandó el servidor, y se le ofrece una salida.
  */
-function SinPermiso({ motivo }: { motivo?: string }) {
+function SinPermiso({ motivo, temporal }: { motivo?: string; temporal?: boolean }) {
   const { usuario, navegar } = useNavegacion();
 
   return (
@@ -135,8 +137,9 @@ function SinPermiso({ motivo }: { motivo?: string }) {
         {motivo ?? "No tenés permiso para ver esta sección."}
       </p>
       <p className="text-sm text-on-surface-variant/60">
-        Tu perfil no tiene acceso a esta parte de NEXO.
+        {temporal ? "No pudimos comprobar el acceso. Volvé a intentarlo cuando se restablezca la conexión." : "Tu perfil no tiene acceso a esta parte de NEXO."}
       </p>
+      {temporal && <button onClick={() => window.location.reload()} className="px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold">Reintentar</button>}
       <button
         onClick={() => navegar(usuario ? HOME_POR_ROL[usuario.rol] : "/login")}
         className="px-4 py-2 rounded-lg bg-primary/20 text-sm font-medium text-primary hover:bg-primary/30 transition"
@@ -158,17 +161,17 @@ function SinPermiso({ motivo }: { motivo?: string }) {
  *      se puede escribir a mano en el navegador: no alcanza con revisar clics.
  */
 function Pantalla({ pagina }: { pagina: Exclude<Page, "login"> }) {
-  const { usuario, revisandoSesion } = useNavegacion();
+  const { usuario, revisandoSesion, sesionFinalizada } = useNavegacion();
   const location = useLocation();
-  const [acceso, setAcceso] = useState<ResultadoAcceso | null>(null);
+  const [consulta, setConsulta] = useState<{ pagina: Page; usuarioId: number; acceso: ResultadoAcceso } | null>(null);
+  const acceso = consulta?.pagina === pagina && consulta?.usuarioId === usuario?.id ? consulta.acceso : null;
 
   useEffect(() => {
     if (!usuario) return;
 
     let vigente = true;
-    setAcceso(null); // al cambiar de pantalla, la respuesta anterior no sirve
     consultarAcceso(pagina).then((respuesta) => {
-      if (vigente) setAcceso(respuesta);
+      if (vigente) setConsulta({ pagina, usuarioId: usuario.id, acceso: respuesta });
     });
 
     return () => {
@@ -179,11 +182,11 @@ function Pantalla({ pagina }: { pagina: Exclude<Page, "login"> }) {
   if (revisandoSesion) return <Cargando />;
 
   if (!usuario) {
-    return <Navigate to="/login" replace state={{ destino: location.pathname + location.search }} />;
+    return <Navigate to="/login" replace state={sesionFinalizada === "manual" ? null : { destino: location.pathname + location.search, sesionVencida: sesionFinalizada === "vencida" }} />;
   }
 
   if (!acceso) return <Cargando />;
-  if (!acceso.permitido) return <SinPermiso motivo={acceso.error} />;
+  if (!acceso.permitido) return <SinPermiso motivo={acceso.error} temporal={acceso.temporal} />;
 
   return PAGINAS[pagina]();
 }
@@ -221,14 +224,13 @@ function PantallaLogin() {
  */
 function EnConstruccion() {
   const { usuario, navegar } = useNavegacion();
-  const location = useLocation();
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center gap-4 bg-background px-6 text-center">
-      <span className="material-symbols-outlined text-4xl text-on-surface-variant/40">construction</span>
-      <p className="text-lg font-bold text-on-surface-variant">Esta sección está en construcción</p>
+      <span className="material-symbols-outlined text-4xl text-primary">explore_off</span>
+      <p className="text-lg font-bold text-on-surface-variant">No encontramos esta página</p>
       <p className="text-sm text-on-surface-variant/60">
-        La dirección <code>{location.pathname}</code> todavía no existe en NEXO.
+        Revisá la dirección o volvé a tu espacio para continuar.
       </p>
       <button
         onClick={() => navegar(usuario ? HOME_POR_ROL[usuario.rol] : "/login")}
@@ -243,9 +245,26 @@ function EnConstruccion() {
 export default function App() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [revisandoSesion, setRevisandoSesion] = useState(true);
+  const sesionCerrada = useRef(false);
+  const [sesionFinalizada, setSesionFinalizada] = useState<"manual" | "vencida" | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const vencida = () => {
+      if (sesionCerrada.current || !usuario) return;
+      sesionCerrada.current = true;
+      setSesionFinalizada("vencida");
+      olvidarPermisos();
+      setUsuario(null);
+      navigate("/login", { replace: true, state: { destino: location.pathname + location.search, sesionVencida: true } });
+    };
+    window.addEventListener("nexo:sesion-vencida", vencida);
+    return () => window.removeEventListener("nexo:sesion-vencida", vencida);
+  }, [navigate, location.pathname, location.search, usuario]);
+
+  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
 
   // Al arrancar (y en cada F5), preguntarle al servidor si la cookie de sesión
   // sigue siendo válida. Ya NO se manda al usuario al inicio de su rol: la URL
@@ -283,11 +302,15 @@ export default function App() {
     // Los permisos recordados son los del rol anterior: hay que olvidarlos
     // antes de que entre alguien que quizás ve otras pantallas.
     olvidarPermisos();
+    sesionCerrada.current = false;
+    setSesionFinalizada(null);
     setUsuario(resultado.usuario);
     return { ok: true };
   }, []);
 
   const cerrarSesion = useCallback(() => {
+    sesionCerrada.current = true;
+    setSesionFinalizada("manual");
     // Borrar la sesión también en el servidor: si solo se limpiara la pantalla,
     // la llave seguiría viva y serviría para volver a entrar.
     void cerrarSesionEnServidor();
@@ -303,15 +326,19 @@ export default function App() {
       // literalmente, la dirección que muestra el navegador.
       rutaActiva: location.pathname,
       revisandoSesion,
+      sesionFinalizada,
       navegar,
       cerrarSesion,
       login,
     }),
-    [usuario, location.pathname, revisandoSesion, navegar, cerrarSesion, login]
+    [usuario, location.pathname, revisandoSesion, sesionFinalizada, navegar, cerrarSesion, login]
   );
 
   return (
     <NavegacionContext.Provider value={valor}>
+      <EstadoConexion />
+      <ErrorBoundary key={location.pathname}>
+      <Suspense fallback={<Cargando />}>
       <Routes>
         <Route path="/login" element={<PantallaLogin />} />
         {RUTAS_PUBLICAS.map(([ruta, pagina]) => (
@@ -324,6 +351,8 @@ export default function App() {
         <Route path="/" element={<PantallaRaiz />} />
         <Route path="*" element={<EnConstruccion />} />
       </Routes>
+      </Suspense>
+      </ErrorBoundary>
     </NavegacionContext.Provider>
   );
 }

@@ -92,7 +92,7 @@ export default function ConfiguracionCuentaPage() {
     <div className="flex bg-[#1C1030] min-h-screen text-on-surface">
       <Sidebar onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen relative">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen relative">
         <TopBar title="Configuración" subtitle="Mi cuenta" />
 
         <div className="flex-1 overflow-y-auto bg-[#190d2d] p-8">

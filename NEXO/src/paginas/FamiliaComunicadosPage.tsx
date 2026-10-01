@@ -1,16 +1,19 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import TarjetaComunicado from "./components/familia-comunicados/TarjetaComunicado";
 import type { Comunicado } from "./components/familia-comunicados/tipos";
 import { useNavegacion } from "../navegacion";
 import {
-  usarComunicados,
+  useComunicados,
   marcarComunicadoLeido,
   responderComunicado,
 } from "../servicios/calendario";
-import { subtituloInstitucional, usarInstitucion } from "../servicios/institucion";
+import { subtituloInstitucional, useInstitucion } from "../servicios/institucion";
 import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 import { urlDescarga } from "../servicios/archivos";
+import { verEnfoque, limpiarEnfoque, marcarEnfoque } from "../servicios/enfoque";
+import { avisarCambioNotificaciones } from "../servicios/notificaciones";
+import { aFecha } from "../servicios/fechas";
 
 // Se fueron los cuatro comunicados inventados (todos de mayo de 2025). Los
 // reales viven en la tabla `comunicados` y le llegan a la familia según su
@@ -20,18 +23,43 @@ import { urlDescarga } from "../servicios/archivos";
 
 export default function FamiliaComunicadosPage() {
   const { navegar, cerrarSesion, usuario } = useNavegacion();
-  const { comunicados: datos, cargando, error, recargar } = usarComunicados();
-  const { institucion } = usarInstitucion();
+  const { comunicados: datos, cargando, error, recargar } = useComunicados();
+  const { institucion } = useInstitucion();
+
+  // Objetivo pendiente de una notificación de comunicado: scrollear hasta ESE
+  // comunicado y resaltarlo un instante. Se lee al montar (sin consumir) y se
+  // resuelve cuando cargan los datos; si ya no está, se avisa honesto.
+  const objetivoComunicado = useRef(verEnfoque("comunicado"));
+  const objetivoResuelto = useRef(false);
+  const [resaltadoId, setResaltadoId] = useState<string | null>(null);
+  const [objetivoNoDisponible, setObjetivoNoDisponible] = useState(false);
+
+  useEffect(() => {
+    if (objetivoResuelto.current || !objetivoComunicado.current) return;
+    if (cargando || !datos) return; // esperar a que carguen los comunicados
+    objetivoResuelto.current = true;
+    limpiarEnfoque(); // consumir: una sola vez
+    const id = objetivoComunicado.current;
+    if (!datos.some((c) => c.id === id)) {
+      setObjetivoNoDisponible(true);
+      return;
+    }
+    setResaltadoId(id);
+    // Esperar un frame a que las tarjetas estén en el DOM antes de scrollear.
+    requestAnimationFrame(() => {
+      document.getElementById(`comunicado-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const t = setTimeout(() => setResaltadoId(null), 2500);
+    return () => clearTimeout(t);
+  }, [cargando, datos]);
 
   // Marcar como leído escribe una fila en `comunicado_lecturas` (Error 10.A.3):
   // el comunicado pasa a "Anteriores" y el globito de no leídos baja. Se recarga
   // para que se vea sin refrescar la página.
   const marcarLeido = async (id: string) => {
-    try {
-      await marcarComunicadoLeido(id);
-    } finally {
-      recargar();
-    }
+    await marcarComunicadoLeido(id);
+    recargar();
+    avisarCambioNotificaciones();
   };
 
   // "Responder" no escribe en el comunicado (Error 10.A.2): abre/retoma el chat
@@ -40,11 +68,9 @@ export default function FamiliaComunicadosPage() {
   // El chat de la familia es el chat compartido real: "/familia/chat" no
   // existe en el mapa de rutas y navegar ahí era un clic muerto (Error 12.8).
   const responder = async (id: string) => {
-    try {
-      await responderComunicado(id);
-    } finally {
-      navegar("/chat");
-    }
+    const { conversacionId } = await responderComunicado(id);
+    marcarEnfoque("conversacion", conversacionId);
+    navegar("/chat");
   };
 
   // Descargar el adjunto descarga de verdad: /api/archivos/:id, con el
@@ -59,14 +85,21 @@ export default function FamiliaComunicadosPage() {
     const lista: Comunicado[] = (datos ?? []).map((c) => ({
       id: c.id,
       titulo: c.titulo,
-      fecha: new Date(c.enviadoEn).toLocaleDateString("es-AR"),
+      contenido: c.contenido,
+      fecha: aFecha(c.enviadoEn)?.toLocaleDateString("es-AR") ?? "",
       fechaISO: c.enviadoEn.slice(0, 10),
       emisor: c.emisor,
       emisorTipo: c.emisorRol === "preceptor" ? "preceptor" : "admin-academico",
-      adjunto: c.archivo ? { nombre: c.archivo, icono: "attachment" } : undefined,
+      adjunto: c.archivo && c.archivoId ? { nombre: c.archivo, icono: "attachment" } : undefined,
       leido: c.leido,
+      fijado: c.fijado,
     }));
-    const ordenados = lista.sort((a, b) => b.fechaISO.localeCompare(a.fechaISO));
+    // Los fijados por la dirección van arriba (dato real); dentro de cada grupo,
+    // por fecha descendente.
+    const ordenados = lista.sort((a, b) =>
+      Number(b.fijado ?? false) - Number(a.fijado ?? false) ||
+      b.fechaISO.localeCompare(a.fechaISO),
+    );
     return {
       nuevos: ordenados.filter((c) => !c.leido),
       anteriores: ordenados.filter((c) => c.leido),
@@ -83,7 +116,7 @@ export default function FamiliaComunicadosPage() {
         onCerrarSesion={cerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content min-h-screen">
         {/* Top App Bar */}
         <header className="flex justify-between items-center w-full px-8 h-16 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] sticky top-0 z-40">
           <div className="flex flex-col">
@@ -99,7 +132,7 @@ export default function FamiliaComunicadosPage() {
           <div className="flex items-center gap-4">
             <div className="relative">
               <button
-                aria-label="Notificaciones"
+                aria-label="Notificaciones" onClick={() => navegar("/notificaciones")}
                 className="material-symbols-outlined text-slate-400 opacity-80 hover:opacity-100 cursor-pointer"
               >
                 notifications
@@ -109,7 +142,7 @@ export default function FamiliaComunicadosPage() {
               )}
             </div>
             <button
-              aria-label="Configuración"
+              aria-label="Configuración" onClick={() => navegar("/configuracion")}
               className="material-symbols-outlined text-slate-400 opacity-80 hover:opacity-100 cursor-pointer"
             >
               settings
@@ -119,18 +152,36 @@ export default function FamiliaComunicadosPage() {
 
         {/* Content Area */}
         <section className="p-8 max-w-5xl mx-auto space-y-6">
+          {objetivoNoDisponible && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+              <span>Ese comunicado ya no está disponible.</span>
+              <button
+                onClick={() => setObjetivoNoDisponible(false)}
+                className="text-amber-200/80 hover:text-amber-100"
+                aria-label="Cerrar aviso"
+              >
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+          )}
+
           {cargando && <Cargando que="tus comunicados" />}
           {error && <Fallo error={error} onReintentar={recargar} />}
 
           {/* Comunicados nuevos (no leídos) */}
           {!cargando && !error && nuevos.map((c) => (
-            <TarjetaComunicado
+            <div
               key={c.id}
-              comunicado={c}
-              onMarcarLeido={marcarLeido}
-              onResponder={responder}
-              onDescargarAdjunto={descargarAdjunto}
-            />
+              id={`comunicado-${c.id}`}
+              className={`rounded-2xl transition-all ${resaltadoId === c.id ? "ring-2 ring-[#C548F5] ring-offset-2 ring-offset-[#1C1030]" : ""}`}
+            >
+              <TarjetaComunicado
+                comunicado={c}
+                onMarcarLeido={marcarLeido}
+                onResponder={responder}
+                onDescargarAdjunto={descargarAdjunto}
+              />
+            </div>
           ))}
 
           {!cargando && !error && nuevos.length === 0 && (
@@ -151,13 +202,18 @@ export default function FamiliaComunicadosPage() {
 
           {/* Comunicados anteriores (leídos) */}
           {anteriores.map((c) => (
-            <TarjetaComunicado
+            <div
               key={c.id}
-              comunicado={c}
-              onMarcarLeido={marcarLeido}
-              onResponder={responder}
-              onDescargarAdjunto={descargarAdjunto}
-            />
+              id={`comunicado-${c.id}`}
+              className={`rounded-2xl transition-all ${resaltadoId === c.id ? "ring-2 ring-[#C548F5] ring-offset-2 ring-offset-[#1C1030]" : ""}`}
+            >
+              <TarjetaComunicado
+                comunicado={c}
+                onMarcarLeido={marcarLeido}
+                onResponder={responder}
+                onDescargarAdjunto={descargarAdjunto}
+              />
+            </div>
           ))}
         </section>
 

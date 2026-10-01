@@ -8,8 +8,8 @@ import ModalDetalleMeta from "./components/objetivos/ModalDetalleMeta";
 import { progresoDeMeta } from "./components/objetivos/tiposDashboard";
 import type { Meta, DatosNuevaMeta } from "../servicios/objetivos";
 import {
-  usarObjetivos,
-  usarResumen,
+  useObjetivos,
+  useResumen,
   crearMeta,
   editarMeta,
   archivarMeta,
@@ -41,8 +41,8 @@ const FILTROS: { valor: FiltroEstado; label: string }[] = [
 ];
 
 export default function MisMetasPage() {
-  const { datos, cargando, error, recargar } = usarObjetivos();
-  const { resumen, recargar: recargarResumen } = usarResumen();
+  const { datos, cargando, error, recargar } = useObjetivos();
+  const { resumen, recargar: recargarResumen } = useResumen();
   const [filtro, setFiltro] = useState<FiltroEstado>("todas");
   const [modalNueva, setModalNueva] = useState(false);
   const [detalleId, setDetalleId] = useState<string | null>(null);
@@ -140,7 +140,7 @@ export default function MisMetasPage() {
     <div className="flex bg-[#1C1030] min-h-screen text-on-surface overflow-hidden">
       <Sidebar usuario={usuario} onNavegar={handleNavegar} onCerrarSesion={handleCerrarSesion} />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen relative">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen relative">
         <TopBar title="Objetivos Personales" subtitle="Mis Metas" />
 
         <div className="flex gap-6 items-center px-8 h-12 border-b border-purple-900/20 bg-[#1C1030]/60">

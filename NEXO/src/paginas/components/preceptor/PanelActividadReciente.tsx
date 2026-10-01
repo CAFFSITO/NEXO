@@ -1,7 +1,7 @@
 // src/paginas/components/preceptor/PanelActividadReciente.tsx
 // Timeline de actividad reciente de los cursos del preceptor.
 
-export type TipoActividad = "posteo" | "bloqueo" | "cierre";
+export type TipoActividad = "posteo" | "bloqueo" | "cierre" | "mensaje";
 
 export interface ActividadPreceptor {
     id: string;
@@ -17,6 +17,7 @@ interface PanelActividadRecienteProps {
 
 // Config visual por tipo de actividad
 const CONFIG: Record<TipoActividad, { bg: string; icono: string; fill: boolean; colorCurso: string }> = {
+    mensaje: { bg: "bg-[#C548F5]", icono: "chat", fill: false, colorCurso: "text-primary" },
     posteo: { bg: "bg-[#C548F5]", icono: "person", fill: true, colorCurso: "text-[#C548F5]" },
     bloqueo: { bg: "bg-amber-500", icono: "lock", fill: false, colorCurso: "text-amber-400" },
     cierre: { bg: "bg-slate-500", icono: "close", fill: false, colorCurso: "text-white" },
@@ -29,6 +30,7 @@ export default function PanelActividadReciente({ actividades }: PanelActividadRe
                 Actividad Reciente
             </h4>
             <div className="space-y-6">
+                {actividades.length === 0 && <p className="text-sm text-slate-400">Todavía no hay mensajes en las comunidades de tus cursos.</p>}
                 {actividades.map((act, i) => {
                     const cfg = CONFIG[act.tipo];
                     const esUltima = i === actividades.length - 1;
@@ -50,6 +52,7 @@ export default function PanelActividadReciente({ actividades }: PanelActividadRe
                             </div>
                             <div>
                                 <p className="text-xs text-white">
+                                    {act.tipo === "mensaje" && <><span className="font-bold">{act.autor}</span> escribió en <span className="text-primary">{act.curso}</span></>}
                                     {act.tipo === "posteo" && (
                                         <>
                                             <span className="font-bold">{act.autor}</span> publicó en{" "}

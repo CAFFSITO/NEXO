@@ -17,7 +17,7 @@ import ResumenQuejasCard, {
   type DistribucionCategoria,
 } from "./components/centro-estudiantes/ResumenQuejasCard";
 import TendenciasQuejasCard from "./components/centro-estudiantes/TendenciasQuejasCard";
-import { usarQuejas, marcarQuejaVista } from "../servicios/quejas";
+import { useQuejas, marcarQuejaVista } from "../servicios/quejas";
 import { textoRelativo } from "../servicios/fechas";
 import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 
@@ -32,7 +32,7 @@ type FiltroCategoria = "todas" | CategoriaQueja;
 
 export default function GestionQuejasPage() {
   const { navegar, cerrarSesion, usuario } = useNavegacion();
-  const { quejas: datos, estadistica, cargando, error, recargar } = usarQuejas();
+  const { quejas: datos, estadistica, cargando, error, recargar } = useQuejas();
 
   const [filtroCategoria, setFiltroCategoria] = useState<FiltroCategoria>("todas");
   const [busqueda, setBusqueda] = useState("");
@@ -102,7 +102,7 @@ export default function GestionQuejasPage() {
     <div className="flex bg-background min-h-screen text-on-background">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
-      <main className="ml-[220px] flex-1 pt-8 px-8 pb-12 max-w-7xl">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex-1 pt-8 px-8 pb-12 max-w-7xl">
         {/* ── Header ── */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
           <div>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  usarDestinosCalendario,
+  useDestinosCalendario,
   type DatosNuevoEvento,
   type Visibilidad,
 } from "../../../servicios/calendario";
@@ -20,7 +20,7 @@ export default function ModalNuevoEvento({ fechaInicial, onGuardar, onCerrar }: 
 
   // Los destinos posibles los decide el servidor según el rol (dirección ve
   // todas las capas; el preceptor, solo su curso; el centro, "todos").
-  const { destinos, cargando: cargandoDestinos } = usarDestinosCalendario();
+  const { destinos, cargando: cargandoDestinos } = useDestinosCalendario();
 
   const [titulo, setTitulo] = useState("");
   const [fecha, setFecha] = useState(fechaInicial);
@@ -98,7 +98,7 @@ export default function ModalNuevoEvento({ fechaInicial, onGuardar, onCerrar }: 
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4"
       onClick={onCerrar}
     >
       <div

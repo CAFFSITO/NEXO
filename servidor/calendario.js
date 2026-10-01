@@ -11,6 +11,8 @@
 //   POST   /api/comunicados                → emitir un comunicado (preceptor/dirección)
 //   POST   /api/comunicados/:id/leer       → registrar que lo leí
 //   POST   /api/comunicados/:id/responder  → abrir/retomar el chat privado con el emisor
+//   POST   /api/comunicados/:id/fijar       → la dirección lo fija arriba (Prompt 13)
+//   POST   /api/comunicados/:id/desfijar    → la dirección lo desfija
 //
 // Lo importante de este archivo es QUIÉN VE QUÉ y QUIÉN PUEDE EDITAR QUÉ. Un
 // solo calendario para toda la institución (14.12): visible para todos, editable
@@ -22,7 +24,13 @@
 // la dirección cualquiera. Esconder el botón "Nuevo evento" no alcanzaría.
 // ============================================================================
 
-import { exigirAcceso, exigirSesion, ventanilla } from "./comun.js";
+import {
+  exigirAcceso,
+  exigirSesion,
+  ventanilla,
+  normalizarPublicarEn,
+  publicarEnISO,
+} from "./comun.js";
 import { asegurarConversacionDirecta } from "./chat.js";
 
 /** Quiénes son "docentes" a los fines de la visibilidad de un evento. */
@@ -350,12 +358,16 @@ export function registrarCalendario(app, db, notificaciones) {
   // para el curso de alguno de sus hijos. "Leído" no es una marca en el
   // comunicado sino una fila en `comunicado_lecturas` por persona: el mismo
   // comunicado puede estar leído por una familia y no por otra.
+  // Un comunicado PROGRAMADO (publicar_en futuro) no le llega a la familia hasta
+  // su hora (Prompt 13); su emisor sí lo ve, pero eso es la ventanilla de
+  // "enviados". Uno FIJADO por la dirección va arriba de todo (fijado_en real).
   const misComunicados = db.prepare(
     `SELECT c.id, c.titulo, c.contenido, c.enviado_en, c.emisor_id,
             u.nombre AS emisor,
             u.rol    AS emisor_rol,
             cu.anio, cu.division,
             c.archivo_id,
+            c.fijado_en,
             a.nombre_original AS archivo,
             l.leido_en
        FROM comunicados c
@@ -365,13 +377,14 @@ export function registrarCalendario(app, db, notificaciones) {
        LEFT JOIN comunicado_lecturas l
               ON l.comunicado_id = c.id AND l.usuario_id = ?2
       WHERE c.institucion_id = ?1
+        AND (c.publicar_en IS NULL OR c.publicar_en <= datetime('now') OR c.emisor_id = ?2)
         AND (
           c.curso_id IS NULL
           OR EXISTS (SELECT 1 FROM familiares f
                        JOIN inscripciones i ON i.estudiante_id = f.estudiante_id
                       WHERE f.usuario_familia_id = ?2 AND i.curso_id = c.curso_id)
         )
-      ORDER BY c.enviado_en DESC`
+      ORDER BY (c.fijado_en IS NOT NULL) DESC, c.enviado_en DESC`
   );
 
   app.get(
@@ -396,6 +409,8 @@ export function registrarCalendario(app, db, notificaciones) {
           archivoId: fila.archivo_id ? String(fila.archivo_id) : null,
           enviadoEn: fila.enviado_en,
           leido: fila.leido_en !== null,
+          // El pin de la tarjeta sale del dato real (fijado_en), no de decoración.
+          fijado: fila.fijado_en !== null,
         }));
 
       res.json({
@@ -410,8 +425,8 @@ export function registrarCalendario(app, db, notificaciones) {
 
   // ── Comunicados: escritura (Etapa 7) ──────────────────────────────────────
   const insertarComunicado = db.prepare(
-    `INSERT INTO comunicados (institucion_id, emisor_id, curso_id, titulo, contenido, archivo_id)
-     VALUES (?, ?, ?, ?, ?, ?)`
+    `INSERT INTO comunicados (institucion_id, emisor_id, curso_id, titulo, contenido, archivo_id, publicar_en)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
   );
   const cursoPropioDelPreceptor = db.prepare(
     "SELECT 1 FROM cursos WHERE id = ? AND preceptor_id = ?"
@@ -446,6 +461,12 @@ export function registrarCalendario(app, db, notificaciones) {
         return res.status(400).json({ error: "Falta el título o el contenido." });
       }
 
+      // Fecha de publicación opcional (Prompt 13), misma regla que la comunidad.
+      const publicarEn = normalizarPublicarEn(req.body?.publicarEn);
+      if (publicarEn === undefined) {
+        return res.status(400).json({ error: "La fecha de publicación no es válida." });
+      }
+
       // A quién va: un curso (cursoId) o toda la institución (cursoId null).
       let cursoId = null;
       const cursoBruto = req.body?.cursoId;
@@ -478,22 +499,27 @@ export function registrarCalendario(app, db, notificaciones) {
       }
 
       const info = insertarComunicado.run(
-        usuario.institucionId, usuario.id, cursoId, titulo, contenido, archivoId
+        usuario.institucionId, usuario.id, cursoId, titulo, contenido, archivoId, publicarEn
       );
 
       // Aviso a cada familia destinataria: el globito y la notificación (14.15).
-      const destinatarias = cursoId === null
-        ? familiasDeInstitucion.all(usuario.institucionId)
-        : familiasDeCurso.all(cursoId);
-      for (const fam of destinatarias) {
-        notificaciones.crear({
-          usuarioId: fam.id,
-          tipo: "comunicado",
-          titulo: "Comunicado nuevo",
-          cuerpo: titulo,
-          objetoTipo: "comunicado",
-          objetoId: Number(info.lastInsertRowid),
-        });
+      // Si el comunicado quedó PROGRAMADO a futuro no se avisa todavía: no tendría
+      // sentido notificar algo que la familia aún no puede abrir. (Se publica en
+      // su hora; disparar el aviso diferido excede este prompt.)
+      if (publicarEn === null) {
+        const destinatarias = cursoId === null
+          ? familiasDeInstitucion.all(usuario.institucionId)
+          : familiasDeCurso.all(cursoId);
+        for (const fam of destinatarias) {
+          notificaciones.crear({
+            usuarioId: fam.id,
+            tipo: "comunicado",
+            titulo: "Comunicado nuevo",
+            cuerpo: titulo,
+            objetoTipo: "comunicado",
+            objetoId: Number(info.lastInsertRowid),
+          });
+        }
       }
 
       res.status(201).json({ id: String(info.lastInsertRowid) });
@@ -505,11 +531,13 @@ export function registrarCalendario(app, db, notificaciones) {
   const misEnviados = db.prepare(
     `SELECT c.id, c.titulo, c.contenido, c.enviado_en,
             cu.anio, cu.division,
+            c.fijado_en, c.publicar_en,
+            (c.publicar_en IS NOT NULL AND c.publicar_en > datetime('now')) AS programada,
             (SELECT COUNT(*) FROM comunicado_lecturas l WHERE l.comunicado_id = c.id) AS leidos
        FROM comunicados c
        LEFT JOIN cursos cu ON cu.id = c.curso_id
       WHERE c.emisor_id = ?
-      ORDER BY c.enviado_en DESC`
+      ORDER BY (c.fijado_en IS NOT NULL) DESC, c.enviado_en DESC`
   );
   const alcanzadasDeCurso = db.prepare(
     `SELECT COUNT(DISTINCT f.usuario_familia_id) AS n
@@ -537,11 +565,51 @@ export function registrarCalendario(app, db, notificaciones) {
         destinatarios: c.anio
           ? alcanzadasDeCurso.get(cursoIdDeComunicado(db, c.id)).n
           : totalFamilias.get(usuario.institucionId).n,
+        // Estado real (Prompt 13): fijado por la dirección y/o programado a futuro.
+        fijado: c.fijado_en !== null,
+        programada: c.programada === 1,
+        publicarEn: publicarEnISO(c.publicar_en),
       }));
 
       res.json({ comunicados });
     })
   );
+
+  // ── Fijar / desfijar un comunicado (Prompt 13) ────────────────────────────
+  // SOLO la dirección (admin-academico) de la MISMA institución, no el conjunto
+  // que puede EMITIR (que incluye al preceptor). Por eso el permiso se chequea a
+  // mano acá y no con la página "comunicados-emitir". Pedirlo sin ser dirección
+  // da 403; el pin de la tarjeta de la familia sale de fijado_en, no de adorno.
+  const comunicadoInstitucion = db.prepare(
+    "SELECT institucion_id FROM comunicados WHERE id = ?"
+  );
+  function fijarComunicado(fijar) {
+    return ventanilla((req, res) => {
+      const usuario = exigirSesion(db, req, res);
+      if (!usuario) return;
+      if (usuario.rol !== "admin-academico") {
+        return res.status(403).json({ error: "Solo la dirección puede fijar comunicados." });
+      }
+      const id = Number(req.params.id);
+      const c = Number.isInteger(id) ? comunicadoInstitucion.get(id) : null;
+      if (!c || c.institucion_id !== usuario.institucionId) {
+        return res.status(404).json({ error: "Ese comunicado no existe." });
+      }
+      if (fijar) {
+        db.prepare(
+          "UPDATE comunicados SET fijado_en = datetime('now'), fijado_por_id = ? WHERE id = ?"
+        ).run(usuario.id, id);
+      } else {
+        db.prepare(
+          "UPDATE comunicados SET fijado_en = NULL, fijado_por_id = NULL WHERE id = ?"
+        ).run(id);
+      }
+      res.json({ ok: true });
+    });
+  }
+
+  app.post("/api/comunicados/:id/fijar", fijarComunicado(true));
+  app.post("/api/comunicados/:id/desfijar", fijarComunicado(false));
 
   // Registrar que leí un comunicado (Error 10.A.3: abrir su detalle lo marca).
   const comunicadoPorId = db.prepare(

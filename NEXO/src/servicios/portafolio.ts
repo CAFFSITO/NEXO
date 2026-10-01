@@ -10,7 +10,7 @@
 // por la tabla `correcciones`, que solo admite una por entrega. No hay dónde
 // volver a contradecirse.
 
-import { usarDatos } from "./api";
+import { useDatos } from "./api";
 
 export interface TareaAcademica {
   id: string;
@@ -47,9 +47,9 @@ export interface DatosPortafolio {
   personales: TareaPersonal[];
 }
 
-export function usarPortafolio() {
+export function usePortafolio() {
   const { datos, cargando, error, recargar } =
-    usarDatos<DatosPortafolio>("/api/portafolio");
+    useDatos<DatosPortafolio>("/api/portafolio");
   return { datos, cargando, error, recargar };
 }
 

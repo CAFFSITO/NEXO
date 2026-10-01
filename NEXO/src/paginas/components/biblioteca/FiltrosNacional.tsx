@@ -9,13 +9,7 @@ export interface EstadoFiltros {
   fecha: "todos" | "recientes" | "mes" | "historico";
 }
 
-export const FILTROS_INICIALES: EstadoFiltros = {
-  query: "",
-  materia: "todos",
-  tipo: "todos",
-  escuela: "todos",
-  fecha: "todos",
-};
+
 
 interface FiltrosNacionalProps {
   filtros: EstadoFiltros;

@@ -16,14 +16,14 @@ export default function TarjetaTareaPersonal({
 }: TarjetaTareaPersonalProps) {
   return (
     <div className="bg-[#2D1B4E] rounded-[14px] p-6 hover:shadow-xl transition-all border border-transparent hover:border-[#4900a6]/50">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap gap-3 items-center justify-between">
+        <div className="flex items-center gap-4 min-w-0">
           {/* Checkbox */}
           <button
             onClick={() => onToggle(tarea.id)}
             aria-pressed={tarea.completada}
             aria-label={tarea.completada ? "Marcar como pendiente" : "Marcar como completada"}
-            className={`w-6 h-6 border-2 rounded flex items-center justify-center transition-colors ${
+            className={`w-6 h-6 shrink-0 border-2 rounded flex items-center justify-center transition-colors ${
               tarea.completada
                 ? "bg-[#C548F5] border-[#C548F5]"
                 : "border-slate-500 hover:border-[#C548F5]"
@@ -34,7 +34,7 @@ export default function TarjetaTareaPersonal({
             )}
           </button>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 min-w-0 break-words">
             <h3
               className={`text-lg font-bold font-headline ${
                 tarea.completada

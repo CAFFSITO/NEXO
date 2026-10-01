@@ -7,7 +7,7 @@
 // lista no pueden contradecirse.
 
 import { useCallback, useEffect, useState } from "react";
-import { enviar, pedir, usarDatos } from "./api";
+import { enviar, pedir, useDatos } from "./api";
 import { useTiempoReal } from "./tiempoReal";
 
 // Señal local: cuando esta misma pestaña marca algo como leído (abrir un chat,
@@ -36,9 +36,9 @@ export interface ResumenNotificaciones {
   chat: number;
 }
 
-export function usarNotificaciones() {
+export function useNotificaciones() {
   const { datos, cargando, error, recargar } =
-    usarDatos<{ notificaciones: Notificacion[] }>("/api/notificaciones");
+    useDatos<{ notificaciones: Notificacion[] }>("/api/notificaciones");
   return { notificaciones: datos?.notificaciones ?? null, cargando, error, recargar };
 }
 
@@ -53,11 +53,11 @@ export async function marcarTodasLeidas(): Promise<void> {
 }
 
 /**
- * El resumen para el menú (campana + globitos). No usa `usarDatos` porque se
+ * El resumen para el menú (campana + globitos). No usa `useDatos` porque se
  * recarga solo cuando llega un evento en vivo o cuando la pantalla lo pide, no
  * en un intervalo: el mensajero avisa, no hace falta preguntar cada tanto.
  */
-export function usarResumenNotificaciones() {
+export function useResumenNotificaciones() {
   const [resumen, setResumen] = useState<ResumenNotificaciones>({ notificaciones: 0, chat: 0 });
 
   const recargar = useCallback(() => {

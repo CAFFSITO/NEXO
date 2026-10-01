@@ -8,7 +8,7 @@
 //
 // Ahora las seis piden acá, y acá se pide una sola vez al servidor.
 
-import { usarDatos } from "./api";
+import { useDatos } from "./api";
 
 export interface Institucion {
   nombre: string;
@@ -24,8 +24,8 @@ export interface Institucion {
  * el resto de la pantalla ya está. Con `subtituloInstitucional` se resuelve
  * solo: mientras no está, el renglón queda vacío en vez de parpadear.
  */
-export function usarInstitucion() {
-  const { datos, cargando, error } = usarDatos<Institucion>("/api/institucion");
+export function useInstitucion() {
+  const { datos, cargando, error } = useDatos<Institucion>("/api/institucion");
   return { institucion: datos, cargando, error };
 }
 

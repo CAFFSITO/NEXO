@@ -19,7 +19,7 @@ import TablaPerfiles from "./TablaPerfiles";
 import ModalPerfil from "./ModalPerfil";
 import { type Perfil, type PerfilEditable } from "./tipos";
 import {
-  usarPerfiles,
+  usePerfiles,
   crearPerfil,
   editarPerfil,
   enviarAPapelera,
@@ -38,11 +38,11 @@ interface Credenciales {
 }
 
 export default function PanelPerfiles() {
-  const { perfiles: perfilesDelServidor, cargando, error, recargar } = usarPerfiles();
+  const { perfiles: perfilesDelServidor, cargando, error, recargar } = usePerfiles();
 
   // La lista viene del servidor y es la única verdad. No hay copia en memoria que
   // editar: cada cambio se guarda en la base y se vuelve a leer.
-  const perfiles = perfilesDelServidor ?? [];
+  const perfiles = useMemo(() => perfilesDelServidor ?? [], [perfilesDelServidor]);
 
   // Filtros
   const [busqueda, setBusqueda] = useState("");
@@ -267,12 +267,13 @@ export default function PanelPerfiles() {
         </span>
       </button>
 
-      <ModalPerfil
+      {modalAbierto && <ModalPerfil
+        key={perfilEnEdicion?.id ?? "nuevo"}
         abierto={modalAbierto}
         perfilEnEdicion={perfilEnEdicion}
         onCerrar={cerrarModal}
         onGuardar={guardarPerfil}
-      />
+      />}
     </>
   );
 }

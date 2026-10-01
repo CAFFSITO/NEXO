@@ -5,7 +5,8 @@
 // cambia según quién mira lo decide `esDocente`, que viene del SERVIDOR en el
 // detalle de la clase. El docente dibuja, marca la trayectoria, ve el pulso con
 // nombres, la alerta de ritmo y las preguntas; el estudiante ve todo, marca cómo
-// va y pregunta. El video (Jitsi), la pizarra y el chat son los mismos para todos.
+// va y pregunta. El video (WebRTC propio, SalaVideo), la pizarra y el chat son
+// los mismos para todos.
 //
 // Convive con el menú lateral (Error 3.B.3): esta sala se dibuja DENTRO del área
 // de contenido de la página, no a pantalla completa. Al salir, la página decide a
@@ -35,7 +36,7 @@ import {
 } from "../../../servicios/aula";
 import { useTiempoReal, type EventoVivo } from "../../../servicios/tiempoReal";
 import { Cargando, Fallo } from "../shared/EstadoCarga";
-import SalaJitsi from "./SalaJitsi";
+import SalaVideo from "./SalaVideo";
 import PizarraClase from "./PizarraClase";
 import TrayectoriaVivo from "./TrayectoriaVivo";
 import ChatClase from "./ChatClase";
@@ -49,6 +50,7 @@ export default function SalaClase({ claseId, onSalir }: SalaClaseProps) {
   const [detalle, setDetalle] = useState<DetalleClase | null>(null);
   const [etapas, setEtapas] = useState<Etapa[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [errorEtapa, setErrorEtapa] = useState("");
 
   // Datos de la sala (se piden al "entrar", que registra la asistencia).
   const [sala, setSala] = useState<string | null>(null);
@@ -61,10 +63,10 @@ export default function SalaClase({ claseId, onSalir }: SalaClaseProps) {
   // ── Traer el detalle de la clase ────────────────────────────────────────────
   useEffect(() => {
     let vigente = true;
-    setError(null);
     detalleClase(claseId)
       .then(({ clase, etapas }) => {
         if (!vigente) return;
+        setError(null);
         setDetalle(clase);
         setEtapas(etapas);
       })
@@ -156,7 +158,7 @@ export default function SalaClase({ claseId, onSalir }: SalaClaseProps) {
       <div className="flex flex-col gap-4 min-w-0">
         <div className="h-[42vh] min-h-[280px]">
           {sala ? (
-            <SalaJitsi sala={sala} nombre={nombre} esDocente={esDocente} />
+            <SalaVideo claseId={claseId} nombre={nombre} onSalir={onSalir} />
           ) : (
             <div className="h-full rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center text-slate-400">
               Conectando el video…
@@ -170,6 +172,7 @@ export default function SalaClase({ claseId, onSalir }: SalaClaseProps) {
 
       {/* ── Columna lateral: paneles ── */}
       <aside className="flex flex-col gap-4 min-w-0">
+        {errorEtapa && <p role="alert" className="text-sm text-red-300">{errorEtapa}</p>}
         <TrayectoriaVivo
           etapas={etapas}
           esDocente={esDocente}
@@ -177,8 +180,8 @@ export default function SalaClase({ claseId, onSalir }: SalaClaseProps) {
             esDocente
               ? (etapaId, accion) =>
                   marcarEtapa(claseId, etapaId, accion)
-                    .then(setEtapas)
-                    .catch(() => {})
+                    .then(nuevas => { setEtapas(nuevas); setErrorEtapa(""); })
+                    .catch(e => setErrorEtapa(e instanceof Error ? e.message : "No se pudo actualizar la etapa."))
               : undefined
           }
         />
@@ -214,15 +217,18 @@ function PanelDocente({
   const [alerta, setAlerta] = useState<string | null>(null);
   const [umbralPct, setUmbralPct] = useState(detalle.umbralPct);
   const [umbralMin, setUmbralMin] = useState(detalle.umbralMin);
+  const [errorPanel, setErrorPanel] = useState("");
+  const [avisoPanel, setAvisoPanel] = useState("");
+  const [ocupado, setOcupado] = useState(false);
 
   const refrescarPulso = useCallback(() => {
-    pulsoDeClase(claseId).then(setPulso).catch(() => {});
+    pulsoDeClase(claseId).then(setPulso).catch(() => setErrorPanel("No se pudo actualizar el pulso del aula."));
   }, [claseId]);
   const refrescarPreguntas = useCallback(() => {
-    preguntasPendientes(claseId).then(setPreguntas).catch(() => {});
+    preguntasPendientes(claseId).then(setPreguntas).catch(() => setErrorPanel("No se pudieron cargar las preguntas."));
   }, [claseId]);
   const refrescarConectados = useCallback(() => {
-    conectadosDeClase(claseId).then(setConectados).catch(() => {});
+    conectadosDeClase(claseId).then(setConectados).catch(() => setErrorPanel("No se pudo actualizar la asistencia."));
   }, [claseId]);
 
   useEffect(() => {
@@ -250,13 +256,20 @@ function PanelDocente({
   );
   useTiempoReal(alRecibir);
 
-  const guardarUmbral = () => {
-    ajustarUmbral(claseId, umbralPct, umbralMin).catch(() => {});
+  const ejecutar = async (accion: () => Promise<void>, aviso = "") => {
+    if (ocupado) return;
+    setOcupado(true); setErrorPanel(""); setAvisoPanel("");
+    try { await accion(); setAvisoPanel(aviso); }
+    catch (e) { setErrorPanel(e instanceof Error ? e.message : "No se pudo completar la acción."); }
+    finally { setOcupado(false); }
   };
+  const guardarUmbral = () => ejecutar(() => ajustarUmbral(claseId, umbralPct, umbralMin), "Configuración guardada.");
 
   return (
     <>
       {/* Alerta de ritmo (regla con umbral, no IA — Error 3.B.5) */}
+      {errorPanel && <div role="alert" className="p-3 rounded-xl bg-red-500/10 text-sm text-red-300">{errorPanel}<button className="block mt-2 underline" onClick={()=>{setErrorPanel("");refrescarPulso();refrescarPreguntas();refrescarConectados();}}>Actualizar panel</button></div>}
+      {avisoPanel && <p role="status" className="text-xs text-green-300">{avisoPanel}</p>}
       {alerta && (
         <div className="bg-error-container/20 border border-error/30 p-3 rounded-xl flex items-start gap-2">
           <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -311,6 +324,7 @@ function PanelDocente({
           </label>
           <button
             onClick={guardarUmbral}
+            disabled={ocupado}
             className="px-3 py-1 rounded-lg bg-primary/20 text-primary text-xs hover:bg-primary/30"
           >
             Guardar
@@ -333,7 +347,8 @@ function PanelDocente({
                 <p className="text-[10px] text-slate-400">{p.autor}</p>
                 <p className="text-sm text-slate-100">{p.texto}</p>
                 <button
-                  onClick={() => responderPregunta(p.id).then(refrescarPreguntas).catch(() => {})}
+                  disabled={ocupado}
+                  onClick={() => void ejecutar(async () => { await responderPregunta(p.id); refrescarPreguntas(); })}
                   className="mt-1 text-[10px] text-primary hover:underline"
                 >
                   Marcar respondida
@@ -367,10 +382,11 @@ function PanelDocente({
       <button
         onClick={() => {
           if (window.confirm("¿Finalizar la clase para todos los estudiantes?")) {
-            finalizarClase(claseId).then(onFinalizar).catch(() => {});
+            void ejecutar(async () => { await finalizarClase(claseId); onFinalizar(); });
           }
         }}
         className="px-4 py-2.5 bg-error/20 text-error rounded-full font-bold flex items-center justify-center gap-2 hover:bg-error/30"
+        disabled={ocupado}
       >
         <span className="material-symbols-outlined">call_end</span>
         Finalizar la clase
@@ -403,6 +419,9 @@ function PanelEstudiante({ claseId, onSalir }: { claseId: string; onSalir: () =>
   const [estado, setEstado] = useState<"entiendo" | "mas-o-menos" | "perdido" | null>(null);
   const [pregunta, setPregunta] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
+  const [errorAccion, setErrorAccion] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [marcando, setMarcando] = useState(false);
 
   useEffect(() => {
     if (!aviso) return;
@@ -410,27 +429,32 @@ function PanelEstudiante({ claseId, onSalir }: { claseId: string; onSalir: () =>
     return () => clearTimeout(t);
   }, [aviso]);
 
-  const marcar = (nuevo: "entiendo" | "mas-o-menos" | "perdido") => {
-    setEstado(nuevo);
-    marcarComprension(claseId, nuevo).catch(() => {});
+  const marcar = async (nuevo: "entiendo" | "mas-o-menos" | "perdido") => {
+    if (marcando) return;
+    setMarcando(true); setErrorAccion("");
+    try { await marcarComprension(claseId, nuevo); setEstado(nuevo); }
+    catch (e) { setErrorAccion(e instanceof Error ? e.message : "No se pudo actualizar tu estado."); }
+    finally { setMarcando(false); }
   };
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
     const limpio = pregunta.trim();
-    if (!limpio) return;
-    setPregunta("");
+    if (!limpio || enviando) return;
+    setEnviando(true); setErrorAccion("");
     try {
       await enviarPregunta(claseId, limpio);
+      setPregunta("");
       setAviso("Tu pregunta fue enviada al docente.");
-    } catch {
-      /* ignore */
-    }
+    } catch (e) { setErrorAccion(e instanceof Error ? e.message : "No se pudo enviar la pregunta."); }
+    finally { setEnviando(false); }
   };
 
   const boton = (valor: "entiendo" | "mas-o-menos" | "perdido", label: string, color: string) => (
     <button
       onClick={() => marcar(valor)}
+      disabled={marcando}
+      aria-pressed={estado === valor}
       className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${
         estado === valor ? `${color} border-white/40` : "bg-white/5 text-slate-300 border-transparent hover:bg-white/10"
       }`}
@@ -446,6 +470,7 @@ function PanelEstudiante({ claseId, onSalir }: { claseId: string; onSalir: () =>
           <span className="material-symbols-outlined text-base">psychology</span>
           ¿Cómo venís?
         </h3>
+        {errorAccion && <p role="alert" className="text-xs text-red-300 mb-3">{errorAccion}</p>}
         <div className="flex gap-2">
           {boton("entiendo", "Entiendo", "bg-green-500/30 text-green-300")}
           {boton("mas-o-menos", "Más o menos", "bg-orange-500/30 text-orange-300")}
@@ -465,8 +490,8 @@ function PanelEstudiante({ claseId, onSalir }: { claseId: string; onSalir: () =>
           placeholder="Escribí tu pregunta…"
           className="bg-white/5 rounded-xl px-3 py-2 text-sm text-white placeholder:text-slate-500 outline-none resize-none focus:ring-1 focus:ring-primary"
         />
-        <button type="submit" className="self-end px-4 py-1.5 rounded-full bg-primary text-white text-sm font-bold hover:opacity-90">
-          Enviar
+        <button type="submit" disabled={enviando || !pregunta.trim()} className="self-end px-4 py-1.5 rounded-full bg-primary text-white text-sm font-bold hover:opacity-90 disabled:opacity-50">
+          {enviando ? "Enviando…" : "Enviar"}
         </button>
         {aviso && <p className="text-[11px] text-green-400">{aviso}</p>}
       </form>

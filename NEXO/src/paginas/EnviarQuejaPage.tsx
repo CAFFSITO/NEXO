@@ -47,7 +47,7 @@ export default function EnviarQuejaPage() {
     <div className="flex bg-[#1C1030] min-h-screen text-on-surface">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content min-h-screen">
         <header className="flex items-center w-full px-8 h-16 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] sticky top-0 z-40">
           <h1 className="text-fuchsia-500 font-headline font-extrabold text-xl tracking-tight">
             Buzón de quejas

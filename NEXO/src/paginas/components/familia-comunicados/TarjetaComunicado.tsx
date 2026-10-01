@@ -1,116 +1,41 @@
+import { useState } from "react";
 import { ICONO_EMISOR, type Comunicado } from "./tipos";
 
-interface TarjetaComunicadoProps {
+interface Props {
   comunicado: Comunicado;
-  onMarcarLeido: (id: string) => void;
+  onMarcarLeido: (id: string) => Promise<void>;
   onDescargarAdjunto?: (id: string) => void;
-  // "Responder" abre el chat privado con quien lo emitió (Error 10.A.2). No
-  // escribe en el comunicado (lo verían todas las familias).
-  onResponder?: (id: string) => void;
+  onResponder?: (id: string) => Promise<void>;
 }
 
-// Tarjeta de un comunicado del Portal de Familia.
-// Cambia de estilo según esté leído o no.
-export default function TarjetaComunicado({
-  comunicado,
-  onMarcarLeido,
-  onDescargarAdjunto,
-  onResponder,
-}: TarjetaComunicadoProps) {
-  const { id, titulo, fecha, emisor, emisorTipo, adjunto, leido, fechaLeido } = comunicado;
-  const iconoEmisor = ICONO_EMISOR[emisorTipo];
-
-  if (leido) {
-    // ── Estado: LEÍDO (atenuado) ──
-    return (
-      <div className="bg-surface-container-low/40 rounded-xl p-5 opacity-60 grayscale-[0.2] transition-all hover:opacity-100 hover:grayscale-0">
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex items-center gap-3">
-            <span className="bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
-              LEÍDO
-            </span>
-            <h3 className="text-on-surface font-bold text-lg">{titulo}</h3>
-          </div>
-          <span className="text-slate-400 text-xs font-medium">{fecha}</span>
-        </div>
-        <div className="flex items-center gap-2 mb-6 text-slate-400 font-medium text-sm">
-          <span className="material-symbols-outlined text-sm">{iconoEmisor}</span>
-          <span>{emisor}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold">
-            <span
-              className="material-symbols-outlined text-base"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              check_circle
-            </span>
-            <span>Leído{fechaLeido ? ` el ${fechaLeido}` : ""}</span>
-          </div>
-          {onResponder && (
-            <button
-              type="button"
-              onClick={() => onResponder(id)}
-              className="flex items-center gap-1.5 text-slate-300 hover:text-[#C548F5] text-xs font-bold transition-colors"
-            >
-              <span className="material-symbols-outlined text-base">reply</span>
-              Responder
-            </button>
-          )}
-        </div>
+export default function TarjetaComunicado({ comunicado: c, onMarcarLeido, onDescargarAdjunto, onResponder }: Props) {
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState("");
+  const ejecutar = async (accion: () => Promise<void>) => {
+    if (ocupado) return;
+    setOcupado(true); setError("");
+    try { await accion(); }
+    catch (e) { setError(e instanceof Error ? e.message : "No se pudo completar la acción."); }
+    finally { setOcupado(false); }
+  };
+  return <article className={`rounded-xl border bg-surface-container-low p-5 sm:p-6 ${c.leido ? "border-outline-variant/30" : "border-primary/40"}`}>
+    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <div className="flex flex-wrap gap-2 items-center">
+        {c.fijado && <span className="flex items-center gap-1 text-xs font-semibold text-primary"><span className="material-symbols-outlined text-sm">keep</span>Fijado</span>}
+        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${c.leido ? "bg-white/5 text-slate-400" : "bg-primary/15 text-primary"}`}>{c.leido ? "Leído" : "Nuevo"}</span>
       </div>
-    );
-  }
-
-  // ── Estado: NO LEÍDO (destacado) ──
-  return (
-    <div className="bg-surface-container-low border-l-4 border-[#C548F5] rounded-xl p-5 shadow-lg shadow-black/20 hover:shadow-fuchsia-500/5 transition-all group">
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-3">
-          <span className="bg-[#C548F5] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-            NUEVO
-          </span>
-          <h3 className="text-on-surface font-bold text-lg">{titulo}</h3>
-        </div>
-        <span className="text-slate-400 text-xs font-medium">{fecha}</span>
-      </div>
-      <div className="flex items-center gap-2 mb-6 text-secondary font-medium text-sm">
-        <span className="material-symbols-outlined text-sm">{iconoEmisor}</span>
-        <span>{emisor}</span>
-      </div>
-      <div className={`flex items-center ${adjunto ? "justify-between" : "justify-end"}`}>
-        {adjunto && (
-          <button
-            type="button"
-            onClick={() => onDescargarAdjunto?.(id)}
-            className="flex items-center gap-2 bg-slate-950/50 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-900 transition-colors"
-          >
-            <span className="material-symbols-outlined text-fuchsia-400">
-              {adjunto.icono ?? "attachment"}
-            </span>
-            <span className="text-xs text-slate-300">{adjunto.nombre}</span>
-          </button>
-        )}
-        <div className="flex items-center gap-2">
-          {onResponder && (
-            <button
-              type="button"
-              onClick={() => onResponder(id)}
-              className="flex items-center gap-1.5 border border-white/10 text-slate-200 px-4 py-2 rounded-full text-xs font-bold hover:bg-white/5 transition-colors"
-            >
-              <span className="material-symbols-outlined text-base">reply</span>
-              Responder
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => onMarcarLeido(id)}
-            className="bg-primary-container text-on-primary-container px-4 py-2 rounded-full text-xs font-bold hover:scale-105 active:scale-95 transition-transform"
-          >
-            Marcar como leído
-          </button>
-        </div>
+      <time className="text-xs text-slate-400" dateTime={c.fechaISO}>{c.fecha}</time>
+    </div>
+    <h3 className="font-headline text-lg font-bold text-on-surface break-words mb-2">{c.titulo}</h3>
+    <p className="flex items-center gap-2 text-xs text-on-surface-variant/70 mb-5"><span className="material-symbols-outlined text-base">{ICONO_EMISOR[c.emisorTipo]}</span>{c.emisor}</p>
+    <p className="text-sm text-on-surface-variant leading-relaxed whitespace-pre-wrap break-words mb-6">{c.contenido}</p>
+    {error && <p role="alert" className="text-sm text-red-300 mb-4">{error}</p>}
+    <div className="flex flex-wrap gap-3 items-center justify-between border-t border-outline-variant/30 pt-4">
+      {c.adjunto && <button type="button" onClick={() => onDescargarAdjunto?.(c.id)} className="max-w-full flex items-center gap-2 text-primary text-xs text-left rounded-lg bg-primary/10 p-3"><span className="material-symbols-outlined text-base shrink-0">attachment</span><span className="break-all">{c.adjunto.nombre}</span></button>}
+      <div className="flex flex-wrap gap-2 items-center ml-auto">
+        {onResponder && <button type="button" disabled={ocupado} onClick={() => void ejecutar(() => onResponder(c.id))} className="border border-outline-variant rounded-lg px-4 py-2 text-xs font-semibold hover:bg-white/5 disabled:opacity-50">Responder</button>}
+        {!c.leido && <button type="button" disabled={ocupado} onClick={() => void ejecutar(() => onMarcarLeido(c.id))} className="bg-primary text-on-primary px-4 py-2 rounded-lg text-xs font-bold disabled:opacity-50">{ocupado ? "Procesando…" : "Marcar como leído"}</button>}
       </div>
     </div>
-  );
+  </article>;
 }

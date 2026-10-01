@@ -6,7 +6,7 @@
 // solo el contenido y la categoría; el servidor no guarda nada que delate al
 // autor, ni siquiera mirando la base.
 
-import { enviar, usarDatos } from "./api";
+import { enviar, useDatos } from "./api";
 
 // ─── Enviar (estudiante) ─────────────────────────────────
 
@@ -42,8 +42,8 @@ export interface EstadisticaQuejas {
   porCategoria: { categoria: string; n: number }[];
 }
 
-export function usarQuejas() {
-  const { datos, cargando, error, recargar } = usarDatos<{
+export function useQuejas() {
+  const { datos, cargando, error, recargar } = useDatos<{
     quejas: QuejaServidor[];
     noVistas: number;
     estadistica: EstadisticaQuejas;

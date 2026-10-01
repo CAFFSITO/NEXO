@@ -3,7 +3,7 @@ import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
 import {
-  usarTendencias,
+  useTendencias,
   type AlcanceTendencias,
 } from "../servicios/comunidad";
 import ModalDetalleComunidad from "./components/comunidad/ModalDetalleComunidad";
@@ -31,7 +31,7 @@ export default function TendenciasPage() {
   const rol = usuario?.rol ?? "estudiante";
 
   const [alcance, setAlcance] = useState<AlcanceTendencias>("mi-escuela");
-  const { tendencias, cargando, error, recargar } = usarTendencias(alcance);
+  const { tendencias, cargando, error, recargar } = useTendencias(alcance);
   const usuarioId = usuario?.id ?? 0;
 
   // Cada tendencia es pulsable y expandible (Error 2.B.11): abre el detalle
@@ -48,7 +48,7 @@ export default function TendenciasPage() {
         onCerrarSesion={handleCerrarSesion}
       />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <TopBar title="Tendencias" />
 
         {/* Sub-navegación del módulo (Feed / Debates / Tendencias): navegación

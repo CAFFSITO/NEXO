@@ -93,7 +93,7 @@ export const ROLES_POR_PAGINA = {
   "biblioteca-nacional": ["estudiante", "profesor", "admin-academico", "bibliotecario"],
 
   // Chat
-  chat: ["estudiante", "profesor", "preceptor", "bibliotecario", "familia"],
+  chat: ["estudiante", "profesor", "preceptor", "bibliotecario", "familia", "admin-academico"],
 
   // Notificaciones (Etapa 6, servicio transversal 14.15, Error 9.D.1). La campana
   // y su lista las tienen los ocho roles: cualquiera que use NEXO recibe avisos.

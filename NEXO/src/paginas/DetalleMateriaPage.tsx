@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Sidebar from "./components/shared/Sidebar";
 import TopBar from "./components/shared/TopBar";
 import SubNavPortafolio from "./components/portafolio/SubNavPortafolio";
 import TarjetaTarea from "./components/portafolio/TarjetaTarea";
-import ModalDetalleTarea from "./components/portafolio/ModalDetalleTarea";
+import ModalDetalleTarea from "./components/shared/tareas/ModalDetalleTarea";
 import PanelAlumnosProfesor from "./components/portafolio-docente/PanelAlumnosProfesor";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 import { useNavegacion } from "../navegacion";
 import { textoRelativo } from "../servicios/fechas";
 import {
-  usarDetalleMateria,
-  usarAvisosMateria,
+  useDetalleMateria,
+  useAvisosMateria,
   reaccionarAviso,
   responderAviso,
   publicarAviso,
@@ -49,85 +49,31 @@ export default function DetalleMateriaPage() {
   const [params] = useSearchParams();
   const catedraId = params.get("catedra") ?? "";
 
-  const { detalle, cargando, error, recargar } = usarDetalleMateria(catedraId);
-  const { avisos: avisosServer } = usarAvisosMateria(catedraId);
-
-  const [avisos, setAvisos] = useState<AvisoMateria[]>([]);
-  useEffect(() => {
-    if (avisosServer) setAvisos(avisosServer);
-  }, [avisosServer]);
-
+  const { detalle, cargando, error, recargar } = useDetalleMateria(catedraId);
+  const { avisos: avisosServer, recargar: recargarAvisos } = useAvisosMateria(catedraId);
+  const avisos = avisosServer ?? [];
+  const [avisoError, setAvisoError] = useState<string | null>(null);
   const [tareaDetalleId, setTareaDetalleId] = useState<string | null>(null);
 
   if (!usuario) return null;
   const esProfesor = usuario.rol === "profesor";
 
-  // ── Reacciones y respuestas (alumno y profesor) ──
   const handleReaccion = async (avisoId: string, emoji: EmojiReaccion) => {
-    try {
-      const res = await reaccionarAviso(avisoId, emoji);
-      setAvisos((prev) =>
-        prev.map((a) => (a.id === avisoId ? { ...a, reacciones: res.reacciones, miReaccion: res.miReaccion } : a)),
-      );
-    } catch (e) {
-      console.error("No se pudo reaccionar", e);
-    }
+    try { await reaccionarAviso(avisoId, emoji); recargarAvisos(); }
+    catch (e) { setAvisoError(e instanceof Error ? e.message : "No se pudo reaccionar."); }
   };
-
-  const handleResponder = async (avisoId: string, contenido: string) => {
-    const nueva = await responderAviso(avisoId, contenido);
-    setAvisos((prev) =>
-      prev.map((a) => (a.id === avisoId ? { ...a, respuestas: [...a.respuestas, nueva] } : a)),
-    );
-  };
-
-  const handleEditarRespuesta = async (avisoId: string, respuestaId: string, contenido: string) => {
-    await editarRespuesta(respuestaId, contenido);
-    setAvisos((prev) =>
-      prev.map((a) =>
-        a.id === avisoId
-          ? { ...a, respuestas: a.respuestas.map((r) => (r.id === respuestaId ? { ...r, contenido } : r)) }
-          : a,
-      ),
-    );
-  };
-
-  const handleEliminarRespuesta = async (avisoId: string, respuestaId: string) => {
-    await eliminarRespuesta(respuestaId);
-    setAvisos((prev) =>
-      prev.map((a) =>
-        a.id === avisoId ? { ...a, respuestas: a.respuestas.filter((r) => r.id !== respuestaId) } : a,
-      ),
-    );
-  };
-
-  // ── Publicar / editar / borrar avisos (solo el profesor) ──
-  const handlePublicar = async (titulo: string, contenido: string) => {
-    const nuevo = await publicarAviso(catedraId, titulo, contenido);
-    setAvisos((prev) => [nuevo, ...prev]);
-  };
-
-  const handleEditarAviso = async (avisoId: string, titulo: string, contenido: string) => {
-    await editarAviso(avisoId, titulo, contenido);
-    setAvisos((prev) =>
-      prev.map((a) =>
-        a.id === avisoId
-          ? { ...a, titulo: titulo || null, contenido, editadoEn: new Date().toISOString() }
-          : a,
-      ),
-    );
-  };
-
-  const handleEliminarAviso = async (avisoId: string) => {
-    await eliminarAviso(avisoId);
-    setAvisos((prev) => prev.filter((a) => a.id !== avisoId));
-  };
-
+  const handleResponder = async (avisoId: string, contenido: string) => { await responderAviso(avisoId, contenido); recargarAvisos(); };
+  const handleEditarRespuesta = async (_avisoId: string, respuestaId: string, contenido: string) => { await editarRespuesta(respuestaId, contenido); recargarAvisos(); };
+  const handleEliminarRespuesta = async (_avisoId: string, respuestaId: string) => { await eliminarRespuesta(respuestaId); recargarAvisos(); };
+  const handlePublicar = async (titulo: string, contenido: string) => { await publicarAviso(catedraId, titulo, contenido); recargarAvisos(); };
+  const handleEditarAviso = async (avisoId: string, titulo: string, contenido: string) => { await editarAviso(avisoId, titulo, contenido); recargarAvisos(); };
+  const handleEliminarAviso = async (avisoId: string) => { await eliminarAviso(avisoId); recargarAvisos(); };
   return (
     <div className="flex bg-[#1C1030] min-h-screen text-on-surface">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
-      <main className="ml-[220px] w-[calc(100%-220px)] flex flex-col min-h-screen">
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
+        {avisoError && <p role="alert" className="p-4 text-error">{avisoError}</p>}
         <TopBar title="Portafolio de aprendizaje" subtitle="Materia" />
 
         {/* La subnav del Portafolio es del alumno; el profesor no la tiene. */}
@@ -282,6 +228,7 @@ function CompositorAviso({
   onPublicar: (titulo: string, contenido: string) => Promise<void>;
 }) {
   const [titulo, setTitulo] = useState("");
+  const [error, setError] = useState("");
   const [contenido, setContenido] = useState("");
   const [enviando, setEnviando] = useState(false);
 
@@ -289,12 +236,13 @@ function CompositorAviso({
     const texto = contenido.trim();
     if (!texto || enviando) return;
     setEnviando(true);
+    setError("");
     try {
       await onPublicar(titulo.trim(), texto);
       setTitulo("");
       setContenido("");
     } catch (e) {
-      console.error("No se pudo publicar el aviso", e);
+      setError(e instanceof Error ? e.message : "No se pudo publicar el aviso.");
     } finally {
       setEnviando(false);
     }
@@ -302,6 +250,7 @@ function CompositorAviso({
 
   return (
     <div className="bg-[#2D1B4E] border border-[#C548F5]/20 rounded-[14px] p-5 mb-4">
+      {error && <p role="alert" className="mb-3 text-sm text-red-300">{error}</p>}
       <input
         type="text"
         value={titulo}
@@ -352,6 +301,7 @@ function TarjetaAviso({
   onEliminarRespuesta: (avisoId: string, respuestaId: string) => Promise<void>;
 }) {
   const [respuesta, setRespuesta] = useState("");
+  const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [editando, setEditando] = useState(false);
   const [editTitulo, setEditTitulo] = useState(aviso.titulo ?? "");
@@ -373,7 +323,8 @@ function TarjetaAviso({
       const d = await traerDetalleAviso(catedraId, aviso.id);
       setReactores(d.reacciones);
     } catch (e) {
-      console.error("No se pudo traer quién reaccionó", e);
+      setError(e instanceof Error ? e.message : "No se pudieron cargar las reacciones.");
+      setVerReactores(false);
     }
   };
 
@@ -385,20 +336,23 @@ function TarjetaAviso({
       await onResponder(aviso.id, texto);
       setRespuesta("");
     } catch (e) {
-      console.error("No se pudo responder", e);
+      setError(e instanceof Error ? e.message : "No se pudo responder.");
     } finally {
       setEnviando(false);
     }
   };
 
   const guardarEdicion = async () => {
-    if (!editContenido.trim()) return;
-    await onEditarAviso(aviso.id, editTitulo.trim(), editContenido.trim());
-    setEditando(false);
+    if (!editContenido.trim() || enviando) return;
+    setEnviando(true); setError("");
+    try { await onEditarAviso(aviso.id, editTitulo.trim(), editContenido.trim()); setEditando(false); }
+    catch (e) { setError(e instanceof Error ? e.message : "No se pudo guardar el aviso."); }
+    finally { setEnviando(false); }
   };
 
   return (
     <div className="bg-[#2D1B4E] border border-white/5 rounded-[14px] p-5">
+      {error && <p role="alert" className="mb-3 text-sm text-red-300">{error}</p>}
       {/* Autor + fecha + acciones (si el aviso es mío) */}
       <div className="flex items-center gap-2 mb-2">
         <div className="w-8 h-8 rounded-full bg-[#1C1030] flex items-center justify-center overflow-hidden text-[10px] font-bold text-white/60 shrink-0">
@@ -429,7 +383,7 @@ function TarjetaAviso({
               <span className="material-symbols-outlined text-lg">edit</span>
             </button>
             <button
-              onClick={() => onEliminarAviso(aviso.id)}
+              onClick={() => onEliminarAviso(aviso.id).catch(e => setError(e instanceof Error ? e.message : "No se pudo borrar el aviso."))}
               className="p-1.5 text-white/40 hover:text-red-400 transition-colors"
               title="Borrar aviso"
             >
@@ -576,11 +530,15 @@ function Respuesta({
 }) {
   const [editando, setEditando] = useState(false);
   const [texto, setTexto] = useState(respuesta.contenido);
+  const [error, setError] = useState("");
+  const [guardando, setGuardando] = useState(false);
 
   const guardar = async () => {
-    if (!texto.trim()) return;
-    await onEditar(avisoId, respuesta.id, texto.trim());
-    setEditando(false);
+    if (!texto.trim() || guardando) return;
+    setGuardando(true); setError("");
+    try { await onEditar(avisoId, respuesta.id, texto.trim()); setEditando(false); }
+    catch (e) { setError(e instanceof Error ? e.message : "No se pudo guardar la respuesta."); }
+    finally { setGuardando(false); }
   };
 
   return (
@@ -593,6 +551,7 @@ function Respuesta({
         )}
       </div>
       <div className="min-w-0 flex-1">
+        {error && <p role="alert" className="mb-2 text-xs text-red-300">{error}</p>}
         <p className="text-white/80 text-xs">
           <span className="font-bold text-white">{respuesta.autor}</span>{" "}
           <span className="text-white/30">· {textoRelativo(respuesta.creadoEn)}</span>
@@ -612,7 +571,7 @@ function Respuesta({
               <button onClick={() => setEditando(false)} className="text-xs text-white/50 hover:text-white">
                 Cancelar
               </button>
-              <button onClick={guardar} disabled={!texto.trim()} className="text-xs text-[#C548F5] font-bold hover:underline disabled:opacity-40">
+              <button onClick={guardar} disabled={!texto.trim() || guardando} className="text-xs text-[#C548F5] font-bold hover:underline disabled:opacity-40">
                 Guardar
               </button>
             </div>
@@ -622,7 +581,7 @@ function Respuesta({
         )}
       </div>
       {respuesta.esMia && !editando && (
-        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => {
               setTexto(respuesta.contenido);
@@ -634,7 +593,7 @@ function Respuesta({
             <span className="material-symbols-outlined text-base">edit</span>
           </button>
           <button
-            onClick={() => onEliminar(avisoId, respuesta.id)}
+            onClick={() => onEliminar(avisoId, respuesta.id).catch(e => setError(e instanceof Error ? e.message : "No se pudo borrar la respuesta."))}
             className="p-1 text-white/40 hover:text-red-400 transition-colors"
             title="Borrar respuesta"
           >
