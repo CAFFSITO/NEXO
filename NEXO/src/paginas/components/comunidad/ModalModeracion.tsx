@@ -71,9 +71,9 @@ export default function ModalModeracion({ onCerrar }: Props) {
             </div>
           )}
           {denuncias?.map((d) => (
-            <div key={d.id} className="bg-[#1C1030] rounded-xl p-4 border border-white/5">
+            <div key={d.id} className="bg-fondo rounded-xl p-4 border border-white/5">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#C548F5]/15 text-[#C548F5]">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-acento/15 text-acento">
                   {ETIQUETA_TIPO[d.objetoTipo]}
                 </span>
                 <span className="text-xs text-white/40">

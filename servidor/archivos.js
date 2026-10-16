@@ -23,18 +23,30 @@
 // ============================================================================
 
 import express from "express";
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { join, extname, basename } from "node:path";
 import { randomBytes } from "node:crypto";
 import { exigirSesion, ventanilla, estaInscripto } from "./comun.js";
 
-// Tope de tamaño: 15 MB. Suficiente para una entrega (documento, imagen, PDF) y
-// un freno para que nadie llene el disco del servidor de una.
+// Topes de tamaño: 15 MB para documentos e imágenes (una entrega, un recurso) y
+// 100 MB para video y audio (la Comunidad). Un freno para que nadie llene el
+// disco del servidor de una.
 const LIMITE_BYTES = 15 * 1024 * 1024;
+const LIMITE_MULTIMEDIA = 100 * 1024 * 1024;
+const esMultimedia = (tipo) => tipo.startsWith("video/") || tipo.startsWith("audio/");
 
-// Tipos permitidos. Lista blanca, no negra: se nombra lo que SÍ entra, así un
-// tipo nuevo peligroso no pasa por olvido. Cubre documentos, imágenes y los
-// comprimidos habituales de una entrega escolar. Nada de ejecutables.
+// Lo que se puede MOSTRAR en la página (?inline=1). El resto siempre se
+// descarga: un HTML o un SVG subido por alguien nunca se ejecuta en NEXO.
+const TIPOS_EN_LINEA = new Set(["application/pdf", "text/plain", "image/png", "image/jpeg", "image/gif", "image/webp"]);
+const seMuestraEnLinea = (tipo) => TIPOS_EN_LINEA.has(tipo) || esMultimedia(tipo);
+
+// "Archivos de todo tipo" (la Comunidad), menos lo que se ejecuta.
+const EXTENSIONES_PROHIBIDAS = new Set([".exe", ".bat", ".cmd", ".com", ".msi", ".scr", ".ps1", ".vbs", ".jar", ".app", ".sh", ".dll", ".html", ".htm", ".svg", ".hta", ".lnk"]);
+
+// Tipos conocidos: se guardan con su tipo. Cualquier otro se guarda como binario
+// genérico (application/octet-stream), que nunca se muestra en la página: solo se
+// descarga. Así un tipo nuevo peligroso no pasa "por olvido" a mostrarse. Los
+// ejecutables se frenan por la extensión (EXTENSIONES_PROHIBIDAS).
 const TIPOS_PERMITIDOS = new Set([
   "application/pdf",
   "application/msword",
@@ -51,6 +63,30 @@ const TIPOS_PERMITIDOS = new Set([
   "image/jpeg",
   "image/gif",
   "image/webp",
+  "image/heic",
+  // Video y audio (la Comunidad: perfiles con la capacidad "multimedia").
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/ogg",
+  "audio/mpeg",
+  "audio/mp4",
+  "audio/ogg",
+  "audio/wav",
+  "audio/webm",
+  // Más documentos y comprimidos.
+  "application/vnd.oasis.opendocument.text",
+  "application/vnd.oasis.opendocument.spreadsheet",
+  "application/vnd.oasis.opendocument.presentation",
+  "application/rtf",
+  "application/epub+zip",
+  "application/json",
+  "text/markdown",
+  "application/x-7z-compressed",
+  "application/vnd.rar",
+  "application/x-rar-compressed",
+  // Cualquier otro archivo (el navegador lo manda así si no conoce el tipo).
+  "application/octet-stream",
 ]);
 
 /**
@@ -177,7 +213,49 @@ function archivoDescargable(db, usuario, archivoId, res) {
     if (esDestinataria) return archivo;
   }
 
+  // 7. Adjunto de la COMUNIDAD (publicación, respuesta, debate o aporte) → lo
+  //    baja la gente de esa escuela mientras el contenido siga publicado. Una
+  //    publicación programada todavía no existe para el resto.
+  const enComunidad = db.prepare("SELECT objeto_tipo, objeto_id FROM contenido_adjuntos WHERE archivo_id = ?").all(archivoId);
+  const imagenVieja = db.prepare("SELECT id FROM publicaciones WHERE imagen_id = ?").all(archivoId).map((p) => ({ objeto_tipo: "publicacion", objeto_id: p.id }));
+  for (const { objeto_tipo: tipo, objeto_id: id } of [...enComunidad, ...imagenVieja]) {
+    if (institucionDeContenido(db, tipo, id) === usuario.institucionId) return archivo;
+  }
+
+  // 8. Adjunto de un AVISO (anuncios obligatorios) → lo baja cada persona a la
+  //    que le llegó ese aviso. Quien lo mandó ya pasó por la regla 1.
+  const comoAviso = db
+    .prepare(
+      `SELECT 1
+         FROM anuncio_adjuntos aa
+         JOIN anuncio_destinatarios d ON d.anuncio_id = aa.anuncio_id
+        WHERE aa.archivo_id = ? AND d.usuario_id = ?
+        LIMIT 1`
+    )
+    .get(archivoId, usuario.id);
+  if (comoAviso) return archivo;
+
   res.status(403).json({ error: "No tenés permiso para ver este archivo." });
+  return null;
+}
+
+/** La escuela de un contenido publicado de la Comunidad (null si no está o no se ve). */
+function institucionDeContenido(db, tipo, id) {
+  if (tipo === "publicacion") {
+    return db.prepare(
+      "SELECT institucion_id AS i FROM publicaciones WHERE id = ? AND eliminado_en IS NULL AND (publicar_en IS NULL OR publicar_en <= datetime('now'))"
+    ).get(id)?.i ?? null;
+  }
+  if (tipo === "debate") return db.prepare("SELECT institucion_id AS i FROM debates WHERE id = ? AND eliminado_en IS NULL").get(id)?.i ?? null;
+  if (tipo === "aporte") {
+    return db.prepare(
+      "SELECT d.institucion_id AS i FROM debate_aportes a JOIN debates d ON d.id = a.debate_id WHERE a.id = ? AND a.eliminado_en IS NULL AND d.eliminado_en IS NULL"
+    ).get(id)?.i ?? null;
+  }
+  if (tipo === "comentario") {
+    const c = db.prepare("SELECT objeto_tipo, objeto_id FROM comentarios WHERE id = ? AND eliminado_en IS NULL").get(id);
+    return c ? institucionDeContenido(db, c.objeto_tipo, c.objeto_id) : null;
+  }
   return null;
 }
 
@@ -235,7 +313,7 @@ export function registrarArchivos(app, db, carpetaServidor) {
   // tamaño: sin esto, alguien podría mandar gigabytes antes de que miremos.
   app.post(
     "/api/archivos",
-    express.raw({ type: "*/*", limit: LIMITE_BYTES }),
+    express.raw({ type: "*/*", limit: LIMITE_MULTIMEDIA }),
     ventanilla((req, res) => {
       const usuario = exigirSesion(db, req, res);
       if (!usuario) return;
@@ -244,17 +322,16 @@ export function registrarArchivos(app, db, carpetaServidor) {
       if (!Buffer.isBuffer(bytes) || bytes.length === 0) {
         return res.status(400).json({ error: "No llegó ningún archivo." });
       }
-      if (bytes.length > LIMITE_BYTES) {
+      // Un tipo que no está en la lista se guarda como binario genérico en vez
+      // de rechazarse: subirlo así ya estaba permitido (octet-stream), y un
+      // archivo genérico nunca se muestra en la página, solo se descarga. Lo que
+      // sí se frena es lo que se ejecuta (por la extensión, más abajo).
+      const declarado = String(req.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
+      const tipo = TIPOS_PERMITIDOS.has(declarado) ? declarado : "application/octet-stream";
+      if (bytes.length > (esMultimedia(tipo) ? LIMITE_MULTIMEDIA : LIMITE_BYTES)) {
         return res
           .status(413)
-          .json({ error: "El archivo supera el límite de 15 MB." });
-      }
-
-      const tipo = String(req.headers["content-type"] || "").split(";")[0].trim();
-      if (!TIPOS_PERMITIDOS.has(tipo)) {
-        return res
-          .status(415)
-          .json({ error: "Ese tipo de archivo no está permitido." });
+          .json({ error: esMultimedia(tipo) ? "El video o audio supera el límite de 100 MB." : "El archivo supera el límite de 15 MB." });
       }
 
       // El nombre original viaja codificado en una cabecera propia (una cabecera
@@ -262,6 +339,9 @@ export function registrarArchivos(app, db, carpetaServidor) {
       const nombreOriginal = decodeURIComponent(
         String(req.headers["x-nombre-archivo"] || "archivo")
       );
+      if (EXTENSIONES_PROHIBIDAS.has(extname(nombreOriginal).toLowerCase())) {
+        return res.status(415).json({ error: "Por seguridad, no se pueden subir programas ni páginas web." });
+      }
 
       // Escribir en disco y anotar en la tabla, con la MISMA pieza que usa el
       // servidor para los reportes que genera él mismo (sección 1.4).
@@ -306,19 +386,22 @@ export function registrarArchivos(app, db, carpetaServidor) {
       }
 
       res.setHeader("Content-Type", archivo.tipo_mime);
+      res.setHeader("X-Content-Type-Options", "nosniff");
       // Con `?inline=1` el navegador MUESTRA el archivo en la misma página (una
       // imagen en un <img>, un PDF en un <iframe>): así el bibliotecario lo
       // previsualiza antes de decidir. Sin ese parámetro es `attachment` y se
       // descarga, como siempre. El permiso ya se validó igual para los dos casos
       // (archivoDescargable): `inline` solo cambia cómo se entrega, no a quién.
-      const inline = req.query?.inline === "1" || req.query?.inline === "true";
+      // Y solo para lo que es seguro mostrar (imágenes, PDF, video, audio).
+      const inline = (req.query?.inline === "1" || req.query?.inline === "true") && seMuestraEnLinea(archivo.tipo_mime);
       // El nombre que ve la persona es el original, no el hexadecimal con que lo
       // guardamos.
       res.setHeader(
         "Content-Disposition",
         `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(archivo.nombre_original)}`
       );
-      res.send(readFileSync(ruta));
+      // sendFile entiende pedidos por rangos: un video se puede adelantar.
+      res.sendFile(ruta);
     })
   );
 }

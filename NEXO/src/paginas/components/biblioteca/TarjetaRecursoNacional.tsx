@@ -22,7 +22,7 @@ export default function TarjetaRecursoNacional({
   const negativos = recurso.votosNegativos;
 
   return (
-    <div className="bg-[#2D1B4E] rounded-[16px] p-5 flex items-start gap-5 hover:bg-[#341f5a] transition-all border border-transparent hover:border-fuchsia-500/20 group">
+    <div className="bg-lienzo rounded-[16px] p-5 flex items-start gap-5 hover:bg-[#341f5a] transition-all border border-transparent hover:border-fuchsia-500/20 group">
       <div className="w-12 h-12 bg-fuchsia-500/10 rounded-xl flex items-center justify-center text-fuchsia-400 group-hover:bg-fuchsia-500 group-hover:text-white transition-all">
         <span className="material-symbols-outlined text-3xl">{ICONO_POR_TIPO[recurso.tipo]}</span>
       </div>

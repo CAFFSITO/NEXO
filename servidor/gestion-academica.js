@@ -3,17 +3,55 @@ import { asegurarComunidadCurso } from "./chat.js";
 
 const idValido = (valor) => Number.isSafeInteger(Number(valor)) && Number(valor) > 0;
 
+// Turnos y especialidades: cada escuela tiene su lista (tablas curso_turnos y
+// curso_especialidades) y la dirección suma los que le falten desde "Crear un
+// curso". La primera vez que una escuela los necesita, arrancan con estos.
+const TURNOS_INICIALES = ["Mañana", "Tarde", "Vespertino"];
+const ESPECIALIDADES_INICIALES = ["Informática", "Electromecánica", "Energías renovables"];
+const LISTAS = {
+  turnos: { tabla: "curso_turnos", iniciales: TURNOS_INICIALES, delNombre: "del turno" },
+  especialidades: { tabla: "curso_especialidades", iniciales: ESPECIALIDADES_INICIALES, delNombre: "de la especialidad" },
+};
+
+/** Las dos listas de la escuela, creadas con sus valores iniciales si todavía no existen. */
+export function listasDeCurso(db, institucionId) {
+  const resultado = {};
+  for (const [clave, lista] of Object.entries(LISTAS)) {
+    const leer = () => db.prepare(`SELECT id, nombre FROM ${lista.tabla} WHERE institucion_id = ? ORDER BY orden, id`).all(institucionId);
+    let filas = leer();
+    if (filas.length === 0) {
+      const insertar = db.prepare(`INSERT OR IGNORE INTO ${lista.tabla} (institucion_id, nombre, orden) VALUES (?, ?, ?)`);
+      lista.iniciales.forEach((nombre, orden) => insertar.run(institucionId, nombre, orden));
+      filas = leer();
+    }
+    resultado[clave] = filas.map((f) => ({ id: String(f.id), nombre: f.nombre }));
+  }
+  return resultado;
+}
+
+/** { id, nombre } de un turno o especialidad para mostrar (null si no tiene). */
+export const datoDeLista = (id, nombre) => (id ? { id: String(id), nombre } : null);
+
 /** La dirección administra relaciones reales; nunca nombres libres sin usuario. */
 export function registrarGestionAcademica(app, db) {
   const acceso = (req, res) => exigirAcceso(db, req, res, "cursos-activos");
   const persona = db.prepare("SELECT id FROM usuarios WHERE id = ? AND institucion_id = ? AND rol = ? AND estado = 'activo'");
   const buscarCurso = db.prepare("SELECT * FROM cursos WHERE id = ? AND institucion_id = ?");
+  const deLaEscuela = {
+    turnos: db.prepare("SELECT id FROM curso_turnos WHERE id = ? AND institucion_id = ?"),
+    especialidades: db.prepare("SELECT id FROM curso_especialidades WHERE id = ? AND institucion_id = ?"),
+  };
   function cursoPropio(req, res, usuario) {
     const curso = idValido(req.params.id) ? buscarCurso.get(Number(req.params.id), usuario.institucionId) : null;
     if (!curso) res.status(404).json({ error: "Ese curso no existe en tu institución." });
     return curso;
   }
-  function datosCurso(req, res, usuario) {
+  /**
+   * `actual` = el curso que se edita (null al crear). Al crear, el turno es
+   * obligatorio; al editar, lo que no venga queda como estaba (así "Guardar
+   * preceptor" no tiene que mandar el turno de nuevo).
+   */
+  function datosCurso(req, res, usuario, actual = null) {
     const anio = Number(req.body?.anio);
     const division = String(req.body?.division ?? "").trim().toUpperCase();
     const preceptorId = req.body?.preceptorId == null || req.body.preceptorId === "" ? null : Number(req.body.preceptorId);
@@ -25,7 +63,29 @@ export function registrarGestionAcademica(app, db) {
       res.status(400).json({ error: "Elegí un preceptor activo de tu institución." });
       return null;
     }
-    return { anio, division, preceptorId };
+    // Turno y especialidad: ids de las listas de ESTA escuela.
+    const turnoPedido = req.body?.turnoId;
+    let turnoId;
+    if (turnoPedido === undefined && actual) turnoId = actual.turno_id;
+    else {
+      turnoId = idValido(turnoPedido) ? Number(turnoPedido) : null;
+      if (!turnoId || !deLaEscuela.turnos.get(turnoId, usuario.institucionId)) {
+        res.status(400).json({ error: "Elegí el turno del curso." });
+        return null;
+      }
+    }
+    const especialidadPedida = req.body?.especialidadId;
+    let especialidadId;
+    if (especialidadPedida === undefined) especialidadId = actual?.especialidad_id ?? null;
+    else if (especialidadPedida === null || especialidadPedida === "") especialidadId = null;
+    else {
+      especialidadId = idValido(especialidadPedida) ? Number(especialidadPedida) : null;
+      if (!especialidadId || !deLaEscuela.especialidades.get(especialidadId, usuario.institucionId)) {
+        res.status(400).json({ error: "Esa especialidad no existe en tu escuela." });
+        return null;
+      }
+    }
+    return { anio, division, preceptorId, turnoId, especialidadId };
   }
   function transaccion(operacion) {
     db.exec("BEGIN");
@@ -50,7 +110,17 @@ export function registrarGestionAcademica(app, db) {
     res.json({
       preceptores: porRol("preceptor"), profesores: porRol("profesor"), estudiantes: porRol("estudiante"), familias: porRol("familia"),
       materias: db.prepare("SELECT id, nombre FROM materias WHERE institucion_id = ? ORDER BY nombre").all(usuario.institucionId).map((m) => ({ ...m, id: String(m.id) })),
-      cursos: db.prepare("SELECT id, anio, division FROM cursos WHERE institucion_id = ? ORDER BY anio, division").all(usuario.institucionId).map((c) => ({ ...c, id: String(c.id) })),
+      cursos: db.prepare(
+        `SELECT c.id, c.anio, c.division, t.id AS turno_id, t.nombre AS turno, e.id AS especialidad_id, e.nombre AS especialidad
+           FROM cursos c
+           LEFT JOIN curso_turnos t ON t.id = c.turno_id
+           LEFT JOIN curso_especialidades e ON e.id = c.especialidad_id
+          WHERE c.institucion_id = ? ORDER BY c.anio, c.division`
+      ).all(usuario.institucionId).map((c) => ({
+        id: String(c.id), anio: c.anio, division: c.division,
+        turno: datoDeLista(c.turno_id, c.turno), especialidad: datoDeLista(c.especialidad_id, c.especialidad),
+      })),
+      ...listasDeCurso(db, usuario.institucionId),
     });
   }));
 
@@ -59,12 +129,12 @@ export function registrarGestionAcademica(app, db) {
     if (!usuario) return;
     const datos = datosCurso(req, res, usuario);
     if (!datos) return;
-    const { anio, division, preceptorId } = datos;
+    const { anio, division, preceptorId, turnoId, especialidadId } = datos;
     if (db.prepare("SELECT id FROM cursos WHERE institucion_id = ? AND anio = ? AND division = ? COLLATE NOCASE").get(usuario.institucionId, anio, division)) {
       return res.status(409).json({ error: "Ya existe un curso con ese año y división." });
     }
     const id = transaccion(() => {
-      const info = db.prepare("INSERT INTO cursos (institucion_id, anio, division, preceptor_id) VALUES (?, ?, ?, ?)").run(usuario.institucionId, anio, division, preceptorId);
+      const info = db.prepare("INSERT INTO cursos (institucion_id, anio, division, preceptor_id, turno_id, especialidad_id) VALUES (?, ?, ?, ?, ?, ?)").run(usuario.institucionId, anio, division, preceptorId, turnoId, especialidadId);
       asegurarComunidadCurso(db, Number(info.lastInsertRowid));
       return info.lastInsertRowid;
     });
@@ -76,14 +146,14 @@ export function registrarGestionAcademica(app, db) {
     if (!usuario) return;
     const curso = cursoPropio(req, res, usuario);
     if (!curso) return;
-    const datos = datosCurso(req, res, usuario);
+    const datos = datosCurso(req, res, usuario, curso);
     if (!datos) return;
-    const { anio, division, preceptorId } = datos;
+    const { anio, division, preceptorId, turnoId, especialidadId } = datos;
     if (db.prepare("SELECT id FROM cursos WHERE institucion_id = ? AND anio = ? AND division = ? COLLATE NOCASE AND id <> ?").get(usuario.institucionId, anio, division, curso.id)) {
       return res.status(409).json({ error: "Ya existe un curso con ese año y división." });
     }
     transaccion(() => {
-      db.prepare("UPDATE cursos SET anio = ?, division = ?, preceptor_id = ? WHERE id = ?").run(anio, division, preceptorId, curso.id);
+      db.prepare("UPDATE cursos SET anio = ?, division = ?, preceptor_id = ?, turno_id = ?, especialidad_id = ? WHERE id = ?").run(anio, division, preceptorId, turnoId, especialidadId, curso.id);
       asegurarComunidadCurso(db, curso.id);
     });
     res.json({ ok: true });
@@ -138,6 +208,28 @@ export function registrarGestionAcademica(app, db) {
     const catedra = db.prepare("SELECT id FROM catedras WHERE curso_id = ? AND materia_id = ?").get(curso.id, materiaId);
     res.status(201).json({ id: String(catedra.id) });
   }));
+
+  // ── Sumar un turno o una especialidad a la lista de la escuela ──────────────
+  // Desde "Crear un curso": si falta el que necesita, la dirección lo escribe y
+  // queda para todos los cursos de su escuela. No se repiten (sin importar
+  // mayúsculas ni espacios de más).
+  for (const [ruta, lista] of Object.entries(LISTAS)) {
+    app.post(`/api/cursos/${ruta}`, ventanilla((req, res) => {
+      const usuario = acceso(req, res);
+      if (!usuario) return;
+      const nombre = String(req.body?.nombre ?? "").replace(/\s+/g, " ").trim();
+      if (!nombre || nombre.length > 40) {
+        return res.status(400).json({ error: `Escribí el nombre ${lista.delNombre} (hasta 40 letras).` });
+      }
+      const actuales = listasDeCurso(db, usuario.institucionId)[ruta];
+      const comparable = (t) => t.toLocaleLowerCase("es");
+      const repetido = actuales.find((x) => comparable(x.nombre) === comparable(nombre));
+      if (repetido) return res.status(409).json({ error: `${repetido.nombre} ya está en la lista.`, existente: repetido });
+      const orden = db.prepare(`SELECT COALESCE(MAX(orden), -1) + 1 AS n FROM ${lista.tabla} WHERE institucion_id = ?`).get(usuario.institucionId).n;
+      const info = db.prepare(`INSERT INTO ${lista.tabla} (institucion_id, nombre, orden) VALUES (?, ?, ?)`).run(usuario.institucionId, nombre, orden);
+      res.status(201).json({ id: String(info.lastInsertRowid), nombre });
+    }));
+  }
 
   app.post("/api/materias", ventanilla((req, res) => {
     const usuario = acceso(req, res);

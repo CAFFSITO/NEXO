@@ -14,14 +14,18 @@
 //   PATCH  /api/perfiles/:id          → editar nombre, correo, rol, estado
 //   POST   /api/perfiles/:id/papelera → baja suave (papelera, restaurable 7 días)
 //   POST   /api/perfiles/:id/restaurar→ sacar de la papelera
+//   DELETE /api/perfiles/:id          → borrar para siempre (solo desde la papelera)
+//   GET    /api/perfiles/opciones     → lo que necesita el formulario de alta
 //
 // Todo se decide en la cocina (regla de oro 4): que la pantalla no muestre el
 // botón no alcanza; la ventanilla vuelve a comprobar el rol y la institución.
 // ============================================================================
 
-import { randomBytes } from "node:crypto";
 import { exigirAcceso, ventanilla } from "./comun.js";
-import { hashearContrasena, validarContrasena } from "./contrasenas.js";
+import { asegurarComunidadCurso } from "./chat.js";
+import { datoDeLista } from "./gestion-academica.js";
+import { generarContrasenaInicial, hashearContrasena, validarContrasena } from "./contrasenas.js";
+import { algoritmo, leerGenoma } from "./genoma.js";
 
 // Los roles que la dirección de un colegio puede dar de alta DENTRO de su
 // institución. Están los ocho de NEXO menos 'administrador': el operador de
@@ -40,15 +44,164 @@ const ROLES_QUE_CREA_LA_DIRECCION = new Set([
 ]);
 
 // Días que un perfil sobrevive en la papelera antes de borrarse para siempre
-// (sección 14.17). El mismo número lo muestra la pantalla como "quedan N días".
-const DIAS_EN_PAPELERA = 7;
+// (sección 14.17): ya no es un número fijo, es el algoritmo «Purga de la
+// papelera» del genoma de cada escuela (7 días por defecto; el Maestro puede
+// cambiarlo o apagar la purga). El mismo número lo muestra la pantalla como
+// "quedan N días".
+function plazoPapelera(db, institucionId) {
+  const regla = algoritmo(db, institucionId, "perfiles.papelera");
+  return regla.activo ? Math.round(regla.parametros.dias) : null;
+}
 
-// Contraseña inicial legible que se le entrega a la persona recién creada. No es
-// para memorizar: la cambia en su primera entrada desde Configuración. randomBytes
-// y no Math.random porque con esto se entra a una cuenta real.
-function generarContrasenaInicial() {
-  // 9 bytes → 12 caracteres base64url (sin símbolos raros ni relleno).
-  return randomBytes(9).toString("base64url");
+/**
+ * El perfil diseñado que se le asigna a alguien. Vacío o igual al rol = el
+ * predeterminado (NULL en la base). Si no, tiene que existir en el genoma de la
+ * escuela y nacer del MISMO arquetipo que el rol: un perfil de estudiante no se
+ * le puede poner a un profesor. `undefined` = el perfil no es válido.
+ */
+function perfilParaRol(db, institucionId, rol, crudo) {
+  const clave = String(crudo ?? "").trim();
+  if (!clave || clave === rol) return null;
+  const perfil = leerGenoma(db, institucionId).perfiles.find((p) => p.clave === clave);
+  if (!perfil || perfil.predeterminado || perfil.arquetipo !== rol) return undefined;
+  return clave;
+}
+
+const idValido = (valor) => Number.isSafeInteger(Number(valor)) && Number(valor) > 0;
+
+/**
+ * La terminación del correo de la escuela ("sinvueltas.org"), para que el alta
+ * la traiga escrita. Primero la que definió el Maestro en el genoma; si no hay,
+ * la que más usan las cuentas de la escuela. null = no hay de dónde sacarla.
+ */
+function dominioDeLaEscuela(db, institucionId) {
+  const delGenoma = String(leerGenoma(db, institucionId).identidad?.dominio ?? "")
+    .trim()
+    .replace(/^@/, "")
+    .toLowerCase();
+  if (delGenoma) return delGenoma;
+  const masUsado = db
+    .prepare(
+      `SELECT lower(substr(email, instr(email, '@') + 1)) AS dominio, COUNT(*) AS n
+         FROM usuarios
+        WHERE institucion_id = ? AND instr(email, '@') > 0 AND estado <> 'papelera'
+        GROUP BY dominio
+        ORDER BY n DESC
+        LIMIT 1`
+    )
+    .get(institucionId);
+  return masUsado?.dominio || null;
+}
+
+/**
+ * Los cursos que se le asignan a alguien al darlo de alta, ya validados.
+ * Cada asignación es { cursoId } y, para un profesor, { cursoId, materiaId }:
+ * en la base un profesor se une a un curso por una cátedra (qué materia da ahí).
+ * Devuelve { lista } o { error } con el motivo para mostrar tal cual.
+ */
+function leerAsignaciones(db, institucionId, rol, crudo) {
+  if (crudo == null) return { lista: [] };
+  if (!Array.isArray(crudo) || crudo.length > 60) return { error: "Los cursos elegidos no son válidos." };
+  if (crudo.length === 0) return { lista: [] };
+  if (!["estudiante", "preceptor", "profesor"].includes(rol)) {
+    return { error: "Ese rol no lleva cursos asignados." };
+  }
+  if (rol === "estudiante" && crudo.length > 1) {
+    return { error: "Un estudiante va en un solo curso." };
+  }
+
+  const curso = db.prepare("SELECT id, anio, division FROM cursos WHERE id = ? AND institucion_id = ?");
+  const materia = db.prepare("SELECT id FROM materias WHERE id = ? AND institucion_id = ?");
+  const vistos = new Set();
+  const lista = [];
+  for (const a of crudo) {
+    const c = idValido(a?.cursoId) ? curso.get(Number(a.cursoId), institucionId) : null;
+    if (!c) return { error: "Uno de los cursos elegidos no existe en tu institución." };
+    let materiaId = null;
+    if (rol === "profesor") {
+      if (!idValido(a?.materiaId) || !materia.get(Number(a.materiaId), institucionId)) {
+        return { error: `Elegí qué materia da en ${c.anio}° ${c.division}.` };
+      }
+      materiaId = Number(a.materiaId);
+    }
+    const clave = `${c.id}:${materiaId}`;
+    if (vistos.has(clave)) continue;
+    vistos.add(clave);
+    lista.push({ cursoId: c.id, materiaId });
+  }
+  return { lista };
+}
+
+/**
+ * Borra un perfil para siempre y deja libre su correo. Lo usan el botón
+ * "Borrar definitivamente" de la papelera y la purga automática.
+ *
+ * Si la persona nunca hizo nada en NEXO, su fila se borra de verdad. Si ya tiene
+ * actividad que otros necesitan (entregas, mensajes, la cátedra con las tareas de
+ * un curso), borrar la fila arrastraría datos ajenos, así que la base lo frena;
+ * en ese caso la cuenta queda anónima: "Cuenta eliminada", sin escuela, sin forma
+ * de entrar y con un correo de relleno. Para la dirección el efecto es el mismo:
+ * la persona desaparece de la lista y el correo se puede volver a usar.
+ *
+ * `realizadoPorId` = quién la borró (null = la purga automática). Devuelve
+ * "borrado" o "anonimizado".
+ */
+export function borrarPerfilEnFirme(db, u, realizadoPorId) {
+  db.exec("BEGIN");
+  try {
+    db.prepare(
+      `INSERT INTO papelera_movimientos (usuario_afectado_id, afectado_desc, accion, realizado_por_id)
+       VALUES (?, ?, 'purgado', ?)`
+    ).run(u.id, `${u.nombre} · ${u.email}`, realizadoPorId);
+    // Lo que solo existe para que la persona entre o reciba avisos.
+    db.prepare("DELETE FROM sesiones WHERE usuario_id = ?").run(u.id);
+    db.prepare("DELETE FROM codigos_recuperacion WHERE usuario_id = ?").run(u.id);
+    db.prepare("DELETE FROM push_suscripciones WHERE usuario_id = ?").run(u.id);
+    // Sus lugares en la escuela quedan libres para otra persona.
+    db.prepare("DELETE FROM inscripciones WHERE estudiante_id = ?").run(u.id);
+    db.prepare("DELETE FROM familiares WHERE usuario_familia_id = ? OR estudiante_id = ?").run(u.id, u.id);
+    db.prepare("UPDATE cursos SET preceptor_id = NULL WHERE preceptor_id = ?").run(u.id);
+    // Sus cátedras sin nada colgando (ni tareas ni clases) se sueltan. Las que ya
+    // tienen trabajo de los chicos las protege la base (nada referencia a una
+    // cátedra en cascada): se quedan, para reasignarlas en Cursos y materias.
+    for (const { id } of db.prepare("SELECT id FROM catedras WHERE profesor_id = ?").all(u.id)) {
+      db.exec("SAVEPOINT soltar_catedra");
+      try {
+        db.prepare("DELETE FROM catedras WHERE id = ?").run(id);
+        db.exec("RELEASE soltar_catedra");
+      } catch {
+        db.exec("ROLLBACK TO soltar_catedra");
+        db.exec("RELEASE soltar_catedra");
+      }
+    }
+
+    let resultado = "borrado";
+    db.exec("SAVEPOINT borrar_usuario");
+    try {
+      db.prepare("DELETE FROM usuarios WHERE id = ?").run(u.id);
+      db.exec("RELEASE borrar_usuario");
+    } catch {
+      db.exec("ROLLBACK TO borrar_usuario");
+      db.exec("RELEASE borrar_usuario");
+      // hash '!' no es un formato válido: verificarContrasena siempre da false.
+      db.prepare(
+        `UPDATE usuarios
+            SET email = ?, nombre = 'Cuenta eliminada', hash_contrasena = '!',
+                avatar_url = NULL, institucion_id = NULL, perfil_clave = NULL, primer_ingreso = 0
+          WHERE id = ?`
+      ).run(`eliminada-${u.id}@cuenta-eliminada.invalid`, u.id);
+      resultado = "anonimizado";
+    }
+    db.exec("COMMIT");
+    return resultado;
+  } catch (error) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      // Nada que deshacer si el BEGIN no llegó a abrir.
+    }
+    throw error;
+  }
 }
 
 // Qué dice la columna "asignación" de cada rol. Los roles cuya asignación es su
@@ -69,7 +222,7 @@ export function registrarPerfiles(app, db) {
   // pertenece a ningún colegio (su institucion_id es NULL) — que es exactamente
   // lo que pide la sección 1.1: no debe ver los datos internos de una escuela.
   const listarPersonas = db.prepare(
-    `SELECT id, nombre, email, rol, estado, avatar_url, eliminado_en
+    `SELECT id, nombre, email, rol, estado, avatar_url, eliminado_en, perfil_clave
        FROM usuarios
       WHERE institucion_id = ?
       ORDER BY nombre`
@@ -164,9 +317,13 @@ export function registrarPerfiles(app, db) {
         estado: fila.estado,
         avatarUrl: fila.avatar_url ?? undefined,
         eliminadoEn: fila.eliminado_en,
+        // El perfil que el Maestro diseñó y la dirección le asignó (null = el
+        // predeterminado de su rol).
+        perfilClave: fila.perfil_clave ?? null,
       }));
 
-      res.json({ perfiles });
+      // Cuántos días dura la papelera en ESTA escuela (null = no se purga sola).
+      res.json({ perfiles, diasPapelera: plazoPapelera(db, usuario.institucionId) });
     })
   );
 
@@ -178,11 +335,15 @@ export function registrarPerfiles(app, db) {
     `SELECT c.id,
             c.anio,
             c.division,
+            t.id AS turno_id, t.nombre AS turno,
+            e.id AS especialidad_id, e.nombre AS especialidad,
             p.nombre AS preceptor,
             (SELECT COUNT(*) FROM inscripciones i WHERE i.curso_id = c.id) AS estudiantes,
             (SELECT COUNT(*) FROM catedras ca WHERE ca.curso_id = c.id)    AS materias
        FROM cursos c
        LEFT JOIN usuarios p ON p.id = c.preceptor_id
+       LEFT JOIN curso_turnos t ON t.id = c.turno_id
+       LEFT JOIN curso_especialidades e ON e.id = c.especialidad_id
       WHERE c.institucion_id = ?
       ORDER BY c.anio, c.division`
   );
@@ -246,6 +407,8 @@ export function registrarPerfiles(app, db) {
         id: String(fila.id),
         anio: fila.anio,
         division: fila.division,
+        turno: datoDeLista(fila.turno_id, fila.turno),
+        especialidad: datoDeLista(fila.especialidad_id, fila.especialidad),
         preceptor: fila.preceptor ?? null,
         estudiantes: fila.estudiantes,
         materias: fila.materias,
@@ -289,9 +452,12 @@ export function registrarPerfiles(app, db) {
   // colegio que quien pregunta (el institucion_id sale de la sesión): pedir el
   // detalle de un curso de otra institución responde 404, no filtra nada.
   const cursoPorId = db.prepare(
-    `SELECT c.id, c.anio, c.division, c.institucion_id, c.preceptor_id, p.nombre AS preceptor
+    `SELECT c.id, c.anio, c.division, t.id AS turno_id, t.nombre AS turno, e.id AS especialidad_id, e.nombre AS especialidad,
+            c.institucion_id, c.preceptor_id, p.nombre AS preceptor
        FROM cursos c
        LEFT JOIN usuarios p ON p.id = c.preceptor_id
+       LEFT JOIN curso_turnos t ON t.id = c.turno_id
+       LEFT JOIN curso_especialidades e ON e.id = c.especialidad_id
       WHERE c.id = ?`
   );
 
@@ -342,7 +508,13 @@ export function registrarPerfiles(app, db) {
       }
 
       res.json({
-        curso: { id: String(curso.id), anio: curso.anio, division: curso.division },
+        curso: {
+          id: String(curso.id),
+          anio: curso.anio,
+          division: curso.division,
+          turno: datoDeLista(curso.turno_id, curso.turno),
+          especialidad: datoDeLista(curso.especialidad_id, curso.especialidad),
+        },
         preceptor: curso.preceptor ?? null,
         preceptorId: curso.preceptor_id == null ? null : String(curso.preceptor_id),
         catedras: catedrasDelCurso.all(id).map((f) => ({
@@ -371,16 +543,28 @@ export function registrarPerfiles(app, db) {
   //  ESCRITURA (Etapa 3) — alta, edición y papelera de perfiles
   // ══════════════════════════════════════════════════════════════════════════
 
-  const buscarEmail = db.prepare("SELECT id FROM usuarios WHERE email = ?");
+  const buscarEmail = db.prepare("SELECT id, nombre, estado, institucion_id FROM usuarios WHERE email = ?");
+
+  /**
+   * El motivo de un correo ocupado, dicho de forma que la dirección sepa qué
+   * hacer: si el dueño está en la papelera de su escuela, el camino es borrarlo
+   * definitivamente desde ahí.
+   */
+  function correoOcupado(duenio, usuario, otra = false) {
+    if (duenio.estado === "papelera" && duenio.institucion_id === usuario.institucionId) {
+      return `Ese correo es de ${duenio.nombre}, que está en la papelera. Para volver a usarlo, borralo definitivamente desde la papelera.`;
+    }
+    return otra ? "Ya existe otra cuenta con ese correo." : "Ya existe una cuenta con ese correo.";
+  }
   const buscarPerfil = db.prepare(
     `SELECT id, institucion_id, rol, estado, nombre, email FROM usuarios WHERE id = ?`
   );
   const insertarUsuario = db.prepare(
-    `INSERT INTO usuarios (institucion_id, email, hash_contrasena, nombre, rol)
-     VALUES (?, ?, ?, ?, ?)`
+    `INSERT INTO usuarios (institucion_id, email, hash_contrasena, nombre, rol, perfil_clave, primer_ingreso)
+     VALUES (?, ?, ?, ?, ?, ?, 1)`
   );
   const editarUsuario = db.prepare(
-    `UPDATE usuarios SET nombre = ?, email = ?, rol = ?, estado = ? WHERE id = ?`
+    `UPDATE usuarios SET nombre = ?, email = ?, rol = ?, estado = ?, perfil_clave = ? WHERE id = ?`
   );
   const mandarAPapelera = db.prepare(
     `UPDATE usuarios
@@ -415,7 +599,70 @@ export function registrarPerfiles(app, db) {
     return fila;
   }
 
+  // ── Lo que necesita el formulario de alta ───────────────────────────────────
+  // La terminación del correo de la escuela y los cursos y materias reales, con
+  // quién los tiene hoy: así la dirección ve ANTES de guardar si asignar un curso
+  // le saca el lugar a otra persona (un curso tiene un solo preceptor y cada
+  // materia de un curso, un solo profesor).
+  const cursosDelColegio = db.prepare(
+    `SELECT c.id, c.anio, c.division, t.id AS turno_id, t.nombre AS turno, e.id AS especialidad_id, e.nombre AS especialidad, p.nombre AS preceptor
+       FROM cursos c
+       LEFT JOIN usuarios p ON p.id = c.preceptor_id
+       LEFT JOIN curso_turnos t ON t.id = c.turno_id
+       LEFT JOIN curso_especialidades e ON e.id = c.especialidad_id
+      WHERE c.institucion_id = ?
+      ORDER BY c.anio, c.division`
+  );
+  const materiasDelColegio = db.prepare(
+    "SELECT id, nombre FROM materias WHERE institucion_id = ? ORDER BY nombre"
+  );
+  const catedrasDelColegio = db.prepare(
+    `SELECT ca.curso_id, ca.materia_id, u.nombre AS profesor
+       FROM catedras ca
+       JOIN cursos c   ON c.id = ca.curso_id
+       JOIN usuarios u ON u.id = ca.profesor_id
+      WHERE c.institucion_id = ?`
+  );
+
+  app.get(
+    "/api/perfiles/opciones",
+    ventanilla((req, res) => {
+      const usuario = exigirAcceso(db, req, res, "perfiles-academicos");
+      if (!usuario) return;
+
+      res.json({
+        dominio: dominioDeLaEscuela(db, usuario.institucionId),
+        cursos: cursosDelColegio.all(usuario.institucionId).map((c) => ({
+          id: String(c.id),
+          nombre: `${c.anio}° ${c.division}`,
+          // "Mañana · Informática": ayuda a distinguir cursos al asignarlos.
+          detalle: [c.turno, c.especialidad].filter(Boolean).join(" · ") || null,
+          // Para mostrarlos agrupados por turno, ciclo y especialidad.
+          anio: c.anio,
+          turno: datoDeLista(c.turno_id, c.turno),
+          especialidad: datoDeLista(c.especialidad_id, c.especialidad),
+          preceptor: c.preceptor ?? null,
+        })),
+        materias: materiasDelColegio.all(usuario.institucionId).map((m) => ({ id: String(m.id), nombre: m.nombre })),
+        catedras: catedrasDelColegio.all(usuario.institucionId).map((c) => ({
+          cursoId: String(c.curso_id),
+          materiaId: String(c.materia_id),
+          profesor: c.profesor,
+        })),
+      });
+    })
+  );
+
   // ── Alta real (Errores 6.B.3 y 6.B.4) ──────────────────────────────────────
+  const inscribir = db.prepare("INSERT INTO inscripciones (curso_id, estudiante_id) VALUES (?, ?)");
+  const ponerPreceptor = db.prepare("UPDATE cursos SET preceptor_id = ? WHERE id = ?");
+  // Igual que "Cursos y materias": si esa materia de ese curso ya tenía profesor,
+  // pasa a la persona nueva (el formulario lo avisa antes de guardar).
+  const darCatedra = db.prepare(
+    `INSERT INTO catedras (curso_id, materia_id, profesor_id) VALUES (?, ?, ?)
+     ON CONFLICT(materia_id, curso_id) DO UPDATE SET profesor_id = excluded.profesor_id`
+  );
+
   app.post("/api/perfiles", async (req, res) => {
     try {
       const usuario = exigirAcceso(db, req, res, "perfiles-academicos");
@@ -432,16 +679,44 @@ export function registrarPerfiles(app, db) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ error: "El correo no tiene un formato válido." });
       }
-      if (buscarEmail.get(email)) {
-        return res.status(409).json({ error: "Ya existe una cuenta con ese correo." });
+      const duenio = buscarEmail.get(email);
+      if (duenio) {
+        return res.status(409).json({ error: correoOcupado(duenio, usuario) });
       }
+      const perfilClave = perfilParaRol(db, usuario.institucionId, rol, req.body?.perfilClave);
+      if (perfilClave === undefined) {
+        return res.status(400).json({ error: "Ese perfil no existe en tu institución o no corresponde a ese rol." });
+      }
+      // Cursos asignados desde el alta (opcional): el del estudiante, los del
+      // preceptor, y los del profesor con la materia que da en cada uno.
+      const asignaciones = leerAsignaciones(db, usuario.institucionId, rol, req.body?.asignaciones);
+      if (asignaciones.error) return res.status(400).json({ error: asignaciones.error });
 
       // Contraseña real, cifrada con scrypt igual que las demás. El identificador
       // (id) lo pone la base sola y es único: se acabó el "ID al azar" que podía
       // repetirse (Error 6.B.3).
-      const contrasenaInicial = generarContrasenaInicial();
+      const contrasenaInicial = generarContrasenaInicial(nombre);
       const hash = await hashearContrasena(contrasenaInicial);
-      const info = insertarUsuario.run(usuario.institucionId, email, hash, nombre, rol);
+
+      // La cuenta y sus cursos nacen juntos: si algo falla, no queda una persona
+      // a medio asignar.
+      let info;
+      db.exec("BEGIN");
+      try {
+        info = insertarUsuario.run(usuario.institucionId, email, hash, nombre, rol, perfilClave);
+        const nuevoId = Number(info.lastInsertRowid);
+        for (const a of asignaciones.lista) {
+          if (rol === "estudiante") inscribir.run(a.cursoId, nuevoId);
+          if (rol === "preceptor") ponerPreceptor.run(nuevoId, a.cursoId);
+          if (rol === "profesor") darCatedra.run(a.cursoId, a.materiaId, nuevoId);
+          // El chat del curso suma a quien entra y saca al preceptor anterior.
+          if (rol !== "profesor") asegurarComunidadCurso(db, a.cursoId);
+        }
+        db.exec("COMMIT");
+      } catch (error) {
+        db.exec("ROLLBACK");
+        throw error;
+      }
 
       res.status(201).json({
         id: String(info.lastInsertRowid),
@@ -486,10 +761,14 @@ export function registrarPerfiles(app, db) {
     }
     const conEseEmail = buscarEmail.get(email);
     if (conEseEmail && conEseEmail.id !== id) {
-      return res.status(409).json({ error: "Ya existe otra cuenta con ese correo." });
+      return res.status(409).json({ error: correoOcupado(conEseEmail, usuario, true) });
+    }
+    const perfilClave = perfilParaRol(db, usuario.institucionId, rol, req.body?.perfilClave);
+    if (perfilClave === undefined) {
+      return res.status(400).json({ error: "Ese perfil no existe en tu institución o no corresponde a ese rol." });
     }
 
-    editarUsuario.run(nombre, email, rol, estado, id);
+    editarUsuario.run(nombre, email, rol, estado, perfilClave, id);
     res.json({ ok: true, mensaje: "Perfil actualizado." });
   });
 
@@ -540,6 +819,31 @@ export function registrarPerfiles(app, db) {
     res.json({ ok: true, mensaje: "Perfil restaurado." });
   });
 
+  // ── Borrar para siempre (desde la papelera) ─────────────────────────────────
+  // Sin esto, un perfil borrado por error seguía ocupando su correo hasta que la
+  // purga automática pasara, y la dirección no podía volver a crearlo. Solo se
+  // borra lo que ya está en la papelera: el camino es siempre papelera → borrar.
+  app.delete(
+    "/api/perfiles/:id",
+    ventanilla((req, res) => {
+      const usuario = exigirAcceso(db, req, res, "perfiles-academicos");
+      if (!usuario) return;
+
+      const id = Number(req.params.id);
+      const fila = perfilDelColegio(id, usuario, res);
+      if (!fila) return;
+      if (fila.estado !== "papelera") {
+        return res.status(400).json({ error: "Primero mandá el perfil a la papelera; desde ahí se borra definitivamente." });
+      }
+
+      borrarPerfilEnFirme(db, fila, usuario.id);
+      res.json({
+        ok: true,
+        mensaje: `${fila.nombre} se borró definitivamente. El correo ${fila.email} ya se puede usar para un perfil nuevo.`,
+      });
+    })
+  );
+
   // ── Historial auditable de un perfil (Error 6.B.5) ──────────────────────────
   // Quién lo mandó a la papelera, quién lo restauró y cuándo. Solo la dirección
   // del MISMO colegio (perfilDelColegio revalida rol e institución). 'Sistema' es
@@ -575,59 +879,53 @@ export function registrarPerfiles(app, db) {
 
 // ── Mantenimiento: purga programada de la papelera (Error 6.B.5, sección 14.17) ──
 /**
- * Borra en firme los perfiles que llevan más de DIAS_EN_PAPELERA en la papelera
+ * Borra en firme los perfiles que llevan en la papelera más días que el plazo de
+ * su escuela (algoritmo «Purga de la papelera» del genoma; si está apagado, esa
+ * escuela no purga nada)
  * y deja una fila 'purgado' en el historial por cada uno. Mismo espíritu que
  * `limpiarEventosViejos` del calendario: una rutina de mantenimiento que no
  * depende de que nadie abra una pantalla.
  *
- * Cada perfil se purga dentro de su propia transacción: se registra el
- * movimiento, se sueltan sus sesiones y se borra el usuario. La referencia
- * `usuario_afectado_id ON DELETE SET NULL` deja que el DELETE pase sin arrastrar
- * ni bloquear el historial; `afectado_desc` conserva a quién correspondía. Si la
- * persona ya generó actividad que la base protege (entregas, mensajes...), el
- * DELETE falla, la transacción se deshace entera y el perfil queda en la papelera
- * en vez de romper: borrar ese historial es una decisión aparte.
+ * Cada perfil se purga con `borrarPerfilEnFirme`, lo mismo que el botón "Borrar
+ * definitivamente": en su propia transacción, con su fila 'purgado' en el
+ * historial (`afectado_desc` conserva a quién correspondía). Si la persona ya
+ * generó actividad que la base protege (entregas, mensajes...), su cuenta queda
+ * anónima en vez de borrada, así la papelera cumple lo que promete ("se borra")
+ * sin llevarse datos de otros.
  *
  * `institucionId` opcional acota la purga a un colegio (lo usa la lista al
  * abrirse); sin él, purga las de todas las instituciones (lo usa la rutina).
  */
 export function purgarPapeleraVencida(db, institucionId = null) {
   const filtroInst = institucionId === null ? "" : "AND institucion_id = ?";
+  const plazos = new Map();
   const vencidos = db
     .prepare(
-      `SELECT id, nombre, email FROM usuarios
+      `SELECT id, nombre, email, institucion_id,
+              julianday('now') - julianday(eliminado_en) AS dias
+         FROM usuarios
         WHERE estado = 'papelera'
           AND eliminado_en IS NOT NULL
-          AND eliminado_en <= datetime('now', '-${DIAS_EN_PAPELERA} days')
           ${filtroInst}`
     )
-    .all(...(institucionId === null ? [] : [institucionId]));
+    .all(...(institucionId === null ? [] : [institucionId]))
+    .filter((u) => {
+      if (u.institucion_id === null) return false;
+      if (!plazos.has(u.institucion_id)) plazos.set(u.institucion_id, plazoPapelera(db, u.institucion_id));
+      const plazo = plazos.get(u.institucion_id);
+      return plazo !== null && u.dias >= plazo;
+    });
 
   if (vencidos.length === 0) return 0;
-
-  const registrar = db.prepare(
-    `INSERT INTO papelera_movimientos
-       (usuario_afectado_id, afectado_desc, accion, realizado_por_id)
-     VALUES (?, ?, 'purgado', NULL)`
-  );
-  const borrarSesiones = db.prepare("DELETE FROM sesiones WHERE usuario_id = ?");
-  const borrarUsuario = db.prepare("DELETE FROM usuarios WHERE id = ?");
 
   let purgados = 0;
   for (const u of vencidos) {
     try {
-      db.exec("BEGIN");
-      registrar.run(u.id, `${u.nombre} · ${u.email}`);
-      borrarSesiones.run(u.id);
-      borrarUsuario.run(u.id);
-      db.exec("COMMIT");
+      borrarPerfilEnFirme(db, u, null);
       purgados++;
-    } catch {
-      try {
-        db.exec("ROLLBACK");
-      } catch {
-        // Nada que deshacer si el BEGIN no llegó a abrir.
-      }
+    } catch (error) {
+      // Uno que falle no frena a los demás; queda en la papelera para la próxima.
+      console.error("No se pudo purgar el perfil " + u.id, error);
     }
   }
   return purgados;

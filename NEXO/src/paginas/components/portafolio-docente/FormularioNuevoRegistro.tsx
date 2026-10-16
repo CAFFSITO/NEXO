@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import type { Registro } from "./TarjetaRegistro";
+import Selector from "../shared/Selector";
 
 // Datos que produce el formulario (sin id — lo asigna el padre)
 export type NuevoRegistro = Omit<Registro, "id">;
@@ -102,8 +103,8 @@ export default function FormularioNuevoRegistro({
   };
 
   return (
-    <section className="bg-[#2D1B4E] p-6 rounded-lg shadow-xl mb-12 border border-[#C548F5]/20">
-      <div className="flex items-center gap-2 mb-6 text-[#C548F5]">
+    <section className="bg-lienzo p-6 rounded-lg shadow-xl mb-12 border border-acento/20">
+      <div className="flex items-center gap-2 mb-6 text-acento">
         <span className="material-symbols-outlined">edit_note</span>
         <h3 className="text-xl font-bold font-headline">
           {editando ? "Editar registro" : "Nuevo registro"}
@@ -121,22 +122,22 @@ export default function FormularioNuevoRegistro({
                 type="date"
                 value={form.fecha}
                 onChange={(e) => actualizar("fecha", e.target.value)}
-                className="bg-[#1C1030] border-none rounded-full px-4 py-2 text-white focus:ring-2 focus:ring-[#C548F5]"
+                className="bg-fondo border-none rounded-full px-4 py-2 text-white focus:ring-2 focus:ring-acento"
               />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-tight font-label">
                 Materia / Curso
               </label>
-              <select
+              <Selector
                 value={form.materiaCurso}
                 onChange={(e) => actualizar("materiaCurso", e.target.value)}
-                className="bg-[#1C1030] border-none rounded-full px-4 py-2 text-white focus:ring-2 focus:ring-[#C548F5]"
+                className="bg-fondo border-none rounded-full px-4 py-2 text-white focus:ring-2 focus:ring-acento"
               >
                 {opciones.map((mc) => (
                   <option key={mc}>{mc}</option>
                 ))}
-              </select>
+              </Selector>
             </div>
           </div>
           <div className="flex flex-col gap-1">
@@ -148,7 +149,7 @@ export default function FormularioNuevoRegistro({
               value={form.resumen}
               onChange={(e) => actualizar("resumen", e.target.value)}
               placeholder="Describe brevemente el tema tratado..."
-              className="bg-[#1C1030] border-none rounded-xl px-4 py-2 text-white focus:ring-2 focus:ring-[#C548F5] resize-none"
+              className="bg-fondo border-none rounded-xl px-4 py-2 text-white focus:ring-2 focus:ring-acento resize-none"
             />
           </div>
         </div>
@@ -163,7 +164,7 @@ export default function FormularioNuevoRegistro({
               value={form.queFunciono}
               onChange={(e) => actualizar("queFunciono", e.target.value)}
               placeholder="Aspectos positivos y logros..."
-              className="bg-[#1C1030] border-l-4 border-[#10B981] rounded-xl px-4 py-2 text-white focus:ring-2 focus:ring-[#C548F5] resize-none"
+              className="bg-fondo border-l-4 border-[#10B981] rounded-xl px-4 py-2 text-white focus:ring-2 focus:ring-acento resize-none"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -175,7 +176,7 @@ export default function FormularioNuevoRegistro({
               value={form.queMejorar}
               onChange={(e) => actualizar("queMejorar", e.target.value)}
               placeholder="Desafíos y ajustes necesarios..."
-              className="bg-[#1C1030] border-l-4 border-[#F59E0B] rounded-xl px-4 py-2 text-white focus:ring-2 focus:ring-[#C548F5] resize-none"
+              className="bg-fondo border-l-4 border-[#F59E0B] rounded-xl px-4 py-2 text-white focus:ring-2 focus:ring-acento resize-none"
             />
           </div>
 
@@ -198,7 +199,7 @@ export default function FormularioNuevoRegistro({
             )}
             <button
               type="submit"
-              className="bg-[#C548F5] text-white font-bold px-8 py-3 rounded-full hover:shadow-[0_0_20px_rgba(197,72,245,0.4)] transition-all active:scale-95 flex items-center gap-2"
+              className="bg-acento text-white font-bold px-8 py-3 rounded-full hover:shadow-[0_0_20px_rgba(197,72,245,0.4)] transition-all active:scale-95 flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-sm">save</span>
               {editando ? "Actualizar registro" : "Guardar registro"}

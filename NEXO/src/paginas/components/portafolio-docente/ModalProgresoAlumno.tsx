@@ -32,7 +32,7 @@ export default function ModalProgresoAlumno({ catedraId, alumnoId, alumnoNombre,
         {/* Encabezado */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 sticky top-0 bg-[#231340] z-10">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#2D1B4E] flex items-center justify-center overflow-hidden text-xs font-bold text-white/60">
+            <div className="w-9 h-9 rounded-full bg-lienzo flex items-center justify-center overflow-hidden text-xs font-bold text-white/60">
               {progreso?.alumno.avatar ? (
                 <img src={progreso.alumno.avatar} alt={alumnoNombre} className="w-full h-full object-cover" />
               ) : (
@@ -67,11 +67,11 @@ export default function ModalProgresoAlumno({ catedraId, alumnoId, alumnoNombre,
                     Entregadas ({progreso.entregadas.length})
                   </h4>
                   {progreso.entregadas.length === 0 ? (
-                    <p className="text-slate-500 text-xs bg-[#1C1030] rounded-xl p-3">Todavía no entregó nada.</p>
+                    <p className="text-slate-500 text-xs bg-fondo rounded-xl p-3">Todavía no entregó nada.</p>
                   ) : (
                     <div className="space-y-2">
                       {progreso.entregadas.map((t) => (
-                        <div key={t.id} className="bg-[#1C1030] rounded-xl p-3 flex items-center justify-between gap-2">
+                        <div key={t.id} className="bg-fondo rounded-xl p-3 flex items-center justify-between gap-2">
                           <div className="min-w-0">
                             <p className="text-white text-sm font-medium truncate">{t.titulo}</p>
                             <p className="text-slate-500 text-[11px]">
@@ -102,11 +102,11 @@ export default function ModalProgresoAlumno({ catedraId, alumnoId, alumnoNombre,
                     Adeudadas ({progreso.adeudadas.length})
                   </h4>
                   {progreso.adeudadas.length === 0 ? (
-                    <p className="text-slate-500 text-xs bg-[#1C1030] rounded-xl p-3">No adeuda ninguna tarea. 🎉</p>
+                    <p className="text-slate-500 text-xs bg-fondo rounded-xl p-3">No adeuda ninguna tarea. 🎉</p>
                   ) : (
                     <div className="space-y-2">
                       {progreso.adeudadas.map((t) => (
-                        <div key={t.id} className="bg-[#1C1030] rounded-xl p-3 border-l-2 border-red-500/50">
+                        <div key={t.id} className="bg-fondo rounded-xl p-3">
                           <p className="text-white text-sm font-medium truncate">{t.titulo}</p>
                           <p className="text-slate-500 text-[11px]">Vencía {fechaCorta(t.fechaLimite)}</p>
                         </div>

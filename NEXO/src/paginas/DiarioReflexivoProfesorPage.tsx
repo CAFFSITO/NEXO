@@ -10,6 +10,8 @@
 
 import { useMemo, useRef, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
+import TopBar from "./components/shared/TopBar";
+import { PESTANAS_PORTAFOLIO_DOCENTE } from "./components/shared/pestanasModulos";
 import { useNavegacion } from "../navegacion";
 import { useCatedras } from "../servicios/aula";
 import {
@@ -196,7 +198,7 @@ export default function DiarioReflexivoProfesorPage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen text-on-surface overflow-x-hidden">
+    <div className="flex bg-fondo min-h-screen text-on-surface overflow-x-clip">
       <Sidebar
         usuario={usuario}
         onNavegar={handleNavegar}
@@ -204,39 +206,12 @@ export default function DiarioReflexivoProfesorPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        {/* Top nav del portafolio docente */}
-        <header className="flex justify-between items-center w-full px-8 py-4 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] sticky top-0 z-40">
-          <div className="flex items-center gap-8">
-            <h1 className="text-lg font-black text-white font-headline">Portafolio Docente</h1>
-            <nav className="hidden md:flex items-center gap-6">
-              <button onClick={() => handleNavegar("/portafolio-docente")} className="text-slate-400 pb-2 hover:text-[#C548F5] transition-all font-label">
-                Dashboard
-              </button>
-              <button onClick={() => handleNavegar("/portafolio/gestion")} className="text-slate-400 pb-2 hover:text-[#C548F5] transition-all font-label">
-                Gestión de Tareas
-              </button>
-              <button aria-current="page" onClick={() => handleNavegar("/portafolio-docente/diario")} className="text-[#C548F5] border-b-2 border-[#C548F5] pb-2 font-bold font-label">
-                Diario Reflexivo
-              </button>
-              <button onClick={() => handleNavegar("/portafolio-docente/aula-virtual")} className="text-slate-400 pb-2 hover:text-[#C548F5] transition-all font-label">
-                Aula Virtual
-              </button>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <button aria-label="Notificaciones" onClick={() => handleNavegar("/notificaciones")} className="material-symbols-outlined text-slate-400 hover:text-[#C548F5] cursor-pointer">
-              notifications
-            </button>
-            <button aria-label="Configuración" onClick={() => handleNavegar("/configuracion")} className="material-symbols-outlined text-slate-400 hover:text-[#C548F5] cursor-pointer">
-              settings
-            </button>
-          </div>
-        </header>
+        <TopBar title="Portafolio Docente" pestanas={PESTANAS_PORTAFOLIO_DOCENTE} />
 
         <div className="p-8 max-w-6xl mx-auto w-full">
           {/* Header vista + buscador */}
           <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <h2 className="text-4xl font-extrabold text-white font-headline border-b-4 border-[#C548F5] inline-block pb-1">
+            <h2 className="text-4xl font-extrabold text-white font-headline border-b-4 border-acento inline-block pb-1">
               Diario Reflexivo
             </h2>
             <div className="relative w-full md:w-80">
@@ -248,7 +223,7 @@ export default function DiarioReflexivoProfesorPage() {
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 placeholder="Buscar en el diario..."
-                className="w-full bg-[#2D1B4E] border-none rounded-full pl-10 pr-4 py-2 text-white focus:ring-2 focus:ring-[#C548F5]"
+                className="w-full bg-lienzo border-none rounded-full pl-10 pr-4 py-2 text-white focus:ring-2 focus:ring-acento"
               />
             </div>
           </header>
@@ -283,7 +258,7 @@ export default function DiarioReflexivoProfesorPage() {
                 <div className="mt-4">
                   <button
                     onClick={recargar}
-                    className="text-[#C548F5] font-bold hover:underline font-label"
+                    className="text-acento font-bold hover:underline font-label"
                   >
                     Reintentar
                   </button>

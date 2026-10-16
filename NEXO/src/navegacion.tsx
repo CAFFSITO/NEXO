@@ -31,6 +31,8 @@ export type Page =
     | "reportes"
     | "gestion-instituciones"
     | "salud-sistema"
+    | "maestro-estudio"
+    | "modulos-institucion"
     | "tendencias"
     | "competencias"
     | "objetivos-dashboard"
@@ -47,7 +49,9 @@ export type Page =
     | "mis-cursos-preceptor"
     | "diario-reflexivo-profesor"
     | "gestion-tareas-profesor"
-    | "enviar-queja";
+    | "enviar-queja"
+    | "anuncios"
+    | "anuncios-maestro";
 
 // ─── SECCIONES DEL MENÚ LATERAL ─────────────────────────
 // Una "sección" es un ítem del menú lateral: lo que el usuario percibe como
@@ -86,13 +90,18 @@ export type Seccion =
     | "admin-panel"
     | "admin-instituciones"
     | "admin-salud"
+    | "admin-modulos"
+    | "maestro-estudio"
+    | "maestro-forja"
     | "admin-actividades"
     | "centro-portal"
     | "centro-quejas"
     | "enviar-queja"
     | "familia-comunicados"
     | "familia-calendario"
-    | "notificaciones";
+    | "notificaciones"
+    | "anuncios"
+    | "maestro-anuncios";
 
 interface Destino {
     /** Qué pantalla dibuja esta dirección. */
@@ -157,6 +166,11 @@ export const MAPA_RUTAS = {
     "/biblioteca/panel": { pagina: "panel-bibliotecario", seccion: "biblioteca-panel" },
     "/biblioteca/cola-revision": { pagina: "panel-bibliotecario", seccion: "cola-revision" },
 
+    // Anuncios obligatorios (dirección ↔ preceptoría): escribir un aviso, la
+    // casilla de leídos, los enviados y los grupos. Los avisos SIN leer no tienen
+    // dirección: aparecen encima de cualquier pantalla (BandejaObligatoria).
+    "/anuncios": { pagina: "anuncios", seccion: "anuncios" },
+
     // Chat / IA
     "/chat": { pagina: "chat", seccion: "chat" },
     "/asistencia-academica": { pagina: "asistencia-ia", seccion: "asistencia-ia" },
@@ -170,6 +184,11 @@ export const MAPA_RUTAS = {
     "/admin/perfiles": { pagina: "perfiles-academicos", seccion: "admin-perfiles" },
     "/admin/cursos": { pagina: "cursos-activos", seccion: "admin-cursos" },
     "/admin/panel": { pagina: "panel-institucional", seccion: "admin-panel" },
+    // Modo edición de la dirección: jerarquía del menú, módulos y sus
+    // algoritmos (lo que el Maestro ocultó se vuelve a mostrar desde acá).
+    // /admin/modulos queda como alias de la dirección anterior.
+    "/admin/edicion": { pagina: "modulos-institucion", seccion: "admin-modulos" },
+    "/admin/modulos": { pagina: "modulos-institucion", seccion: "admin-modulos" },
 
     // Administrador de PLATAFORMA ("nosotros", sección 5). Sus pantallas son
     // propias y NO las de la dirección de un colegio: antes /admin/instituciones
@@ -179,6 +198,15 @@ export const MAPA_RUTAS = {
     // a la pantalla que le corresponde: instituciones en general y salud + logs.
     "/admin/instituciones": { pagina: "gestion-instituciones", seccion: "admin-instituciones" },
     "/admin/salud": { pagina: "salud-sistema", seccion: "admin-salud" },
+
+    // Perfil MAESTRO: el universo de instancias, la Forja (crear una escuela
+    // entera, con su genoma) y el estudio de una instancia puntual (?id=). Las
+    // tres son la misma pantalla, que elige su vista según la dirección.
+    "/maestro": { pagina: "maestro-estudio", seccion: "maestro-estudio" },
+    "/maestro/instancia": { pagina: "maestro-estudio", seccion: "maestro-estudio" },
+    "/maestro/forja": { pagina: "maestro-estudio", seccion: "maestro-forja" },
+    // Los grupos de difusión de Anuncios de cualquier escuela (?escuela=ID).
+    "/maestro/anuncios": { pagina: "anuncios-maestro", seccion: "maestro-anuncios" },
 
     // Centro de estudiantes
     "/centro-estudiantes": { pagina: "portal-centro", seccion: "centro-portal" },
@@ -255,7 +283,12 @@ export interface Usuario {
     avatarUrl?: string;
     curso?: string;
     materia?: string;
+    /** La cuenta todavía no entró nunca: lo primero que ve es /configuracion. */
+    primerIngreso?: boolean;
 }
+
+/** A dónde va quien entra por primera vez, antes que a su inicio. */
+export const RUTA_PRIMER_INGRESO: RutaPrivada = "/configuracion";
 
 // Página de inicio (home) a la que cae cada rol tras loguearse. Tipada con
 // `RutaPrivada`: el inicio de un rol no puede ser una dirección que no existe,
@@ -267,7 +300,7 @@ export const HOME_POR_ROL: Record<Rol, RutaPrivada> = {
     preceptor: "/comunidad",
     "centro-estudiantes": "/comunidad",
     bibliotecario: "/biblioteca/panel",
-    administrador: "/admin/salud",
+    administrador: "/maestro",
     familia: "/comunicados",
 };
 
@@ -295,6 +328,12 @@ interface NavegacionValor {
     // Ahora el ingreso viaja al servidor, así que la respuesta tarda: es una
     // promesa, y trae el motivo del rechazo para poder mostrarlo tal cual.
     login: (email: string, contrasena: string) => Promise<ResultadoLogin>;
+    // La persona ya pasó por la bienvenida (cambió la contraseña o siguió con
+    // la que le dieron): desde ahora navega normal.
+    terminarPrimerIngreso: () => void;
+    // Cambios en los datos de quien está adentro (por ejemplo, su nombre),
+    // para que el menú y la pantalla los muestren sin volver a entrar.
+    actualizarUsuario: (cambios: Partial<Usuario>) => void;
 }
 
 export const NavegacionContext = createContext<NavegacionValor>({
@@ -305,6 +344,8 @@ export const NavegacionContext = createContext<NavegacionValor>({
     navegar: () => { },
     cerrarSesion: () => { },
     login: async () => ({ ok: false }),
+    terminarPrimerIngreso: () => { },
+    actualizarUsuario: () => { },
 });
 
 export const useNavegacion = () => useContext(NavegacionContext);

@@ -10,6 +10,7 @@ import { useMemo } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
+import { PESTANAS_PORTAFOLIO_DOCENTE } from "./components/shared/pestanasModulos";
 import { useDatos } from "../servicios/api";
 import { useClasesPlanificadas } from "../servicios/aula";
 import type { Catedra, TareaDocente } from "../servicios/tareas";
@@ -42,7 +43,7 @@ export default function DashboardProfesorPage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen">
+    <div className="flex bg-fondo min-h-screen">
       <Sidebar
         usuario={usuario}
         onNavegar={handleNavegar}
@@ -50,9 +51,9 @@ export default function DashboardProfesorPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        <TopBar title="Portafolio Docente" subtitle="Dashboard" />
+        <TopBar title="Portafolio Docente" pestanas={PESTANAS_PORTAFOLIO_DOCENTE} />
 
-        <div className="flex-1 overflow-y-auto p-8 bg-[#190d2d]">
+        <div className="flex-1 overflow-y-auto p-8 bg-background">
           {/* Header: el nombre sale de la sesión, no de una constante. */}
           <div className="mb-10">
             <h1 className="text-4xl font-black font-headline text-white tracking-tight mb-2">
@@ -71,9 +72,9 @@ export default function DashboardProfesorPage() {
             <>
               {/* Stats reales */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                <div className="bg-[#2D1B4E] border border-[#3b2f50] rounded-lg p-6">
+                <div className="bg-lienzo border border-[#3b2f50] rounded-lg p-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-[#1C1030] rounded-lg flex items-center justify-center text-blue-400">
+                    <div className="w-12 h-12 bg-fondo rounded-lg flex items-center justify-center text-blue-400">
                       <span className="material-symbols-outlined">groups</span>
                     </div>
                     <div>
@@ -83,9 +84,9 @@ export default function DashboardProfesorPage() {
                   </div>
                 </div>
 
-                <div className="bg-[#2D1B4E] border border-[#3b2f50] rounded-lg p-6">
+                <div className="bg-lienzo border border-[#3b2f50] rounded-lg p-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-[#1C1030] rounded-lg flex items-center justify-center text-green-400">
+                    <div className="w-12 h-12 bg-fondo rounded-lg flex items-center justify-center text-green-400">
                       <span className="material-symbols-outlined">assignment_turned_in</span>
                     </div>
                     <div>
@@ -95,9 +96,9 @@ export default function DashboardProfesorPage() {
                   </div>
                 </div>
 
-                <div className="bg-[#2D1B4E] border border-[#3b2f50] rounded-lg p-6">
+                <div className="bg-lienzo border border-[#3b2f50] rounded-lg p-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-[#1C1030] rounded-lg flex items-center justify-center text-purple-400">
+                    <div className="w-12 h-12 bg-fondo rounded-lg flex items-center justify-center text-purple-400">
                       <span className="material-symbols-outlined">cast_for_education</span>
                     </div>
                     <div>
@@ -120,7 +121,7 @@ export default function DashboardProfesorPage() {
                   {proximasClases.map((clase) => (
                     <div
                       key={clase.id}
-                      className="bg-[#2D1B4E] border border-[#3b2f50] hover:border-primary/30 rounded-lg p-4 flex items-center justify-between"
+                      className="bg-lienzo border border-[#3b2f50] hover:border-primary/30 rounded-lg p-4 flex items-center justify-between"
                     >
                       <div>
                         <h3 className="font-bold text-white">{clase.titulo}</h3>
@@ -155,7 +156,7 @@ export default function DashboardProfesorPage() {
                       <button
                         key={tarea.id}
                         onClick={() => handleNavegar("/portafolio/gestion")}
-                        className="w-full text-left bg-[#2D1B4E] border border-[#3b2f50] hover:border-primary/30 rounded-lg p-4"
+                        className="w-full text-left bg-lienzo border border-[#3b2f50] hover:border-primary/30 rounded-lg p-4"
                       >
                         <div className="flex items-center justify-between mb-3">
                           <div>
@@ -167,7 +168,7 @@ export default function DashboardProfesorPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <div className="flex-1 bg-[#1C1030] rounded-full h-2 overflow-hidden">
+                          <div className="flex-1 bg-fondo rounded-full h-2 overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-primary to-[#d15aff]"
                               style={{ width: total > 0 ? `${(entregadas / total) * 100}%` : "0%" }}

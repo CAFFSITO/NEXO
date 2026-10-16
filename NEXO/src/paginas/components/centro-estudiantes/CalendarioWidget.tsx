@@ -56,7 +56,7 @@ export default function CalendarioWidget({
   };
 
   return (
-    <section className="bg-[#2D1B4E] rounded-lg p-6 border border-white/5">
+    <section className="bg-lienzo rounded-lg p-6 border border-white/5">
       <h3 className="text-lg font-headline font-bold text-white mb-4 flex items-center gap-2">
         <span className="material-symbols-outlined text-[#F97316]">calendar_today</span>
         Calendario del Centro

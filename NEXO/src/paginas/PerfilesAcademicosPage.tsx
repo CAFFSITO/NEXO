@@ -3,6 +3,7 @@
 // La lógica vive en PanelPerfiles; esta página solo aporta el chrome (sidebar + header).
 
 import Sidebar from "./components/shared/Sidebar";
+import TopBar from "./components/shared/TopBar";
 import PanelPerfiles from "./components/perfiles/PanelPerfiles";
 import { useNavegacion } from "../navegacion";
 import { subtituloInstitucional, useInstitucion } from "../servicios/institucion";
@@ -17,7 +18,7 @@ export default function PerfilesAcademicosPage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen">
+    <div className="flex bg-fondo min-h-screen">
       <Sidebar
         usuario={usuario}
         onNavegar={navegar}
@@ -25,19 +26,11 @@ export default function PerfilesAcademicosPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        {/* Header de la vista */}
-        <header className="flex justify-between items-center h-24 px-8 bg-[#1C1030]/80 backdrop-blur-md border-b border-white/10 sticky top-0 z-40">
-          <div className="flex flex-col">
-            <h1 className="text-xl font-bold text-white font-headline">Gestión Institucional</h1>
-            {/* Decía "Colegio San Martín — Ciclo 2025" escrito a mano, y el
-                ciclo de la base es 2026 (Error 13.7). */}
-            <p className="text-slate-400 text-xs font-medium">
-              {subtituloInstitucional(institucion)}
-            </p>
-          </div>
-        </header>
+        {/* Decía "Colegio San Martín — Ciclo 2025" escrito a mano, y el ciclo de
+            la base es 2026 (Error 13.7). */}
+        <TopBar title="Gestión Institucional" subtitle={subtituloInstitucional(institucion)} />
 
-        <section className="p-8 flex-1 overflow-y-auto bg-[#190d2d]">
+        <section className="p-8 flex-1 overflow-y-auto bg-background">
           <div className="max-w-7xl mx-auto">
             <PanelPerfiles />
           </div>

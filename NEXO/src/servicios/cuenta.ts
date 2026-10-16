@@ -69,9 +69,27 @@ export async function miCuenta(): Promise<Cuenta | null> {
   }
 }
 
+/** Cambiar mi nombre (solo el nombre: el correo lo administra la escuela). */
+export function cambiarMiNombre(nombre: string): Promise<Resultado> {
+  return pedir(`${API_CUENTA}/nombre`, "PUT", { nombre });
+}
+
 /** Cambiar la contraseña desde la configuración, sabiendo la actual. */
 export function cambiarContrasena(actual: string, nueva: string): Promise<Resultado> {
   return pedir(`${API_CUENTA}/contrasena`, "PUT", { actual, nueva });
+}
+
+/**
+ * Primer ingreso: cambiar la contraseña inicial sin volver a tipearla. El
+ * servidor lo acepta solo mientras la cuenta no haya pasado por la bienvenida.
+ */
+export function elegirContrasenaPrimerIngreso(nueva: string): Promise<Resultado> {
+  return pedir(`${API_CUENTA}/contrasena`, "PUT", { nueva });
+}
+
+/** Primer ingreso: seguir con la contraseña que dio la escuela. */
+export function seguirConContrasenaInicial(): Promise<Resultado> {
+  return pedir(`${API_CUENTA}/primer-ingreso`, "POST", {});
 }
 
 /**

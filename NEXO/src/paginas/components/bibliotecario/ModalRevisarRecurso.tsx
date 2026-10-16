@@ -73,7 +73,7 @@ export default function ModalRevisarRecurso({ item, onDecidido, onCerrar }: Moda
         /* si no parsea, se muestra la URL entera igual */
       }
       return (
-        <div className="rounded-2xl border border-white/10 bg-[#1C1030] p-4 space-y-2">
+        <div className="rounded-2xl border border-white/10 bg-fondo p-4 space-y-2">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
             <span className="material-symbols-outlined text-sm">link</span>
             Enlace externo
@@ -84,7 +84,7 @@ export default function ModalRevisarRecurso({ item, onDecidido, onCerrar }: Moda
             href={item.enlaceUrl}
             target="_blank"
             rel="noreferrer noopener"
-            className="inline-flex items-center gap-1 mt-1 px-3 py-2 bg-[#C548F5]/15 border border-[#C548F5]/30 text-[#C548F5] font-bold rounded-full hover:bg-[#C548F5]/25 transition-colors text-sm"
+            className="inline-flex items-center gap-1 mt-1 px-3 py-2 bg-acento/15 border border-acento/30 text-acento font-bold rounded-full hover:bg-acento/25 transition-colors text-sm"
           >
             <span className="material-symbols-outlined text-sm">open_in_new</span>
             Abrir en pestaña nueva
@@ -113,7 +113,7 @@ export default function ModalRevisarRecurso({ item, onDecidido, onCerrar }: Moda
             <img
               src={urlPreview(item.archivoId)}
               alt={item.archivo ?? item.titulo}
-              className="w-full max-h-[50vh] object-contain rounded-2xl border border-white/10 bg-[#1C1030] cursor-zoom-in"
+              className="w-full max-h-[50vh] object-contain rounded-2xl border border-white/10 bg-fondo cursor-zoom-in"
             />
           </a>
           {meta}
@@ -148,7 +148,7 @@ export default function ModalRevisarRecurso({ item, onDecidido, onCerrar }: Moda
     // Cualquier otro archivo (docx, xlsx…): sin preview embebida, pero con nombre,
     // peso y un botón de descarga que funciona de verdad.
     return (
-      <div className="rounded-2xl border border-white/10 bg-[#1C1030] p-4 flex items-center justify-between gap-3">
+      <div className="rounded-2xl border border-white/10 bg-fondo p-4 flex items-center justify-between gap-3">
         {meta}
         <button
           type="button"
@@ -216,7 +216,7 @@ export default function ModalRevisarRecurso({ item, onDecidido, onCerrar }: Moda
                 onChange={(e) => setMotivo(e.target.value)}
                 rows={3}
                 placeholder="Se le avisa a quien lo presentó."
-                className="w-full px-4 py-2.5 bg-[#1C1030] border border-white/10 rounded-xl text-white text-sm placeholder:text-slate-500 focus:border-error focus:outline-none transition-colors resize-none"
+                className="w-full px-4 py-2.5 bg-fondo border border-white/10 rounded-xl text-white text-sm placeholder:text-slate-500 focus:border-error focus:outline-none transition-colors resize-none"
                 autoFocus
               />
             </div>
@@ -253,7 +253,7 @@ export default function ModalRevisarRecurso({ item, onDecidido, onCerrar }: Moda
               type="button"
               onClick={() => void decidir({ decision: "aprobar", destino: "nacional" })}
               disabled={enviando}
-              className="w-full py-3 bg-[#C548F5]/15 border border-[#C548F5]/30 text-[#C548F5] font-bold rounded-full hover:bg-[#C548F5]/25 transition-colors text-sm disabled:opacity-60"
+              className="w-full py-3 bg-acento/15 border border-acento/30 text-acento font-bold rounded-full hover:bg-acento/25 transition-colors text-sm disabled:opacity-60"
             >
               Aprobar para la Biblioteca Nacional
             </button>

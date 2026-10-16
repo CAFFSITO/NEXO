@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
+import TopBar from "./components/shared/TopBar";
 import TarjetaComunicado from "./components/familia-comunicados/TarjetaComunicado";
 import type { Comunicado } from "./components/familia-comunicados/tipos";
 import { useNavegacion } from "../navegacion";
@@ -109,7 +110,7 @@ export default function FamiliaComunicadosPage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen text-on-surface">
+    <div className="flex bg-fondo min-h-screen text-on-surface">
       <Sidebar
         usuario={usuario}
         onNavegar={navegar}
@@ -117,38 +118,7 @@ export default function FamiliaComunicadosPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content min-h-screen">
-        {/* Top App Bar */}
-        <header className="flex justify-between items-center w-full px-8 h-16 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] sticky top-0 z-40">
-          <div className="flex flex-col">
-            <h1 className="text-fuchsia-500 font-headline font-extrabold text-xl tracking-tight">
-              Comunicados
-            </h1>
-            {/* Decía "Colegio San Martín — Familia de Julieta Rossi, 4° B" a
-                mano. El colegio sale de la base; el nombre, de la sesión. */}
-            <p className="text-[11px] text-slate-400 font-medium">
-              {[subtituloInstitucional(institucion), usuario.nombre].filter(Boolean).join(" — ")}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <button
-                aria-label="Notificaciones" onClick={() => navegar("/notificaciones")}
-                className="material-symbols-outlined text-slate-400 opacity-80 hover:opacity-100 cursor-pointer"
-              >
-                notifications
-              </button>
-              {nuevos.length > 0 && (
-                <span className="absolute top-0 right-0 w-2 h-2 bg-fuchsia-500 rounded-full" />
-              )}
-            </div>
-            <button
-              aria-label="Configuración" onClick={() => navegar("/configuracion")}
-              className="material-symbols-outlined text-slate-400 opacity-80 hover:opacity-100 cursor-pointer"
-            >
-              settings
-            </button>
-          </div>
-        </header>
+        <TopBar title="Comunicados" subtitle={subtituloInstitucional(institucion)} />
 
         {/* Content Area */}
         <section className="p-8 max-w-5xl mx-auto space-y-6">
@@ -173,7 +143,7 @@ export default function FamiliaComunicadosPage() {
             <div
               key={c.id}
               id={`comunicado-${c.id}`}
-              className={`rounded-2xl transition-all ${resaltadoId === c.id ? "ring-2 ring-[#C548F5] ring-offset-2 ring-offset-[#1C1030]" : ""}`}
+              className={`rounded-2xl transition-all ${resaltadoId === c.id ? "ring-2 ring-acento ring-offset-2 ring-offset-fondo" : ""}`}
             >
               <TarjetaComunicado
                 comunicado={c}
@@ -205,7 +175,7 @@ export default function FamiliaComunicadosPage() {
             <div
               key={c.id}
               id={`comunicado-${c.id}`}
-              className={`rounded-2xl transition-all ${resaltadoId === c.id ? "ring-2 ring-[#C548F5] ring-offset-2 ring-offset-[#1C1030]" : ""}`}
+              className={`rounded-2xl transition-all ${resaltadoId === c.id ? "ring-2 ring-acento ring-offset-2 ring-offset-fondo" : ""}`}
             >
               <TarjetaComunicado
                 comunicado={c}

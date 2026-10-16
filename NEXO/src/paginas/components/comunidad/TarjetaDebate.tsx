@@ -1,166 +1,48 @@
-import type { Rol } from "../shared/roles";
-import type { Debate, ObjetoVotable } from "../../../servicios/comunidad";
+// Un debate en la lista: estado, pregunta, de qué bloques está hecho, cuánta
+// gente participa, cuántos cambiaron de opinión y, si se puede ver, el consenso.
+
+import type { Debate } from "../../../servicios/comunidad";
 import { textoRelativo } from "../../../servicios/fechas";
-import MenuTresPuntos from "./MenuTresPuntos";
+import { Avatar } from "./piezas";
+import { TIPOS_BLOQUE } from "./debateUtil";
 
-export type PosturaVoto = "a-favor" | "en-contra";
-
-interface TarjetaDebateProps {
-  debate: Debate;
-  rolLector: Rol;
-  usuarioId: number;
-  onVotar: (id: string, postura: PosturaVoto) => void;
-  onParticipar: (id: string) => void;
-  onAbrir: (id: string) => void;
-  onDenunciar: (tipo: ObjetoVotable, id: string) => void;
-  onEliminar: (tipo: ObjetoVotable, id: string) => void;
-}
-
-// Tarjeta de debate. Las barras "a favor / en contra" muestran las posturas
-// reales de quienes participaron (`debate_participantes`), no números escritos
-// a mano ("152 a favor").
-//
-// Diferencia clave del producto (14.5): las barras son las POSTURAS de los
-// participantes. Fijar una postura EXIGE participar primero (Error 2.B.6): quien
-// no participó ve el resultado pero las barras no le responden. Recién con
-// "Participar" se habilitan "a favor / en contra". El menú de tres puntos y el
-// hilo de comentarios son los mismos que en el feed (sección 1.4).
-export default function TarjetaDebate({
-  debate,
-  rolLector,
-  usuarioId,
-  onVotar,
-  onParticipar,
-  onAbrir,
-  onDenunciar,
-  onEliminar,
-}: TarjetaDebateProps) {
-  const total = debate.votosAFavor + debate.votosEnContra;
-  const pctFavor = total === 0 ? 0 : Math.round((debate.votosAFavor / total) * 100);
-  const pctContra = total === 0 ? 0 : 100 - pctFavor;
-  // Solo se puede fijar postura si ya participó y el debate sigue abierto.
-  const puedeFijarPostura = debate.estoyParticipando && debate.abierto;
-
+export default function TarjetaDebate({ debate: d, onAbrir }: { debate: Debate; onAbrir: () => void }) {
+  const total = d.votosAFavor + d.votosEnContra;
   return (
-    <div className="bg-[#2D1B4E] rounded-[14px] p-6 hover:bg-[#36235b] transition-all border border-white/5">
-      <div className="flex justify-between items-start mb-4">
-        <span
-          className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 ${
-            debate.abierto
-              ? "bg-orange-500/20 text-orange-400"
-              : "bg-white/10 text-white/50"
-          }`}
-        >
-          <span className="material-symbols-outlined text-[12px]">chat</span>
-          {debate.abierto ? "Debate abierto" : "Debate cerrado"}
-        </span>
-        <MenuTresPuntos
-          rol={rolLector}
-          objetoTipo="debate"
-          objetoId={debate.id}
-          esAutor={debate.autorId === String(usuarioId)}
-          onDenunciar={onDenunciar}
-          onEliminar={onEliminar}
-        />
+    <article className={`c-tarjeta c-aparecer cursor-pointer ${d.fijado ? "is-fijada" : ""}`} onClick={onAbrir} aria-label={`Debate: ${d.titulo}`}>
+      <div className="flex flex-wrap items-center gap-2 text-[11.5px]">
+        {d.fijado && <span className="inline-flex items-center gap-1 font-semibold text-on-surface-variant/70"><span className="material-symbols-outlined !text-[15px]" aria-hidden="true">push_pin</span>Fijado</span>}
+        <span className={`rounded-full px-2 py-0.5 font-bold ${d.abierto ? "bg-emerald-500/15 text-emerald-200" : "bg-white/10 text-on-surface-variant"}`}>{d.abierto ? "Abierto" : "Cerrado"}</span>
+        {d.abierto && d.cierraEn && <span className="text-on-surface-variant/60">Cierra el {new Date(d.cierraEn + "T12:00:00").toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</span>}
+        {d.conclusion && <span className="rounded-full bg-amber-400/15 px-2 py-0.5 font-bold text-amber-200">Con conclusión</span>}
+        {d.anonimo && <span className="text-on-surface-variant/60">· anónimo</span>}
       </div>
-
-      <button
-        type="button"
-        onClick={() => onAbrir(debate.id)}
-        className="text-left w-full"
-      >
-        <h3 className="text-xl font-bold text-white mb-2 leading-tight hover:text-[#C548F5] transition-colors">
-          {debate.titulo}
-        </h3>
-      </button>
-      {debate.descripcion && (
-        <p className="text-white/50 text-sm mb-6 line-clamp-2">{debate.descripcion}</p>
-      )}
-
-      <div className="space-y-4 mb-6">
-        {/* A favor */}
-        <button
-          type="button"
-          disabled={!puedeFijarPostura}
-          onClick={() => onVotar(debate.id, "a-favor")}
-          className="w-full text-left space-y-1 group disabled:cursor-default"
-        >
-          <div className="flex justify-between text-xs font-medium mb-1">
-            <span
-              className={`flex items-center gap-1 text-green-400 ${
-                debate.miPostura === "a-favor" ? "font-bold" : ""
-              }`}
-            >
-              {debate.miPostura === "a-favor" && (
-                <span className="material-symbols-outlined text-[14px]">check_circle</span>
-              )}
-              A favor ({debate.votosAFavor})
-            </span>
-            <span className="text-white/60">{pctFavor}%</span>
-          </div>
-          <div className="w-full bg-[#1C1030] h-2.5 rounded-full overflow-hidden">
-            <div
-              className="bg-green-500 h-full rounded-full transition-all duration-300"
-              style={{ width: `${pctFavor}%` }}
-            />
-          </div>
-        </button>
-
-        {/* En contra */}
-        <button
-          type="button"
-          disabled={!puedeFijarPostura}
-          onClick={() => onVotar(debate.id, "en-contra")}
-          className="w-full text-left space-y-1 group disabled:cursor-default"
-        >
-          <div className="flex justify-between text-xs font-medium mb-1">
-            <span
-              className={`flex items-center gap-1 text-red-400 ${
-                debate.miPostura === "en-contra" ? "font-bold" : ""
-              }`}
-            >
-              {debate.miPostura === "en-contra" && (
-                <span className="material-symbols-outlined text-[14px]">check_circle</span>
-              )}
-              En contra ({debate.votosEnContra})
-            </span>
-            <span className="text-white/60">{pctContra}%</span>
-          </div>
-          <div className="w-full bg-[#1C1030] h-2.5 rounded-full overflow-hidden">
-            <div
-              className="bg-red-500 h-full rounded-full transition-all duration-300"
-              style={{ width: `${pctContra}%` }}
-            />
-          </div>
-        </button>
-      </div>
-
-      <div className="flex items-center justify-between pt-4 border-t border-white/10">
-        <div className="flex items-center gap-4 text-white/60 text-xs">
-          <button
-            type="button"
-            onClick={() => onAbrir(debate.id)}
-            className="flex items-center gap-1 hover:text-[#C548F5] transition-colors"
-          >
-            <span className="material-symbols-outlined text-[16px]">mode_comment</span>
-            {debate.comentarios} comentarios
-          </button>
-          <span className="flex items-center gap-1">
-            <span className="material-symbols-outlined text-[16px]">schedule</span>
-            {textoRelativo(debate.creadoEn)}
+      <h3 className="mt-2 font-headline text-xl font-bold leading-snug text-white">{d.titulo}</h3>
+      {d.descripcion && <p className="mt-1 line-clamp-2 text-[14px] text-on-surface-variant/75">{d.descripcion}</p>}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {d.bloques.map((b) => (
+          <span key={b.id} className="c-reaccion !cursor-default !py-0.5 !text-[11.5px]" title={b.titulo}>
+            <span className="material-symbols-outlined !text-[14px]" style={{ color: TIPOS_BLOQUE[b.tipo].color }} aria-hidden="true">{TIPOS_BLOQUE[b.tipo].icono}</span>{TIPOS_BLOQUE[b.tipo].nombre}
           </span>
-        </div>
-        <button
-          onClick={() => onParticipar(debate.id)}
-          className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${
-            debate.estoyParticipando
-              ? "bg-[#C548F5] text-white"
-              : "border border-[#C548F5] text-[#C548F5] hover:bg-[#C548F5] hover:text-white"
-          }`}
-        >
-          {debate.estoyParticipando ? "Participando" : "Participar"}
-        </button>
+        ))}
       </div>
-    </div>
+      {total > 0 && (
+        <div className="mt-3">
+          <div className="c-barra-doble !h-2" aria-hidden="true">
+            <span style={{ width: `${(d.votosAFavor / total) * 100}%`, background: "#10b981" }} />
+            <span style={{ width: `${(d.votosEnContra / total) * 100}%`, background: "#f43f5e" }} />
+          </div>
+          <p className="mt-1 text-[11.5px] text-on-surface-variant/60">{d.votosAFavor} a favor · {d.votosEnContra} en contra{d.consenso !== null ? ` · consenso ${Math.round(d.consenso * 100)} %` : ""}</p>
+        </div>
+      )}
+      <footer className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-on-surface-variant/65">
+        <span className="flex items-center gap-1.5"><Avatar nombre={d.autor} url={d.autorAvatar} chico />{d.autor} · {textoRelativo(d.creadoEn)}</span>
+        <span className="flex items-center gap-1"><span className="material-symbols-outlined !text-[16px]" aria-hidden="true">groups</span>{d.participantes}</span>
+        <span className="flex items-center gap-1"><span className="material-symbols-outlined !text-[16px]" aria-hidden="true">campaign</span>{d.aportes} aportes</span>
+        <span className="flex items-center gap-1"><span className="material-symbols-outlined !text-[16px]" aria-hidden="true">forum</span>{d.comentarios}</span>
+        {d.cambiosDeOpinion > 0 && <span className="flex items-center gap-1 text-amber-200">Δ {d.cambiosDeOpinion} cambios de opinión</span>}
+        {d.estoyParticipando && <span className="ml-auto rounded-full bg-acento/20 px-2 py-0.5 font-semibold text-primary">Participás</span>}
+      </footer>
+    </article>
   );
 }

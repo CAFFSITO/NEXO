@@ -12,6 +12,8 @@
 import { useMemo, useState } from "react";
 import { useDatos } from "../servicios/api";
 import Sidebar from "./components/shared/Sidebar";
+import TopBar from "./components/shared/TopBar";
+import { PESTANAS_PORTAFOLIO_DOCENTE } from "./components/shared/pestanasModulos";
 import { useNavegacion } from "../navegacion";
 import TarjetaTareaBase from "./components/shared/tareas/TarjetaTareaBase";
 import ModalDetalleTarea from "./components/shared/tareas/ModalDetalleTarea";
@@ -116,7 +118,7 @@ export default function GestionTareasProfesorPage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen text-on-surface overflow-x-hidden">
+    <div className="flex bg-fondo min-h-screen text-on-surface overflow-x-clip">
       <Sidebar
         usuario={usuario}
         onNavegar={handleNavegar}
@@ -124,26 +126,7 @@ export default function GestionTareasProfesorPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        {/* Top nav del portafolio docente */}
-        <header className="flex justify-between items-center w-full px-8 py-4 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] sticky top-0 z-40">
-          <div className="flex items-center gap-8">
-            <h1 className="text-lg font-black text-white font-headline">Portafolio Docente</h1>
-            <nav className="hidden md:flex items-center gap-6">
-              <button onClick={() => handleNavegar("/portafolio-docente")} className="text-slate-400 pb-2 hover:text-[#C548F5] transition-all font-label">
-                Dashboard
-              </button>
-              <button aria-current="page" onClick={() => handleNavegar("/portafolio/gestion")} className="text-[#C548F5] border-b-2 border-[#C548F5] pb-2 font-bold font-label">
-                Gestión de Tareas
-              </button>
-              <button onClick={() => handleNavegar("/portafolio-docente/diario")} className="text-slate-400 pb-2 hover:text-[#C548F5] transition-all font-label">
-                Diario Reflexivo
-              </button>
-              <button onClick={() => handleNavegar("/portafolio-docente/aula-virtual")} className="text-slate-400 pb-2 hover:text-[#C548F5] transition-all font-label">
-                Aula Virtual
-              </button>
-            </nav>
-          </div>
-        </header>
+        <TopBar title="Portafolio Docente" pestanas={PESTANAS_PORTAFOLIO_DOCENTE} />
 
         <div className="p-8 max-w-5xl mx-auto w-full space-y-6">
           {/* Header vista + acciones */}
@@ -175,7 +158,7 @@ export default function GestionTareasProfesorPage() {
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               placeholder="Buscar por título, materia o curso…"
-              className="w-full bg-[#2D1B4E] border-none rounded-full pl-10 pr-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#C548F5]"
+              className="w-full bg-lienzo border-none rounded-full pl-10 pr-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-acento"
             />
           </div>
 
@@ -191,11 +174,11 @@ export default function GestionTareasProfesorPage() {
                   <button
                     key={c.id}
                     onClick={() => handleNavegar(`/portafolio/materia?catedra=${c.id}`)}
-                    className="text-left bg-[#2D1B4E] border border-white/5 hover:border-[#C548F5]/40 rounded-xl p-4 transition-all group"
+                    className="text-left bg-lienzo border border-white/5 hover:border-acento/40 rounded-xl p-4 transition-all group"
                   >
                     <div className="flex items-center justify-between">
                       <p className="text-white font-bold">{c.materia}</p>
-                      <span className="material-symbols-outlined text-white/30 group-hover:text-[#C548F5] transition-colors">
+                      <span className="material-symbols-outlined text-white/30 group-hover:text-acento transition-colors">
                         chevron_right
                       </span>
                     </div>
@@ -242,7 +225,7 @@ export default function GestionTareasProfesorPage() {
                             >
                               {tarea.materia.toUpperCase()}
                             </span>
-                            <span className="px-3 py-1 text-[10px] font-bold rounded-full tracking-wider bg-[#1C1030] text-slate-300">
+                            <span className="px-3 py-1 text-[10px] font-bold rounded-full tracking-wider bg-fondo text-slate-300">
                               {entregadas}/{total} ENTREGADAS
                             </span>
                           </div>
@@ -318,7 +301,7 @@ export default function GestionTareasProfesorPage() {
 
               {/* Resumen (calculado en vivo sobre datos reales) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-                <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-[#2D1B4E] to-surface-container-lowest p-6 rounded-xl border border-outline-variant/20 relative overflow-hidden">
+                <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-lienzo to-surface-container-lowest p-6 rounded-xl border border-outline-variant/20 relative overflow-hidden">
                   <div className="relative z-10">
                     <h4 className="font-headline font-bold text-tertiary">Resumen Semanal</h4>
                     <p className="text-3xl font-black text-white mt-2">
@@ -362,7 +345,7 @@ export default function GestionTareasProfesorPage() {
         <button
           onClick={abrirCreacion}
           aria-label="Nueva tarea"
-          className="fixed bottom-8 right-8 z-[70] w-16 h-16 bg-[#C548F5] text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-transform"
+          className="fixed bottom-8 right-8 z-[70] w-16 h-16 bg-acento text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-transform"
         >
           <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
             add

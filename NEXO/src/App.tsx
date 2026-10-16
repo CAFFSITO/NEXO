@@ -6,14 +6,18 @@ import {
   NavegacionContext,
   MAPA_RUTAS,
   MAPA_RUTAS_PUBLICAS,
+  RUTA_PRIMER_INGRESO,
   useNavegacion,
-  HOME_POR_ROL,
   type Page,
   type ResultadoLogin,
   type Usuario,
 } from "./navegacion";
 import { iniciarSesion, sesionActual, cerrarSesionEnServidor } from "./servicios/sesion";
 import { consultarAcceso, olvidarPermisos, type ResultadoAcceso } from "./servicios/permisos";
+import { InstanciaContext, pedirInstancia, useInstancia, type Instancia } from "./servicios/instancia";
+import { aplicarTema } from "./servicios/tema";
+import { olvidarPush } from "./servicios/push";
+import { inicioPara } from "./paginas/components/shared/navegacionItems";
 const LoginPage = lazy(() => import("./paginas/LoginPage.tsx"));
 const ConfiguracionCuentaPage = lazy(() => import("./paginas/ConfiguracionCuentaPage.tsx"));
 const RecuperarContrasenaPage = lazy(() => import("./paginas/RecuperarContrasenaPage.tsx"));
@@ -53,6 +57,13 @@ const MisCursosPreceptorPage = lazy(() => import("./paginas/MisCursosPreceptorPa
 const DiarioReflexivoProfesorPage = lazy(() => import("./paginas/DiarioReflexivoProfesorPage.tsx"));
 const GestionTareasProfesorPage = lazy(() => import("./paginas/GestionTareasProfesorPage.tsx"));
 const EnviarQuejaPage = lazy(() => import("./paginas/EnviarQuejaPage.tsx"));
+const MaestroEstudioPage = lazy(() => import("./paginas/MaestroEstudioPage.tsx"));
+const ModoEdicionPage = lazy(() => import("./paginas/ModoEdicionPage.tsx"));
+const AnunciosPage = lazy(() => import("./paginas/AnunciosPage.tsx"));
+const AnunciosMaestroPage = lazy(() => import("./paginas/AnunciosMaestroPage.tsx"));
+// La capa de avisos obligatorios: se monta en toda la app (fuera de las rutas)
+// y tapa cualquier pantalla mientras haya avisos sin leer.
+const AvisosObligatorios = lazy(() => import("./paginas/components/anuncios/BandejaObligatoria.tsx"));
 
 // Registro central: qué componente concreto dibuja cada página.
 const PAGINAS: Record<Exclude<Page, "login">, () => React.ReactElement> = {
@@ -95,6 +106,10 @@ const PAGINAS: Record<Exclude<Page, "login">, () => React.ReactElement> = {
   "diario-reflexivo-profesor": () => <DiarioReflexivoProfesorPage />,
   "gestion-tareas-profesor": () => <GestionTareasProfesorPage />,
   "enviar-queja": () => <EnviarQuejaPage />,
+  "maestro-estudio": () => <MaestroEstudioPage />,
+  "modulos-institucion": () => <ModoEdicionPage />,
+  anuncios: () => <AnunciosPage />,
+  "anuncios-maestro": () => <AnunciosMaestroPage />,
 };
 
 // Las direcciones NO se vuelven a escribir acá: se generan del mapa MAPA_RUTAS
@@ -129,6 +144,7 @@ function Cargando() {
  */
 function SinPermiso({ motivo, temporal }: { motivo?: string; temporal?: boolean }) {
   const { usuario, navegar } = useNavegacion();
+  const { instancia } = useInstancia();
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center gap-4 bg-background px-6 text-center">
@@ -141,7 +157,7 @@ function SinPermiso({ motivo, temporal }: { motivo?: string; temporal?: boolean 
       </p>
       {temporal && <button onClick={() => window.location.reload()} className="px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold">Reintentar</button>}
       <button
-        onClick={() => navegar(usuario ? HOME_POR_ROL[usuario.rol] : "/login")}
+        onClick={() => navegar(usuario ? inicioPara(usuario.rol, instancia) : "/login")}
         className="px-4 py-2 rounded-lg bg-primary/20 text-sm font-medium text-primary hover:bg-primary/30 transition"
       >
         Volver a mi inicio
@@ -185,6 +201,13 @@ function Pantalla({ pagina }: { pagina: Exclude<Page, "login"> }) {
     return <Navigate to="/login" replace state={sesionFinalizada === "manual" ? null : { destino: location.pathname + location.search, sesionVencida: sesionFinalizada === "vencida" }} />;
   }
 
+  // La primera vez que alguien entra, lo primero que ve es la configuración de
+  // su cuenta (ahí puede cambiar la contraseña inicial, si quiere). Hasta que
+  // elija, cualquier otra pantalla lo devuelve ahí.
+  if (usuario.primerIngreso && pagina !== "configuracion-cuenta") {
+    return <Navigate to={RUTA_PRIMER_INGRESO} replace />;
+  }
+
   if (!acceso) return <Cargando />;
   if (!acceso.permitido) return <SinPermiso motivo={acceso.error} temporal={acceso.temporal} />;
 
@@ -194,9 +217,13 @@ function Pantalla({ pagina }: { pagina: Exclude<Page, "login"> }) {
 /** El login. Si ya hay sesión, no tiene sentido mostrarlo: se entra derecho. */
 function PantallaLogin() {
   const { usuario, revisandoSesion } = useNavegacion();
+  const { instancia, lista } = useInstancia();
   const location = useLocation();
 
   if (revisandoSesion) return <Cargando />;
+  // El inicio depende del genoma de la escuela (puede estar oculto el módulo de
+  // siempre): se espera a conocerlo antes de mandar a la persona a algún lado.
+  if (usuario && !lista) return <Cargando />;
 
   if (usuario) {
     // Si llegó acá por haber pedido una pantalla puntual sin sesión, se lo
@@ -205,7 +232,7 @@ function PantallaLogin() {
     // servidor, y si no puede, se lo dice con todas las letras en vez de
     // dejarlo en otro lado sin explicación (Error 12.6).
     const destino = (location.state as { destino?: string } | null)?.destino;
-    return <Navigate to={destino ?? HOME_POR_ROL[usuario.rol]} replace />;
+    return <Navigate to={destino ?? inicioPara(usuario.rol, instancia)} replace />;
   }
 
   return <LoginPage />;
@@ -224,6 +251,7 @@ function PantallaLogin() {
  */
 function EnConstruccion() {
   const { usuario, navegar } = useNavegacion();
+  const { instancia } = useInstancia();
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center gap-4 bg-background px-6 text-center">
@@ -233,7 +261,7 @@ function EnConstruccion() {
         Revisá la dirección o volvé a tu espacio para continuar.
       </p>
       <button
-        onClick={() => navegar(usuario ? HOME_POR_ROL[usuario.rol] : "/login")}
+        onClick={() => navegar(usuario ? inicioPara(usuario.rol, instancia) : "/login")}
         className="px-4 py-2 rounded-lg bg-primary/20 text-sm font-medium text-primary hover:bg-primary/30 transition"
       >
         Volver al inicio
@@ -250,6 +278,37 @@ export default function App() {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  // La instancia (genoma) de la escuela de quien entró: colores, menú, perfil.
+  // Se pide cada vez que cambia la persona; al salir se vuelve a la paleta de
+  // siempre. `lista` dice si ya se intentó (aunque haya fallado: sin ella la
+  // aplicación funciona igual, con el menú de fábrica).
+  const [estadoInstancia, setEstadoInstancia] = useState<{ usuarioId: number; instancia: Instancia | null } | null>(null);
+  const [versionInstancia, setVersionInstancia] = useState(0);
+  const recargarInstancia = useCallback(() => setVersionInstancia((n) => n + 1), []);
+  useEffect(() => {
+    if (!usuario) return;
+    const controlador = new AbortController();
+    pedirInstancia(controlador.signal)
+      .then((instancia) => {
+        if (controlador.signal.aborted) return;
+        aplicarTema(instancia.tema);
+        setEstadoInstancia({ usuarioId: usuario.id, instancia });
+      })
+      .catch(() => {
+        if (!controlador.signal.aborted) setEstadoInstancia({ usuarioId: usuario.id, instancia: null });
+      });
+    return () => controlador.abort();
+  }, [usuario, versionInstancia]);
+  useEffect(() => {
+    if (!usuario) aplicarTema(null);
+  }, [usuario]);
+  const instanciaVigente = usuario && estadoInstancia?.usuarioId === usuario.id ? estadoInstancia.instancia : null;
+  const instanciaLista = !usuario || estadoInstancia?.usuarioId === usuario.id;
+  const valorInstancia = useMemo(
+    () => ({ instancia: instanciaVigente, recargar: recargarInstancia, lista: instanciaLista }),
+    [instanciaVigente, recargarInstancia, instanciaLista]
+  );
 
   useEffect(() => {
     const vencida = () => {
@@ -312,12 +371,21 @@ export default function App() {
     sesionCerrada.current = true;
     setSesionFinalizada("manual");
     // Borrar la sesión también en el servidor: si solo se limpiara la pantalla,
-    // la llave seguiría viva y serviría para volver a entrar.
-    void cerrarSesionEnServidor();
+    // la llave seguiría viva y serviría para volver a entrar. Antes, que este
+    // navegador deje de recibir los avisos push de esta persona.
+    void olvidarPush().finally(() => cerrarSesionEnServidor());
     olvidarPermisos();
     setUsuario(null);
     navigate("/login", { replace: true });
   }, [navigate]);
+
+  const terminarPrimerIngreso = useCallback(() => {
+    setUsuario((actual) => (actual ? { ...actual, primerIngreso: false } : actual));
+  }, []);
+
+  const actualizarUsuario = useCallback((cambios: Partial<Usuario>) => {
+    setUsuario((actual) => (actual ? { ...actual, ...cambios } : actual));
+  }, []);
 
   const valor = useMemo(
     () => ({
@@ -330,13 +398,19 @@ export default function App() {
       navegar,
       cerrarSesion,
       login,
+      terminarPrimerIngreso,
+      actualizarUsuario,
     }),
-    [usuario, location.pathname, revisandoSesion, sesionFinalizada, navegar, cerrarSesion, login]
+    [usuario, location.pathname, revisandoSesion, sesionFinalizada, navegar, cerrarSesion, login, terminarPrimerIngreso, actualizarUsuario]
   );
 
   return (
     <NavegacionContext.Provider value={valor}>
+    <InstanciaContext.Provider value={valorInstancia}>
       <EstadoConexion />
+      <Suspense fallback={null}>
+        <AvisosObligatorios />
+      </Suspense>
       <ErrorBoundary key={location.pathname}>
       <Suspense fallback={<Cargando />}>
       <Routes>
@@ -353,6 +427,7 @@ export default function App() {
       </Routes>
       </Suspense>
       </ErrorBoundary>
+    </InstanciaContext.Provider>
     </NavegacionContext.Provider>
   );
 }
@@ -360,6 +435,7 @@ export default function App() {
 /** La raíz "/" no es una pantalla: solo decide a dónde mandar a quien entra. */
 function PantallaRaiz() {
   const { usuario, revisandoSesion } = useNavegacion();
-  if (revisandoSesion) return <Cargando />;
-  return <Navigate to={usuario ? HOME_POR_ROL[usuario.rol] : "/login"} replace />;
+  const { instancia, lista } = useInstancia();
+  if (revisandoSesion || (usuario && !lista)) return <Cargando />;
+  return <Navigate to={usuario ? inicioPara(usuario.rol, instancia) : "/login"} replace />;
 }

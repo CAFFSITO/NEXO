@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import Sidebar, { type Rol } from "./components/shared/Sidebar";
+import TopBar from "./components/shared/TopBar";
+import { PESTANAS_BIBLIOTECA } from "./components/shared/pestanasModulos";
 import { useNavegacion } from "../navegacion";
 import SearchAndFilter from "./components/biblioteca/SearchAndFilter";
 import ResourceCard from "./components/biblioteca/ResourceCard";
@@ -15,6 +17,7 @@ import {
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 import { useInstitucion } from "../servicios/institucion";
 import { urlDescarga } from "../servicios/archivos";
+import Selector from "./components/shared/Selector";
 
 // Ícono por tipo de recurso. Decoración, no un dato de la base.
 const ICONO_TIPO: Record<Recurso["tipo"], string> = {
@@ -35,7 +38,7 @@ export default function BibliotecaPage() {
   const puedeSubir = rol === "admin-academico" || rol === "bibliotecario";
   const puedePresentar = rol === "estudiante" || rol === "profesor";
 
-  const [ambito, setAmbito] = useState<AmbitoBiblioteca>("institucional");
+  const [ambito] = useState<AmbitoBiblioteca>("institucional");
   const [query, setQuery] = useState("");
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const [tipo, setTipo] = useState("todos");
@@ -96,136 +99,106 @@ export default function BibliotecaPage() {
     else if (r.archivoId) window.open(urlDescarga(r.archivoId), "_blank");
   };
 
-  // Institucional primero (es la que abre por defecto), Nacional después.
-  const tabs: { id: AmbitoBiblioteca; label: string }[] = [
-    { id: "institucional", label: "Institucional" },
-    { id: "nacional", label: "Nacional" },
-  ];
-
   return (
-    <div className="bg-[#190d2d] min-h-screen text-on-surface font-body">
+    <div className="bg-background min-h-screen text-on-surface font-body">
       <Sidebar
         usuario={usuario ?? { nombre: "", rol }}
         onNavegar={handleNavegar}
         onCerrarSesion={handleCerrarSesion}
       />
 
-      {/* Top App Bar: tabs Nacional / Institucional */}
-      <header className="fixed top-0 app-fixed-header right-0 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] px-8 py-4 flex justify-between items-center z-40">
-        <nav className="flex gap-6 font-headline font-semibold">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => { if (tab.id === "nacional") handleNavegar("/biblioteca/nacional"); else setAmbito(tab.id); }}
-              className={`pb-2 transition-all cursor-pointer ${
-                ambito === tab.id
-                  ? "text-[#C548F5] border-b-2 border-[#C548F5]"
-                  : "text-gray-400 hover:text-[#C548F5]"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-        <div className="flex items-center gap-4">
-          <button aria-label="Notificaciones" onClick={() => handleNavegar("/notificaciones")} className="text-gray-400 hover:text-[#C548F5] transition-all p-2">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
-          <button aria-label="Configuración" onClick={() => handleNavegar("/configuracion")} className="text-gray-400 hover:text-[#C548F5] transition-all p-2">
-            <span className="material-symbols-outlined">settings</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main id="contenido-principal" tabIndex={-1} className="app-content pt-24 p-8 min-h-screen">
-        {/* Header Section */}
-        <div className="flex flex-wrap gap-5 justify-between items-end mb-10">
-          <div className="space-y-1">
-            <nav className="flex items-center gap-2 text-xs text-gray-500 font-label mb-2">
-              <span>{ambito === "institucional" ? "Institución" : "Nacional"}</span>
-              <span className="material-symbols-outlined text-[10px]">chevron_right</span>
-              <span className="text-[#C548F5]">Biblioteca</span>
-            </nav>
-            {/* El nombre del colegio salía escrito a mano ("Colegio San
-                Martín"). Sale de la base. */}
-            <h1 className="text-4xl font-black font-headline text-white tracking-tight">
-              {ambito === "institucional"
-                ? `Biblioteca · ${institucion?.nombre ?? ""}`
-                : "Biblioteca Digital Nacional"}
-            </h1>
-            <p className="text-gray-400 font-body max-w-2xl">
-              {ambito === "institucional"
-                ? "Accede a recursos compartidos, guías de estudio y reglamentación oficial de tu institución."
-                : "Explorá recursos educativos compartidos por instituciones de todo el país."}
-            </p>
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
+        {/* Institucional primero (es la que abre por defecto), Nacional después. */}
+        <TopBar title="Biblioteca" pestanas={PESTANAS_BIBLIOTECA} />
+        <div className="flex-1 p-8">
+          {/* Header Section */}
+          <div className="flex flex-wrap gap-5 justify-between items-end mb-10">
+            <div className="space-y-1">
+              <nav className="flex items-center gap-2 text-xs text-gray-500 font-label mb-2">
+                <span>{ambito === "institucional" ? "Institución" : "Nacional"}</span>
+                <span className="material-symbols-outlined text-[10px]">chevron_right</span>
+                <span className="text-acento">Biblioteca</span>
+              </nav>
+              {/* El nombre del colegio salía escrito a mano ("Colegio San
+                  Martín"). Sale de la base. */}
+              <h1 className="text-4xl font-black font-headline text-white tracking-tight">
+                {ambito === "institucional"
+                  ? `Biblioteca · ${institucion?.nombre ?? ""}`
+                  : "Biblioteca Digital Nacional"}
+              </h1>
+              <p className="text-gray-400 font-body max-w-2xl">
+                {ambito === "institucional"
+                  ? "Accede a recursos compartidos, guías de estudio y reglamentación oficial de tu institución."
+                  : "Explorá recursos educativos compartidos por instituciones de todo el país."}
+              </p>
+            </div>
+            {puedeSubir ? (
+              <button
+                onClick={handlePresentarRecurso}
+                className="flex items-center gap-2 px-6 py-3 bg-acento text-white rounded-full font-bold hover:bg-[#d15aff] transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined">add</span>
+                <span>Agregar recurso</span>
+              </button>
+            ) : puedePresentar ? (
+              <button
+                onClick={handlePresentarRecurso}
+                className="flex items-center gap-2 px-6 py-3 border-2 border-acento text-acento rounded-full font-bold hover:bg-acento hover:text-white transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined">add</span>
+                <span>Presentar recurso</span>
+              </button>
+            ) : null}
           </div>
-          {puedeSubir ? (
-            <button
-              onClick={handlePresentarRecurso}
-              className="flex items-center gap-2 px-6 py-3 bg-[#C548F5] text-white rounded-full font-bold hover:bg-[#d15aff] transition-all active:scale-95"
-            >
-              <span className="material-symbols-outlined">add</span>
-              <span>Agregar recurso</span>
-            </button>
-          ) : puedePresentar ? (
-            <button
-              onClick={handlePresentarRecurso}
-              className="flex items-center gap-2 px-6 py-3 border-2 border-[#C548F5] text-[#C548F5] rounded-full font-bold hover:bg-[#C548F5] hover:text-white transition-all active:scale-95"
-            >
-              <span className="material-symbols-outlined">add</span>
-              <span>Presentar recurso</span>
-            </button>
-          ) : null}
+
+          {/* Filter & Search Bar */}
+          <SearchAndFilter onSearch={setQuery} onFilter={() => setFiltrosAbiertos(!filtrosAbiertos)} />
+          {filtrosAbiertos && <section aria-label="Filtros de biblioteca" className="flex flex-wrap items-end gap-4 mb-6 p-4 bg-surface-container border border-white/10 rounded-xl">
+            <label className="text-xs text-on-surface-variant">Tipo<Selector value={tipo} onChange={e => setTipo(e.target.value)} className="block mt-2 p-2.5 rounded-lg bg-background"><option value="todos">Todos los tipos</option>{Object.keys(ICONO_TIPO).map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}</Selector></label>
+            <label className="text-xs text-on-surface-variant">Categoría<Selector value={categoria} onChange={e => setCategoria(e.target.value)} className="block mt-2 p-2.5 rounded-lg bg-background"><option value="todas">Todas las categorías</option>{[...new Set(recursos?.map(r => r.categoria) ?? [])].map(c => <option key={c}>{c}</option>)}</Selector></label>
+            <button onClick={() => { setTipo("todos"); setCategoria("todas"); }} className="text-xs text-primary py-3">Limpiar filtros</button>
+          </section>}
+          {avisoError && <p role="alert" className="text-error text-sm mb-4">{avisoError}</p>}
+
+          {/* Resource Cards Grid */}
+          {cargando ? (
+            <Cargando que="los recursos de la biblioteca" />
+          ) : error ? (
+            <Fallo error={error} onReintentar={recargar} />
+          ) : recursosVisibles.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recursosVisibles.map((r) => (
+                <ResourceCard
+                  key={r.id}
+                  title={r.titulo}
+                  category={r.categoria}
+                  icon={ICONO_TIPO[r.tipo]}
+                  author={r.autor}
+                  authorIcon={r.autorAvatar}
+                  fileType={r.etiquetaArchivo}
+                  fileSize={r.tamano ?? "N/A"}
+                  // La tarjeta habla de "verificado"/"revision"; la base, de
+                  // "aprobado"/"en-revision". Es la misma cosa; se traduce acá.
+                  estado={r.estado === "aprobado" ? "verificado" : "revision"}
+                  onAction={() => handleAccionRecurso(r)}
+                  votosPositivos={estadoVoto(r).votosPositivos}
+                  votosNegativos={estadoVoto(r).votosNegativos}
+                  miVoto={estadoVoto(r).miVoto}
+                  onVotar={(valor) => handleVotar(r.id, valor)}
+                />
+              ))}
+            </div>
+          ) : (
+            <Vacio
+              icono="library_books"
+              mensaje={query ? "No se encontraron recursos para tu búsqueda." : "Todavía no hay recursos en esta biblioteca."}
+            />
+          )}
+
+          {/* Antes había, además del botón de arriba, un segundo "Presentar
+              recurso" en un bloque al pie: el mismo acceso aparecía dos veces
+              (Error 2.E.6). Se deja uno solo, el del encabezado. */}
         </div>
-
-        {/* Filter & Search Bar */}
-        <SearchAndFilter onSearch={setQuery} onFilter={() => setFiltrosAbiertos(!filtrosAbiertos)} />
-        {filtrosAbiertos && <section aria-label="Filtros de biblioteca" className="flex flex-wrap items-end gap-4 mb-6 p-4 bg-surface-container border border-white/10 rounded-xl">
-          <label className="text-xs text-on-surface-variant">Tipo<select value={tipo} onChange={e => setTipo(e.target.value)} className="block mt-2 p-2.5 rounded-lg bg-background"><option value="todos">Todos los tipos</option>{Object.keys(ICONO_TIPO).map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}</select></label>
-          <label className="text-xs text-on-surface-variant">Categoría<select value={categoria} onChange={e => setCategoria(e.target.value)} className="block mt-2 p-2.5 rounded-lg bg-background"><option value="todas">Todas las categorías</option>{[...new Set(recursos?.map(r => r.categoria) ?? [])].map(c => <option key={c}>{c}</option>)}</select></label>
-          <button onClick={() => { setTipo("todos"); setCategoria("todas"); }} className="text-xs text-primary py-3">Limpiar filtros</button>
-        </section>}
-        {avisoError && <p role="alert" className="text-error text-sm mb-4">{avisoError}</p>}
-
-        {/* Resource Cards Grid */}
-        {cargando ? (
-          <Cargando que="los recursos de la biblioteca" />
-        ) : error ? (
-          <Fallo error={error} onReintentar={recargar} />
-        ) : recursosVisibles.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recursosVisibles.map((r) => (
-              <ResourceCard
-                key={r.id}
-                title={r.titulo}
-                category={r.categoria}
-                icon={ICONO_TIPO[r.tipo]}
-                author={r.autor}
-                authorIcon={r.autorAvatar}
-                fileType={r.etiquetaArchivo}
-                fileSize={r.tamano ?? "N/A"}
-                // La tarjeta habla de "verificado"/"revision"; la base, de
-                // "aprobado"/"en-revision". Es la misma cosa; se traduce acá.
-                estado={r.estado === "aprobado" ? "verificado" : "revision"}
-                onAction={() => handleAccionRecurso(r)}
-                votosPositivos={estadoVoto(r).votosPositivos}
-                votosNegativos={estadoVoto(r).votosNegativos}
-                miVoto={estadoVoto(r).miVoto}
-                onVotar={(valor) => handleVotar(r.id, valor)}
-              />
-            ))}
-          </div>
-        ) : (
-          <Vacio
-            icono="library_books"
-            mensaje={query ? "No se encontraron recursos para tu búsqueda." : "Todavía no hay recursos en esta biblioteca."}
-          />
-        )}
-
-        {/* Antes había, además del botón de arriba, un segundo "Presentar
-            recurso" en un bloque al pie: el mismo acceso aparecía dos veces
-            (Error 2.E.6). Se deja uno solo, el del encabezado. */}
       </main>
 
       {/* Botón flotante de ayuda: abre la Asistencia IA real. Solo lo ve el
@@ -235,7 +208,7 @@ export default function BibliotecaPage() {
       {rol === "estudiante" && (
         <button
           onClick={() => handleNavegar("/asistencia-academica")}
-          className="fixed bottom-8 right-8 w-14 h-14 bg-[#C548F5] text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50"
+          className="fixed bottom-8 right-8 w-14 h-14 bg-acento text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50"
           aria-label="Asistente"
         >
           <span className="material-symbols-outlined text-2xl">question_answer</span>

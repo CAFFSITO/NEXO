@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { MAPA_RUTAS, seccionDeRuta, useNavegacion, type RutaPrivada } from "../../../navegacion";
 import { ROL_LABELS, type Rol } from "./roles";
 import { useResumenNotificaciones } from "../../../servicios/notificaciones";
-import { NAV_POR_ROL } from "./navegacionItems";
+import { menuPorSecciones } from "./navegacionItems";
+import { useInstancia } from "../../../servicios/instancia";
 import BuscadorNavegacion from "./BuscadorNavegacion";
 
 export type { Rol };
@@ -16,6 +17,9 @@ export default function Sidebar({ usuario, onNavegar, onCerrarSesion }: SidebarP
   const { usuario: sesion, rutaActiva } = useNavegacion();
   const u = sesion ?? usuario;
   const { resumen } = useResumenNotificaciones();
+  // El genoma de la escuela: qué módulos ve esta persona, en qué orden y con qué
+  // nombre; cómo se llama su perfil y la propia escuela.
+  const { instancia } = useInstancia();
   const [abierto, setAbierto] = useState(false);
   const [buscando, setBuscando] = useState(false);
   const menu = useRef<HTMLElement>(null);
@@ -43,6 +47,10 @@ export default function Sidebar({ usuario, onNavegar, onCerrarSesion }: SidebarP
   const ir = (ruta: string) => { setAbierto(false); setBuscando(false); onNavegar(ruta); };
   const badge = (n: number) => n > 0 ? <span className="nexo-nav-badge">{n > 99 ? "99+" : n}</span> : null;
   const iniciales = u.nombre.split(" ").filter(Boolean).slice(0, 2).map(s => s[0]).join("");
+  // El menú en las secciones que armó la dirección ("Mi espacio" primero).
+  const gruposMenu = menuPorSecciones(u.rol, instancia);
+  const perfil = instancia?.perfil;
+  const leyenda = instancia?.institucion ? instancia.identidad.nombre : u.rol === "administrador" ? "ESTUDIO DEL MAESTRO" : "TU COMUNIDAD EDUCATIVA";
 
   return <>
     <a className="nexo-skip-link" href="#contenido-principal" onClick={() => document.getElementById("contenido-principal")?.focus()}>Saltar al contenido</a>
@@ -62,27 +70,29 @@ export default function Sidebar({ usuario, onNavegar, onCerrarSesion }: SidebarP
         if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primero.focus(); }
       }}>
       <div className="nexo-brand-row">
-        <span className="nexo-brand-icon material-symbols-outlined" aria-hidden="true">hub</span>
+        <span className="nexo-brand-icon material-symbols-outlined" aria-hidden="true">{instancia?.identidad.icono || "hub"}</span>
         <span className="nexo-wordmark">nexo<span>.</span></span>
         <button className="nexo-icon-button nexo-drawer-close" aria-label="Cerrar navegación" onClick={() => setAbierto(false)}><span className="material-symbols-outlined">close</span></button>
       </div>
-      <p className="nexo-brand-caption">TU COMUNIDAD EDUCATIVA</p>
+      <p className="nexo-brand-caption truncate" title={instancia?.identidad.lema || undefined}>{leyenda.toUpperCase()}</p>
       <button onClick={() => setBuscando(true)} className="nexo-nav-search"><span className="material-symbols-outlined" aria-hidden="true">search</span><span>Ir a una sección</span><kbd>Ctrl K</kbd></button>
       <div className="nexo-sidebar-scroll">
-        <div className="nexo-nav-section-label">MI ESPACIO</div>
-        <div className="nexo-nav-items">
-          {NAV_POR_ROL[u.rol].map(item => <button key={item.ruta} onClick={() => ir(item.ruta)} className={`nexo-nav-item ${activo(item.ruta) ? "is-active" : ""}`} aria-current={activo(item.ruta) ? "page" : undefined}>
-            <span className="material-symbols-outlined" aria-hidden="true">{item.icono}</span><span>{item.label}</span>{item.ruta === "/chat" && badge(resumen.chat)}
-          </button>)}
-        </div>
+        {gruposMenu.map(grupo => <div key={grupo.id || "base"} className="nexo-nav-group" role="group" aria-label={grupo.nombre}>
+          <div className="nexo-nav-section-label">{grupo.id && grupo.icono && <span className="material-symbols-outlined" aria-hidden="true">{grupo.icono}</span>}{grupo.nombre.toUpperCase()}</div>
+          <div className="nexo-nav-items">
+            {grupo.items.map(item => <button key={item.ruta} onClick={() => ir(item.ruta)} className={`nexo-nav-item ${activo(item.ruta) ? "is-active" : ""}`} aria-current={activo(item.ruta) ? "page" : undefined}>
+              <span className="material-symbols-outlined" aria-hidden="true">{item.icono}</span><span>{item.label}</span>{item.ruta === "/chat" && badge(resumen.chat)}
+            </button>)}
+          </div>
+        </div>)}
         <div className="nexo-sidebar-tools">
         <button onClick={() => ir("/notificaciones")} className={`nexo-nav-item ${activo("/notificaciones") ? "is-active" : ""}`} aria-current={activo("/notificaciones") ? "page" : undefined}><span className="material-symbols-outlined" aria-hidden="true">notifications</span><span>Notificaciones</span>{badge(resumen.notificaciones)}</button>
         <button onClick={() => ir("/configuracion")} className={`nexo-nav-item ${activo("/configuracion") ? "is-active" : ""}`} aria-current={activo("/configuracion") ? "page" : undefined}><span className="material-symbols-outlined" aria-hidden="true">settings</span><span>Configuración</span></button>
         </div>
       </div>
       <div className="nexo-user-card">
-        {u.avatarUrl ? <img src={u.avatarUrl} alt="" className="nexo-avatar" /> : <span className="nexo-avatar">{iniciales}</span>}
-        <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{u.nombre}</p><p className="truncate text-xs text-on-surface-variant/70">{ROL_LABELS[u.rol]}</p></div>
+        {u.avatarUrl ? <img src={u.avatarUrl} alt="" className="nexo-avatar" /> : <span className="nexo-avatar" style={perfil ? { boxShadow: `0 0 0 2px ${perfil.color}` } : undefined}>{iniciales}</span>}
+        <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{u.nombre}</p><p className="truncate text-xs text-on-surface-variant/70 flex items-center gap-1.5">{perfil && <span className="nexo-perfil-punto" style={{ background: perfil.color }} aria-hidden="true" />}{perfil?.nombre ?? ROL_LABELS[u.rol]}</p></div>
         <button onClick={onCerrarSesion} className="nexo-icon-button" title="Cerrar sesión" aria-label="Cerrar sesión"><span className="material-symbols-outlined">logout</span></button>
       </div>
     </nav>

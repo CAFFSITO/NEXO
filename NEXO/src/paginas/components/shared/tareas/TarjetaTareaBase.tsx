@@ -34,11 +34,11 @@ export default function TarjetaTareaBase({
   titulo,
   meta,
   acciones,
-  className = "border border-transparent hover:border-[#C548F5]/30",
+  className = "border border-transparent hover:border-acento/30",
 }: TarjetaTareaBaseProps) {
   return (
     <div
-      className={`bg-[#2D1B4E] rounded-[14px] p-6 hover:shadow-xl transition-all group ${className}`}
+      className={`bg-lienzo rounded-[14px] p-6 hover:shadow-xl transition-all group ${className}`}
     >
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div className="space-y-3 min-w-0 break-words">

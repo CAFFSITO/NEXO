@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
+import TopBar from "./components/shared/TopBar";
 import { useNavegacion } from "../navegacion";
 import ColaRevisionWidget, { type ItemCola as ItemColaWidget } from "./components/bibliotecario/ColaRevisionWidget";
 import BannerCola from "./components/bibliotecario/BannerCola";
@@ -111,37 +112,7 @@ export default function PanelBibliotecarioPage() {
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        {/* ── TopAppBar. El buscador es de la cola: en el inicio no aparece. ── */}
-        <header className="sticky top-0 z-40 flex justify-between items-center px-8 h-16 bg-[#1C1030]/80 backdrop-blur-md border-b border-surface-container-high">
-          <div className="flex items-center gap-4">
-            <h1 className="text-[#C548F5] font-bold text-xl tracking-tight">
-              {esCola ? "Cola de revisión" : "Panel del bibliotecario"}
-            </h1>
-            {esCola && (
-              <div className="relative w-72">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">
-                  search
-                </span>
-                <input
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  className="w-full bg-surface-container-high/50 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-primary text-white"
-                  placeholder="Buscar en la cola…"
-                  type="text"
-                />
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navegar("/notificaciones")}
-              className="text-gray-400 hover:text-primary transition-all relative"
-              aria-label="Notificaciones"
-            >
-              <span className="material-symbols-outlined">notifications</span>
-            </button>
-          </div>
-        </header>
+        <TopBar title={esCola ? "Cola de revisión" : "Panel del bibliotecario"} />
 
         <div className="flex-1 overflow-y-auto p-8 bg-background">
           {objetivoNoDisponible && (
@@ -166,14 +137,14 @@ export default function PanelBibliotecarioPage() {
                 {esCola ? (
                   <>
                     Recursos presentados esperando aprobación —{" "}
-                    <span className="text-[#C548F5]">
+                    <span className="text-acento">
                       {conteo.pendiente} pendiente{conteo.pendiente !== 1 ? "s" : ""}
                     </span>
                   </>
                 ) : (
                   <>
                     Hola, {usuario.nombre}. Tenés{" "}
-                    <span className="text-[#C548F5]">
+                    <span className="text-acento">
                       {conteo.pendiente} recurso{conteo.pendiente !== 1 ? "s" : ""} en cola
                     </span>{" "}
                     para revisar.
@@ -190,7 +161,7 @@ export default function PanelBibliotecarioPage() {
               </button>
               <button
                 onClick={() => navegar("/biblioteca/institucional")}
-                className="bg-[#C548F5] text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-xl shadow-[#C548F5]/30 hover:scale-[1.02] transition-all"
+                className="bg-acento text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-xl shadow-acento/30 hover:scale-[1.02] transition-all"
               >
                 Ver biblioteca institucional
               </button>
@@ -227,6 +198,20 @@ export default function PanelBibliotecarioPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* Columna izquierda: la cola con acciones */}
               <div className="lg:col-span-8 space-y-4">
+                {/* El buscador es de la cola: en el inicio no aparece. */}
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" aria-hidden="true">
+                    search
+                  </span>
+                  <input
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    className="w-full bg-lienzo rounded-full py-3 pl-11 pr-4 text-sm text-white placeholder:text-on-surface-variant/60 outline-none focus:ring-2 focus:ring-acento/40 transition-shadow"
+                    placeholder="Buscar en la cola…"
+                    aria-label="Buscar en la cola"
+                    type="text"
+                  />
+                </div>
                 {cola.length > 0 ? (
                   cola.map((item) => (
                     <div
@@ -249,7 +234,7 @@ export default function PanelBibliotecarioPage() {
                       </div>
                       <button
                         onClick={() => setRevisando(item)}
-                        className="shrink-0 bg-[#C548F5] text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-[#d15aff] transition-all active:scale-95"
+                        className="shrink-0 bg-acento text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-[#d15aff] transition-all active:scale-95"
                       >
                         Revisar
                       </button>

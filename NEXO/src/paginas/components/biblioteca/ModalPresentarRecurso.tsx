@@ -5,6 +5,7 @@ import {
   type DatosPresentarRecurso,
   type Recurso,
 } from "../../../servicios/biblioteca";
+import Selector from "../shared/Selector";
 
 interface ModalPresentarRecursoProps {
   /** Se llama tras presentar con éxito (para cerrar y recargar la lista). */
@@ -66,7 +67,7 @@ export default function ModalPresentarRecurso({ onPresentado, onCerrar }: ModalP
   };
 
   const inputClase =
-    "w-full px-4 py-2.5 bg-[#1C1030] border border-white/10 rounded-xl text-white text-sm placeholder:text-slate-500 focus:border-[#C548F5] focus:outline-none transition-colors";
+    "w-full px-4 py-2.5 bg-fondo border border-white/10 rounded-xl text-white text-sm placeholder:text-slate-500 focus:border-acento focus:outline-none transition-colors";
   const labelClase = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5";
 
   return (
@@ -75,7 +76,7 @@ export default function ModalPresentarRecurso({ onPresentado, onCerrar }: ModalP
       onClick={onCerrar}
     >
       <div
-        className="w-full max-w-md bg-[#2D1B4E] rounded-3xl p-6 shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-md bg-lienzo rounded-3xl p-6 shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-2">
@@ -121,7 +122,7 @@ export default function ModalPresentarRecurso({ onPresentado, onCerrar }: ModalP
 
           <div>
             <label htmlFor="tipo" className={labelClase}>Tipo</label>
-            <select
+            <Selector
               id="tipo"
               value={tipo}
               onChange={(e) => setTipo(e.target.value as Recurso["tipo"])}
@@ -130,12 +131,12 @@ export default function ModalPresentarRecurso({ onPresentado, onCerrar }: ModalP
               {TIPOS.map((t) => (
                 <option key={t.valor} value={t.valor}>{t.label}</option>
               ))}
-            </select>
+            </Selector>
           </div>
 
           <div>
             <label htmlFor="materia" className={labelClase}>Materia (opcional)</label>
-            <select
+            <Selector
               id="materia"
               value={materiaId}
               onChange={(e) => setMateriaId(e.target.value)}
@@ -145,7 +146,7 @@ export default function ModalPresentarRecurso({ onPresentado, onCerrar }: ModalP
               {filtros?.materias.map((m) => (
                 <option key={m.id} value={String(m.id)}>{m.nombre}</option>
               ))}
-            </select>
+            </Selector>
           </div>
 
           {!materiaId && (
@@ -180,7 +181,7 @@ export default function ModalPresentarRecurso({ onPresentado, onCerrar }: ModalP
               id="archivo"
               type="file"
               onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
-              className="w-full text-sm text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#C548F5]/20 file:text-[#C548F5] hover:file:bg-[#C548F5]/30 file:cursor-pointer"
+              className="w-full text-sm text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-acento/20 file:text-acento hover:file:bg-acento/30 file:cursor-pointer"
             />
           </div>
 
@@ -197,7 +198,7 @@ export default function ModalPresentarRecurso({ onPresentado, onCerrar }: ModalP
             <button
               type="submit"
               disabled={enviando}
-              className="flex-1 py-3 bg-[#C548F5] hover:bg-[#d15aff] text-white font-bold rounded-full transition-all active:scale-95 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex-1 py-3 bg-acento hover:bg-[#d15aff] text-white font-bold rounded-full transition-all active:scale-95 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {enviando ? "Presentando…" : "Presentar"}
             </button>

@@ -18,6 +18,7 @@
 // ============================================================================
 
 import { exigirAcceso, ventanilla, hoyISO } from "./comun.js";
+import { algoritmo } from "./genoma.js";
 
 /** Cuántos días trae el historial que dibuja cada tarjeta de hábito. */
 const DIAS_DE_HISTORIAL = 10;
@@ -39,16 +40,30 @@ function restarDias(iso, dias) {
  * a las 9 de la mañana nadie perdió una racha de 20 días por no haber leído
  * todavía. Pero si tampoco hay registro de ayer, la racha es 0: ahí sí se
  * cortó. Esa es toda la regla.
+ *
+ * Los `diasGracia` salen del algoritmo «Racha de hábitos» del genoma de la
+ * escuela: cuántos días seguidos sin registro se perdonan sin cortar la racha
+ * (esos días no suman). Con 0, que es el valor por defecto, la regla es
+ * exactamente la de arriba.
  */
-function calcularRacha(fechasCumplidas, hoy) {
+export function calcularRacha(fechasCumplidas, hoy, diasGracia = 0) {
   const cumplidas = new Set(fechasCumplidas);
 
   let dia = cumplidas.has(hoy) ? hoy : restarDias(hoy, 1);
+  for (let saltos = 0; !cumplidas.has(dia) && saltos < diasGracia; saltos++) dia = restarDias(dia, 1);
   if (!cumplidas.has(dia)) return 0;
 
   let racha = 0;
-  while (cumplidas.has(dia)) {
-    racha += 1;
+  let huecos = 0;
+  for (;;) {
+    if (cumplidas.has(dia)) {
+      racha += 1;
+      huecos = 0;
+    } else if (huecos < diasGracia) {
+      huecos += 1;
+    } else {
+      break;
+    }
     dia = restarDias(dia, 1);
   }
   return racha;
@@ -162,6 +177,7 @@ export function registrarObjetivos(app, db) {
       }));
 
       // ── Hábitos ──
+      const reglaRacha = algoritmo(db, usuario.institucionId, "objetivos.racha");
       const habitos = habitosDe.all(usuario.id).map((fila) => {
         const fechas = registrosDe.all(fila.id).map((r) => r.fecha);
         const cumplidas = new Set(fechas);
@@ -178,7 +194,7 @@ export function registrarObjetivos(app, db) {
           id: String(fila.id),
           nombre: fila.nombre,
           frecuencia: fila.frecuencia,
-          rachaDias: calcularRacha(fechas, hoy),
+          rachaDias: reglaRacha.activo ? calcularRacha(fechas, hoy, Math.round(reglaRacha.parametros.diasGracia)) : 0,
           cumplidoHoy: cumplidas.has(hoy),
           historial,
           // Cuántas veces se registró en los últimos 7 días. Es lo que necesita

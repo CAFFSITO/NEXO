@@ -43,6 +43,13 @@ CREATE TABLE usuarios (
                         CHECK (estado IN ('activo','inactivo','papelera')),
     eliminado_en    TEXT,                        -- cuándo pasó a papelera (14.17)
     eliminado_por   INTEGER REFERENCES usuarios(id),
+    -- Perfil diseñado por el Maestro dentro del genoma de la escuela (ver 14.D).
+    -- NULL = el perfil predeterminado de su rol. El rol sigue siendo el
+    -- ARQUETIPO: lo que el servidor sabe custodiar; el perfil lo esculpe.
+    perfil_clave    TEXT,
+    -- 1 = la cuenta todavía no entró nunca: al entrar ve primero la
+    -- configuración de su cuenta, donde puede cambiar la contraseña inicial.
+    primer_ingreso  INTEGER NOT NULL DEFAULT 0 CHECK (primer_ingreso IN (0, 1)),
     creado_en       TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -79,7 +86,29 @@ CREATE TABLE cursos (
     anio            INTEGER NOT NULL,            -- 1..6
     division        TEXT NOT NULL,               -- "A", "B"...
     preceptor_id    INTEGER REFERENCES usuarios(id),
+    -- Turno y especialidad: de las listas de la escuela (curso_turnos y
+    -- curso_especialidades). NULL = cursos cargados antes de que existieran.
+    turno_id        INTEGER REFERENCES curso_turnos(id),
+    especialidad_id INTEGER REFERENCES curso_especialidades(id),
     UNIQUE (institucion_id, anio, division)
+);
+
+-- Los turnos y las especialidades de cada escuela. Arrancan con Mañana, Tarde
+-- y Vespertino, y con Informática, Electromecánica y Energías renovables
+-- (servidor/gestion-academica.js); la dirección suma los que le falten.
+CREATE TABLE curso_turnos (
+    id             INTEGER PRIMARY KEY,
+    institucion_id INTEGER NOT NULL REFERENCES instituciones(id),
+    nombre         TEXT NOT NULL,
+    orden          INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (institucion_id, nombre)
+);
+CREATE TABLE curso_especialidades (
+    id             INTEGER PRIMARY KEY,
+    institucion_id INTEGER NOT NULL REFERENCES instituciones(id),
+    nombre         TEXT NOT NULL,
+    orden          INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (institucion_id, nombre)
 );
 
 -- Materias de la institución.
@@ -311,6 +340,12 @@ CREATE TABLE publicaciones (
     publicar_en    TEXT,                            -- fecha-hora ISO programada; NULL = publicar ya
     fijado_en      TEXT,                            -- cuándo se fijó; NULL = no fijado
     fijado_por_id  INTEGER REFERENCES usuarios(id), -- quién la fijó
+    cita_id        INTEGER REFERENCES publicaciones(id), -- cita de otra publicación (estilo X)
+    hilo_raiz_id   INTEGER REFERENCES publicaciones(id), -- en un hilo: la primera publicación
+    hilo_orden     INTEGER NOT NULL DEFAULT 0,
+    editado_en     TEXT,
+    responden      TEXT NOT NULL DEFAULT 'todos' CHECK (responden IN ('todos','seguidos','mencionados')),
+    encuesta_cierra_en TEXT,
     creado_en      TEXT NOT NULL DEFAULT (datetime('now')),
     eliminado_en   TEXT,
     eliminado_por  INTEGER REFERENCES usuarios(id)
@@ -324,6 +359,14 @@ CREATE TABLE debates (
     titulo         TEXT NOT NULL,
     descripcion    TEXT NOT NULL DEFAULT '',
     cierra_en      TEXT,                            -- NULL = sin fecha de cierre
+    fijado_en      TEXT,
+    fijado_por_id  INTEGER REFERENCES usuarios(id),
+    resultados     TEXT NOT NULL DEFAULT 'siempre' CHECK (resultados IN ('siempre','al-participar','al-cierre')),
+    anonimo        INTEGER NOT NULL DEFAULT 0,      -- los aportes no muestran quién los hizo
+    cerrado_en     TEXT,                            -- cerrado a mano antes de su fecha
+    conclusion     TEXT,
+    conclusion_en  TEXT,
+    conclusion_por INTEGER REFERENCES usuarios(id),
     creado_en      TEXT NOT NULL DEFAULT (datetime('now')),
     eliminado_en   TEXT,
     eliminado_por  INTEGER REFERENCES usuarios(id)
@@ -346,7 +389,7 @@ CREATE TABLE debate_participantes (
 CREATE TABLE votos (
     id          INTEGER PRIMARY KEY,
     usuario_id  INTEGER NOT NULL REFERENCES usuarios(id),
-    objeto_tipo TEXT NOT NULL CHECK (objeto_tipo IN ('publicacion','debate','comentario','recurso')),
+    objeto_tipo TEXT NOT NULL CHECK (objeto_tipo IN ('publicacion','debate','comentario','recurso','aporte')),
     objeto_id   INTEGER NOT NULL,
     valor       INTEGER NOT NULL CHECK (valor IN (1, -1)),
     creado_en   TEXT NOT NULL DEFAULT (datetime('now')),
@@ -360,6 +403,9 @@ CREATE TABLE comentarios (
     objeto_tipo  TEXT NOT NULL CHECK (objeto_tipo IN ('publicacion','debate')),
     objeto_id    INTEGER NOT NULL,
     contenido    TEXT NOT NULL,
+    padre_id     INTEGER REFERENCES comentarios(id), -- respuesta a otra respuesta (sub-hilo)
+    aporte_id    INTEGER,                            -- hilo de un aporte de debate
+    editado_en   TEXT,
     creado_en    TEXT NOT NULL DEFAULT (datetime('now')),
     eliminado_en TEXT,
     eliminado_por INTEGER REFERENCES usuarios(id)
@@ -369,7 +415,7 @@ CREATE TABLE comentarios (
 CREATE TABLE denuncias (
     id             INTEGER PRIMARY KEY,
     denunciante_id INTEGER NOT NULL REFERENCES usuarios(id),
-    objeto_tipo    TEXT NOT NULL CHECK (objeto_tipo IN ('publicacion','debate','comentario')),
+    objeto_tipo    TEXT NOT NULL CHECK (objeto_tipo IN ('publicacion','debate','comentario','aporte')),
     objeto_id      INTEGER NOT NULL,
     motivo         TEXT NOT NULL,
     creado_en      TEXT NOT NULL DEFAULT (datetime('now')),
@@ -377,6 +423,141 @@ CREATE TABLE denuncias (
     resuelta_por   INTEGER REFERENCES usuarios(id),
     resultado      TEXT CHECK (resultado IN ('contenido-eliminado','descartada'))
 );
+
+-- ── Comunidad estilo X / Reddit ─────────────────────────────────────────────
+-- Adjuntos de cualquier contenido (fotos, videos, archivos). Solo los suben los
+-- perfiles con la capacidad "comunidad.multimedia" del genoma.
+CREATE TABLE IF NOT EXISTS contenido_adjuntos (
+    id          INTEGER PRIMARY KEY,
+    objeto_tipo TEXT NOT NULL CHECK (objeto_tipo IN ('publicacion','comentario','debate','aporte')),
+    objeto_id   INTEGER NOT NULL,
+    archivo_id  INTEGER NOT NULL REFERENCES archivos(id),
+    orden       INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (objeto_tipo, objeto_id, archivo_id)
+);
+
+-- Reacciones con emoji (no hay "me gusta": votar es otra cosa).
+CREATE TABLE IF NOT EXISTS reacciones (
+    id          INTEGER PRIMARY KEY,
+    usuario_id  INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    objeto_tipo TEXT NOT NULL CHECK (objeto_tipo IN ('publicacion','comentario','debate','aporte')),
+    objeto_id   INTEGER NOT NULL,
+    emoji       TEXT NOT NULL,
+    creado_en   TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (usuario_id, objeto_tipo, objeto_id, emoji)
+);
+
+-- Reposts (sin texto; una cita es una publicación con cita_id).
+CREATE TABLE IF NOT EXISTS reposts (
+    id             INTEGER PRIMARY KEY,
+    usuario_id     INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    publicacion_id INTEGER NOT NULL REFERENCES publicaciones(id),
+    creado_en      TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (usuario_id, publicacion_id)
+);
+
+-- Guardados (marcadores privados de cada persona).
+CREATE TABLE IF NOT EXISTS guardados (
+    id             INTEGER PRIMARY KEY,
+    usuario_id     INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    publicacion_id INTEGER NOT NULL REFERENCES publicaciones(id),
+    creado_en      TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (usuario_id, publicacion_id)
+);
+
+-- A quién sigue cada persona (pestaña "Siguiendo") y a quién silenció.
+CREATE TABLE IF NOT EXISTS seguimientos (
+    seguidor_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    seguido_id  INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    creado_en   TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (seguidor_id, seguido_id),
+    CHECK (seguidor_id <> seguido_id)
+);
+CREATE TABLE IF NOT EXISTS silenciados (
+    usuario_id    INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    silenciado_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    creado_en     TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (usuario_id, silenciado_id)
+);
+
+-- Vistas únicas por persona (el contador de "vistas" de cada publicación).
+CREATE TABLE IF NOT EXISTS publicacion_vistas (
+    publicacion_id INTEGER NOT NULL REFERENCES publicaciones(id),
+    usuario_id     INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    visto_en       TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (publicacion_id, usuario_id)
+);
+
+-- Encuestas dentro de una publicación (un voto por persona).
+CREATE TABLE IF NOT EXISTS encuesta_opciones (
+    id             INTEGER PRIMARY KEY,
+    publicacion_id INTEGER NOT NULL REFERENCES publicaciones(id),
+    texto          TEXT NOT NULL,
+    orden          INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS encuesta_votos (
+    publicacion_id INTEGER NOT NULL REFERENCES publicaciones(id),
+    usuario_id     INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    opcion_id      INTEGER NOT NULL REFERENCES encuesta_opciones(id),
+    creado_en      TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (publicacion_id, usuario_id)
+);
+
+-- Menciones (@usuario) de cada contenido: avisos y pestaña de menciones.
+CREATE TABLE IF NOT EXISTS menciones (
+    objeto_tipo TEXT NOT NULL,
+    objeto_id   INTEGER NOT NULL,
+    usuario_id  INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    PRIMARY KEY (objeto_tipo, objeto_id, usuario_id)
+);
+
+-- ── Debates con bloques combinables ─────────────────────────────────────────
+-- Cada debate se arma con bloques de interacción: postura, opciones (encuesta),
+-- escala, ranking, argumentos, propuestas y pregunta abierta. Los cuatro
+-- primeros guardan UNA respuesta por persona (debate_respuestas); los otros
+-- tres juntan aportes que se votan y tienen su propio hilo (debate_aportes).
+CREATE TABLE IF NOT EXISTS debate_bloques (
+    id        INTEGER PRIMARY KEY,
+    debate_id INTEGER NOT NULL REFERENCES debates(id),
+    tipo      TEXT NOT NULL CHECK (tipo IN ('postura','opciones','escala','ranking','argumentos','propuestas','abierta')),
+    orden     INTEGER NOT NULL DEFAULT 0,
+    titulo    TEXT NOT NULL DEFAULT '',
+    config    TEXT NOT NULL DEFAULT '{}'
+);
+CREATE TABLE IF NOT EXISTS debate_respuestas (
+    id             INTEGER PRIMARY KEY,
+    bloque_id      INTEGER NOT NULL REFERENCES debate_bloques(id) ON DELETE CASCADE,
+    usuario_id     INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    valor          TEXT NOT NULL,
+    actualizado_en TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (bloque_id, usuario_id)
+);
+CREATE TABLE IF NOT EXISTS debate_aportes (
+    id            INTEGER PRIMARY KEY,
+    debate_id     INTEGER NOT NULL REFERENCES debates(id),
+    bloque_id     INTEGER NOT NULL REFERENCES debate_bloques(id) ON DELETE CASCADE,
+    usuario_id    INTEGER NOT NULL REFERENCES usuarios(id),
+    lado          TEXT,                         -- a-favor / en-contra en "argumentos"
+    texto         TEXT NOT NULL,
+    creado_en     TEXT NOT NULL DEFAULT (datetime('now')),
+    editado_en    TEXT,
+    eliminado_en  TEXT,
+    eliminado_por INTEGER REFERENCES usuarios(id)
+);
+-- "Me hizo cambiar de opinión" (Δ): un aporte que convenció a alguien.
+CREATE TABLE IF NOT EXISTS debate_convencidos (
+    aporte_id  INTEGER NOT NULL REFERENCES debate_aportes(id) ON DELETE CASCADE,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    creado_en  TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (aporte_id, usuario_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_adjuntos_objeto   ON contenido_adjuntos(objeto_tipo, objeto_id);
+CREATE INDEX IF NOT EXISTS idx_reacciones_objeto ON reacciones(objeto_tipo, objeto_id);
+CREATE INDEX IF NOT EXISTS idx_reposts_pub       ON reposts(publicacion_id);
+CREATE INDEX IF NOT EXISTS idx_bloques_debate    ON debate_bloques(debate_id);
+CREATE INDEX IF NOT EXISTS idx_aportes_bloque    ON debate_aportes(bloque_id);
+CREATE INDEX IF NOT EXISTS idx_respuestas_bloque ON debate_respuestas(bloque_id);
 
 -- Intereses elegidos por el usuario para su feed (Error 2.B.13).
 CREATE TABLE intereses_feed (
@@ -549,41 +730,92 @@ CREATE TABLE diario_registros (
 );
 
 -- ============================================================================
--- 10. CALENDARIO CON CAPAS DE VISIBILIDAD (sección 14.12)
+-- 10. CALENDARIO CON JERARQUÍA DE EVENTOS (sección 14.12)
 -- ============================================================================
 
--- Evento del calendario. El tipo es texto libre (Error 6.E.4) y la base
--- rechaza horarios incoherentes (Error 6.E.5).
+-- Evento del calendario. El tipo (categoría) es texto libre (Error 6.E.4) y la
+-- base rechaza horarios incoherentes (Error 6.E.5). Un evento puede durar
+-- varios días (fecha_fin) y repetirse (recurrencia: regla JSON que expande el
+-- servidor, ver servidor/agenda.js). Quién lo ve vive en evento_destinos: sin
+-- filas, es un evento PERSONAL (solo lo ve quien lo creó).
 CREATE TABLE eventos (
-    id             INTEGER PRIMARY KEY,
-    institucion_id INTEGER NOT NULL REFERENCES instituciones(id),
-    creador_id     INTEGER NOT NULL REFERENCES usuarios(id),
-    titulo         TEXT NOT NULL,
-    tipo           TEXT NOT NULL DEFAULT 'evento',
-    descripcion    TEXT NOT NULL DEFAULT '',
-    lugar          TEXT,
-    fecha          TEXT NOT NULL,                 -- "2026-07-22"
-    hora_inicio    TEXT,                          -- "08:30"
-    hora_fin       TEXT,
-    creado_en      TEXT NOT NULL DEFAULT (datetime('now')),
-    CHECK (hora_fin IS NULL OR hora_inicio IS NULL OR hora_fin > hora_inicio)
+    id                INTEGER PRIMARY KEY,
+    institucion_id    INTEGER NOT NULL REFERENCES instituciones(id),
+    creador_id        INTEGER NOT NULL REFERENCES usuarios(id),
+    titulo            TEXT NOT NULL,
+    tipo              TEXT NOT NULL DEFAULT 'evento',
+    descripcion       TEXT NOT NULL DEFAULT '',
+    lugar             TEXT,
+    enlace            TEXT,                          -- videollamada o página
+    color             TEXT,                          -- "#rrggbb" propio (NULL = el de su categoría)
+    fecha             TEXT NOT NULL,                 -- inicio "2026-07-22"
+    fecha_fin         TEXT,                          -- fin (NULL = el mismo día)
+    hora_inicio       TEXT,                          -- "08:30" (NULL = todo el día)
+    hora_fin          TEXT,
+    recurrencia       TEXT,                          -- regla JSON (NULL = no se repite)
+    recordatorios     TEXT NOT NULL DEFAULT '[]',    -- minutos antes, para todos los que lo ven
+    obligatorio       INTEGER NOT NULL DEFAULT 0,    -- nadie lo puede ocultar de su calendario
+    pide_confirmacion INTEGER NOT NULL DEFAULT 0,    -- sí / quizás / no de cada destinatario
+    archivo_id        INTEGER REFERENCES archivos(id),
+    creado_en         TEXT NOT NULL DEFAULT (datetime('now')),
+    actualizado_en    TEXT,
+    CHECK (fecha_fin IS NULL OR fecha_fin >= fecha),
+    CHECK (hora_fin IS NULL OR hora_inicio IS NULL
+           OR (fecha_fin IS NOT NULL AND fecha_fin > fecha) OR hora_fin > hora_inicio)
 );
 
--- Capas de visibilidad de cada evento (Errores 6.E.9, 7.B.2, 10.B.4).
--- Un evento puede tener varias filas (ej. visible para 4°A y 4°B).
-CREATE TABLE evento_visibilidad (
-    id            INTEGER PRIMARY KEY,
-    evento_id     INTEGER NOT NULL REFERENCES eventos(id),
-    alcance       TEXT NOT NULL CHECK (alcance IN (
-                     'todos',                 -- toda la comunidad
-                     'curso',                 -- alumnos del curso + sus familias
-                     'familias-curso',        -- SOLO familias de un curso (alumnos no ven)
-                     'familia-de-estudiante', -- SOLO la familia de un alumno puntual
-                     'familias-todas',        -- todas las familias (alumnos no ven)
-                     'docentes')),            -- solo docentes y dirección
-    curso_id      INTEGER REFERENCES cursos(id),      -- para curso / familias-curso
-    estudiante_id INTEGER REFERENCES usuarios(id)     -- para familia-de-estudiante
+-- A quién le aparece cada evento (la jerarquía la valida el servidor al crear):
+--   todos       → toda la escuela (solo el nivel de arriba)
+--   nivel       → todos los perfiles de un nivel de la jerarquía (valor = id)
+--   perfil      → un perfil del genoma (valor = clave)
+--   curso       → un curso, para un rol: estudiante, familia, profesor o preceptor
+--   persona     → una persona puntual (usuario_id)
+--   familia-de  → la familia de un estudiante puntual (usuario_id = el estudiante)
+CREATE TABLE IF NOT EXISTS evento_destinos (
+    id         INTEGER PRIMARY KEY,
+    evento_id  INTEGER NOT NULL REFERENCES eventos(id) ON DELETE CASCADE,
+    tipo       TEXT NOT NULL CHECK (tipo IN ('todos','nivel','perfil','curso','persona','familia-de')),
+    valor      TEXT,
+    curso_id   INTEGER REFERENCES cursos(id) ON DELETE CASCADE,
+    rol        TEXT CHECK (rol IS NULL OR rol IN ('estudiante','familia','profesor','preceptor')),
+    usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE
 );
+
+-- Una ocurrencia de un evento que se repite, cancelada o cambiada ("solo este").
+CREATE TABLE IF NOT EXISTS evento_excepciones (
+    id        INTEGER PRIMARY KEY,
+    evento_id INTEGER NOT NULL REFERENCES eventos(id) ON DELETE CASCADE,
+    fecha     TEXT NOT NULL,                    -- la fecha original de la ocurrencia
+    cancelada INTEGER NOT NULL DEFAULT 0,
+    cambios   TEXT NOT NULL DEFAULT '{}',       -- título, horas, lugar o fecha nuevos
+    UNIQUE (evento_id, fecha)
+);
+
+-- Lo de cada persona con un evento: su confirmación, si lo ocultó y sus
+-- propios recordatorios (NULL = los del evento).
+CREATE TABLE IF NOT EXISTS evento_participantes (
+    evento_id     INTEGER NOT NULL REFERENCES eventos(id) ON DELETE CASCADE,
+    usuario_id    INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    respuesta     TEXT CHECK (respuesta IS NULL OR respuesta IN ('si','quizas','no')),
+    respondido_en TEXT,
+    oculto        INTEGER NOT NULL DEFAULT 0,
+    recordatorios TEXT,
+    PRIMARY KEY (evento_id, usuario_id)
+);
+
+-- Recordatorios ya enviados: uno por persona, ocurrencia y anticipación.
+CREATE TABLE IF NOT EXISTS evento_avisos (
+    evento_id  INTEGER NOT NULL REFERENCES eventos(id) ON DELETE CASCADE,
+    fecha      TEXT NOT NULL,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    minutos    INTEGER NOT NULL,
+    enviado_en TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (evento_id, fecha, usuario_id, minutos)
+);
+
+CREATE INDEX IF NOT EXISTS idx_evento_destinos  ON evento_destinos(evento_id);
+CREATE INDEX IF NOT EXISTS idx_evento_excepciones ON evento_excepciones(evento_id);
+CREATE INDEX IF NOT EXISTS idx_eventos_institucion ON eventos(institucion_id, fecha);
 
 -- Feriados (alimentan la tarjeta "Feriados del mes" con datos reales).
 CREATE TABLE feriados (
@@ -809,53 +1041,184 @@ CREATE TABLE plantilla_items (
 );
 
 -- ============================================================================
+-- 14.D. INSTANCIAS DEL MAESTRO: GENOMA, VERSIONES Y FLUJOS
+-- ----------------------------------------------------------------------------
+-- El perfil Maestro diseña cada escuela como una instancia independiente: qué
+-- módulos se ven y en qué orden, qué funciones de cada uno están habilitadas,
+-- cómo se comportan sus algoritmos, sus colores, sus perfiles propios y sus
+-- flujos de nodos. Todo eso es el GENOMA (un documento JSON validado por
+-- servidor/genoma.js). Sin fila acá, la escuela usa el genoma por defecto.
+-- ============================================================================
+
+CREATE TABLE instancia_genomas (
+    institucion_id  INTEGER PRIMARY KEY REFERENCES instituciones(id),
+    genoma          TEXT NOT NULL,
+    version         INTEGER NOT NULL DEFAULT 1,
+    actualizado_en  TEXT NOT NULL DEFAULT (datetime('now')),
+    actualizado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL
+);
+
+-- Cada versión guardada: el Maestro puede volver a cualquiera. autor_rol dice
+-- si el cambio lo hizo el Maestro o la dirección (que solo puede desocultar).
+CREATE TABLE genoma_versiones (
+    id             INTEGER PRIMARY KEY,
+    institucion_id INTEGER NOT NULL REFERENCES instituciones(id),
+    version        INTEGER NOT NULL,
+    genoma         TEXT NOT NULL,
+    nota           TEXT NOT NULL DEFAULT '',
+    autor_rol      TEXT NOT NULL DEFAULT 'maestro'
+                       CHECK (autor_rol IN ('maestro','direccion','sistema')),
+    creado_por     INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+    creado_en      TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (institucion_id, version)
+);
+
+-- Rastro de los flujos de nodos que efectivamente actuaron (avisaron o
+-- registraron). Sin personas: solo qué flujo, qué lo disparó y qué valores.
+CREATE TABLE flujo_ejecuciones (
+    id             INTEGER PRIMARY KEY,
+    institucion_id INTEGER NOT NULL REFERENCES instituciones(id),
+    flujo_id       TEXT NOT NULL,
+    disparador     TEXT NOT NULL,
+    acciones       INTEGER NOT NULL DEFAULT 0,
+    detalle        TEXT NOT NULL DEFAULT '',
+    creado_en      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Tendencias que salen de una escuela a lo NACIONAL. El algoritmo de la
+-- escuela propone (estado 'propuesta') lo mejor de su ranking; solo la
+-- DIRECCIÓN de esa escuela lo aprueba ('aprobada'), lo descarta ('rechazada') o
+-- lo retira después ('retirada'). El ranking nacional solo mira las aprobadas.
+-- Un objeto se decide una sola vez: UNIQUE(objeto_tipo, objeto_id).
+CREATE TABLE tendencias_nacionales (
+    id             INTEGER PRIMARY KEY,
+    institucion_id INTEGER NOT NULL REFERENCES instituciones(id),
+    objeto_tipo    TEXT NOT NULL CHECK (objeto_tipo IN ('publicacion','debate')),
+    objeto_id      INTEGER NOT NULL,
+    estado         TEXT NOT NULL DEFAULT 'propuesta'
+                       CHECK (estado IN ('propuesta','aprobada','rechazada','retirada')),
+    puntaje        REAL NOT NULL DEFAULT 0,      -- puntaje en su escuela al proponerse
+    propuesta_en   TEXT NOT NULL DEFAULT (datetime('now')),
+    decidido_por   INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+    decidido_en    TEXT,
+    UNIQUE (objeto_tipo, objeto_id)
+);
+
+-- Configuración de la PLATAFORMA (no de una escuela) que diseña el Maestro: por
+-- ahora, el algoritmo de las tendencias nacionales (clave 'tendencias-nacionales').
+CREATE TABLE plataforma_config (
+    clave           TEXT PRIMARY KEY,
+    valor           TEXT NOT NULL,
+    actualizado_en  TEXT NOT NULL DEFAULT (datetime('now')),
+    actualizado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL
+);
+
+-- ============================================================================
+-- 14.E. ANUNCIOS: AVISOS OBLIGATORIOS ENTRE LA DIRECCIÓN Y LA PRECEPTORÍA
+-- ----------------------------------------------------------------------------
+-- Un anuncio NO es un chat: es una tarjeta que le aparece encima de todo a cada
+-- destinatario y que tiene que marcar como leída para seguir usando NEXO. Se
+-- manda a un GRUPO DE DIFUSIÓN (lo arman la dirección o el Maestro) o a personas
+-- puntuales. No se responde: se marca leído y, si se quiere, se reacciona con un
+-- emoji. Quien lo mandó ve quién lo leyó, cuándo y cómo reaccionó. Las reglas
+-- las custodia servidor/anuncios.js.
+-- ============================================================================
+
+-- Grupos de difusión. El tipo decide quién habla y quién escucha:
+--   uno-a-muchos    → un emisor, muchos receptores (la directora a preceptores)
+--   muchos-a-uno    → muchos emisores, un receptor (todos le escriben a la directora)
+--   muchos-a-muchos → todos los miembros envían y reciben
+-- No se borran: se archivan, así los anuncios viejos conservan su color.
+CREATE TABLE IF NOT EXISTS anuncio_grupos (
+    id             INTEGER PRIMARY KEY,
+    institucion_id INTEGER NOT NULL REFERENCES instituciones(id),
+    nombre         TEXT NOT NULL,
+    descripcion    TEXT NOT NULL DEFAULT '',
+    tipo           TEXT NOT NULL
+                       CHECK (tipo IN ('uno-a-muchos','muchos-a-uno','muchos-a-muchos')),
+    color          TEXT NOT NULL,
+    creado_por     INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+    creado_en      TEXT NOT NULL DEFAULT (datetime('now')),
+    actualizado_en TEXT NOT NULL DEFAULT (datetime('now')),
+    archivado_en   TEXT
+);
+
+-- Quién está en cada grupo y con qué papel ('miembro' solo en muchos-a-muchos).
+CREATE TABLE IF NOT EXISTS anuncio_grupo_miembros (
+    grupo_id   INTEGER NOT NULL REFERENCES anuncio_grupos(id) ON DELETE CASCADE,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    papel      TEXT NOT NULL CHECK (papel IN ('emisor','receptor','miembro')),
+    PRIMARY KEY (grupo_id, usuario_id)
+);
+
+-- Cada anuncio. grupo_id NULL = directo a una o más personas puntuales. Si el
+-- autor se purga de la papelera, el anuncio queda (sin autor) para quien lo leyó.
+CREATE TABLE IF NOT EXISTS anuncios (
+    id             INTEGER PRIMARY KEY,
+    institucion_id INTEGER NOT NULL REFERENCES instituciones(id),
+    autor_id       INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+    grupo_id       INTEGER REFERENCES anuncio_grupos(id),
+    cuerpo         TEXT NOT NULL,
+    creado_en      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- A quién le llegó cada anuncio, cuándo lo leyó, cómo reaccionó y cuántas veces
+-- se le insistió por notificación push mientras no lo leía.
+CREATE TABLE IF NOT EXISTS anuncio_destinatarios (
+    anuncio_id     INTEGER NOT NULL REFERENCES anuncios(id) ON DELETE CASCADE,
+    usuario_id     INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    leido_en       TEXT,
+    reaccion       TEXT,
+    reaccion_en    TEXT,
+    insistencias   INTEGER NOT NULL DEFAULT 0,
+    ultimo_push_en TEXT,
+    PRIMARY KEY (anuncio_id, usuario_id)
+);
+
+-- Archivos que viajan con un aviso (cualquier tipo, y notas de voz grabadas en
+-- NEXO). Los baja quien lo mandó y quien lo recibió (servidor/archivos.js).
+CREATE TABLE IF NOT EXISTS anuncio_adjuntos (
+    anuncio_id  INTEGER NOT NULL REFERENCES anuncios(id) ON DELETE CASCADE,
+    archivo_id  INTEGER NOT NULL REFERENCES archivos(id),
+    orden       INTEGER NOT NULL DEFAULT 0,
+    -- 1 = nota de voz grabada manteniendo apretado el micrófono.
+    es_voz      INTEGER NOT NULL DEFAULT 0 CHECK (es_voz IN (0, 1)),
+    duracion_ms INTEGER,
+    PRIMARY KEY (anuncio_id, archivo_id)
+);
+
+-- Suscripciones Web Push de cada navegador (celular o computadora). El servidor
+-- cifra cada aviso con las claves de ESE navegador (p256dh y auth): el servicio
+-- de push que lo transporta no puede leerlo.
+CREATE TABLE IF NOT EXISTS push_suscripciones (
+    id         INTEGER PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    endpoint   TEXT NOT NULL UNIQUE,
+    p256dh     TEXT NOT NULL,
+    auth       TEXT NOT NULL,
+    agente     TEXT NOT NULL DEFAULT '',
+    creado_en  TEXT NOT NULL DEFAULT (datetime('now')),
+    usado_en   TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_anuncio_grupos_inst      ON anuncio_grupos(institucion_id, archivado_en);
+CREATE INDEX IF NOT EXISTS idx_anuncio_miembros_usuario ON anuncio_grupo_miembros(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_anuncios_autor           ON anuncios(autor_id, id);
+CREATE INDEX IF NOT EXISTS idx_anuncio_dest_usuario     ON anuncio_destinatarios(usuario_id, leido_en);
+CREATE INDEX IF NOT EXISTS idx_anuncio_adjuntos_archivo ON anuncio_adjuntos(archivo_id);
+CREATE INDEX IF NOT EXISTS idx_push_usuario             ON push_suscripciones(usuario_id);
+
+-- ============================================================================
 -- 15. VISTAS (consultas ya armadas)
 -- ============================================================================
 
--- Tendencias (sección 14.6): puntaje de los últimos 7 días por objeto.
--- puntaje = (votos+ − votos−) + 2×posturas nuevas + 1×comentarios nuevos
-CREATE VIEW v_tendencias AS
-SELECT
-    o.objeto_tipo,
-    o.objeto_id,
-    o.institucion_id,
-    o.titulo,
-    COALESCE(v.balance, 0) + COALESCE(p.posturas, 0) * 2 + COALESCE(c.cant, 0) AS puntaje
-FROM (
-    SELECT 'publicacion' AS objeto_tipo, id AS objeto_id, institucion_id,
-           substr(contenido, 1, 80) AS titulo
-    FROM publicaciones
-    WHERE eliminado_en IS NULL
-      -- Una publicación programada todavía no existe para nadie salvo su autor
-      -- (Prompt 13): no puede figurar en Tendencias hasta que se publique.
-      AND (publicar_en IS NULL OR publicar_en <= datetime('now'))
-    UNION ALL
-    SELECT 'debate', id, institucion_id, titulo
-    FROM debates WHERE eliminado_en IS NULL
-) o
-LEFT JOIN (
-    SELECT objeto_tipo, objeto_id, SUM(valor) AS balance
-    FROM votos WHERE creado_en >= datetime('now', '-7 days')
-    GROUP BY objeto_tipo, objeto_id
-) v ON v.objeto_tipo = o.objeto_tipo AND v.objeto_id = o.objeto_id
-LEFT JOIN (
-    SELECT debate_id, COUNT(*) AS posturas
-    FROM debate_participantes
-    WHERE postura IS NOT NULL AND unido_en >= datetime('now', '-7 days')
-    GROUP BY debate_id
-) p ON o.objeto_tipo = 'debate' AND p.debate_id = o.objeto_id
-LEFT JOIN (
-    SELECT objeto_tipo, objeto_id, COUNT(*) AS cant
-    FROM comentarios
-    WHERE eliminado_en IS NULL AND creado_en >= datetime('now', '-7 days')
-    GROUP BY objeto_tipo, objeto_id
-) c ON c.objeto_tipo = o.objeto_tipo AND c.objeto_id = o.objeto_id;
+-- Tendencias (sección 14.6): ya no es una vista. El puntaje es un algoritmo
+-- del genoma de cada escuela y otro de la plataforma para lo nacional; los
+-- calcula servidor/tendencias.js (ver servidor/genoma.js, ALGORITMOS).
 
--- Eventos vigentes (Error 6.E.7): excluye los pasados con más de 1 año.
--- Además, una rutina periódica del servidor debe borrarlos en firme.
-CREATE VIEW v_eventos_vigentes AS
-SELECT * FROM eventos
-WHERE fecha >= date('now', '-1 year');
+-- Eventos vigentes (Error 6.E.7): ya no es una vista. Un evento que se repite
+-- sigue vigente aunque haya empezado hace años; lo decide servidor/agenda.js y
+-- la limpieza periódica del calendario (algoritmo «Limpieza de eventos viejos»).
 
 -- Mensajes no leídos por usuario y conversación (Error 2.F.5).
 CREATE VIEW v_no_leidos AS
@@ -890,3 +1253,6 @@ CREATE INDEX idx_aviso_reacciones_aviso ON aviso_reacciones(aviso_id);
 CREATE INDEX idx_aviso_respuestas_aviso ON aviso_respuestas(aviso_id);
 CREATE INDEX idx_papelera_mov_afectado  ON papelera_movimientos(usuario_afectado_id, realizado_en);
 CREATE INDEX idx_plantilla_items        ON plantilla_items(plantilla_id);
+CREATE INDEX idx_genoma_versiones       ON genoma_versiones(institucion_id, version);
+CREATE INDEX idx_flujo_ejecuciones      ON flujo_ejecuciones(institucion_id, flujo_id, creado_en);
+CREATE INDEX idx_tendencias_nacionales  ON tendencias_nacionales(estado, institucion_id);

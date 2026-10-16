@@ -12,8 +12,8 @@ interface DebatesWidgetProps {
 
 export default function DebatesWidget({ debates, onGestionar }: DebatesWidgetProps) {
   return (
-    <section className="bg-[#2D1B4E] rounded-lg p-6 border border-white/5 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-1 h-full bg-[#C548F5]" />
+    <section className="bg-lienzo rounded-lg p-6 border border-white/5 relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-1 h-full bg-acento" />
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-headline font-bold text-white">Debates Activos</h3>
         <div className="flex items-center gap-1 text-[10px] text-on-surface-variant font-bold">
@@ -36,7 +36,7 @@ export default function DebatesWidget({ debates, onGestionar }: DebatesWidgetPro
       </div>
       <button
         onClick={onGestionar}
-        className="w-full py-2 bg-[#C548F5]/10 hover:bg-[#C548F5]/20 text-[#C548F5] text-xs font-bold rounded-full border border-[#C548F5]/20 transition-colors"
+        className="w-full py-2 bg-acento/10 hover:bg-acento/20 text-acento text-xs font-bold rounded-full border border-acento/20 transition-colors"
       >
         Gestionar debates
       </button>

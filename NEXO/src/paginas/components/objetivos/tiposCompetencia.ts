@@ -39,9 +39,9 @@ export const PALETAS: Record<ColorCompetencia, PaletaColor> = {
     iconoBg: "bg-purple-500/20",
     iconoText: "text-purple-400",
     descText: "text-purple-300",
-    badgeBg: "bg-[#C548F5]/10",
-    badgeText: "text-[#C548F5]",
-    badgeBorder: "border-[#C548F5]/20",
+    badgeBg: "bg-acento/10",
+    badgeText: "text-acento",
+    badgeBorder: "border-acento/20",
   },
   blue: {
     iconoBg: "bg-blue-500/20",

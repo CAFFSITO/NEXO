@@ -21,7 +21,8 @@
 // "biología" = "biologia" = "BIOLOGÍA".
 // ============================================================================
 
-import { exigirAcceso, ventanilla, aplicarVoto, nombreDeVoto } from "./comun.js";
+import { exigirAcceso, ventanilla, aplicarVoto, nombreDeVoto, antiguedadEnHoras } from "./comun.js";
+import { algoritmo } from "./genoma.js";
 
 /** El bibliotecario y la dirección ven la cola completa: es su trabajo. */
 const VEN_TODA_LA_COLA = ["bibliotecario", "admin-academico"];
@@ -144,7 +145,23 @@ export function registrarBiblioteca(app, db, notificaciones) {
           if (desde && fecha < desde) return false;
           if (hasta && fecha > hasta) return false;
           return true;
-        })
+        });
+
+      // El orden es el algoritmo «Orden del catálogo» del genoma de la escuela
+      // (por defecto equivale a "lo más nuevo arriba"); apagado, queda el orden
+      // por fecha de la consulta.
+      const orden = algoritmo(db, usuario.institucionId, "biblioteca.orden-catalogo");
+      if (orden.activo) {
+        const ahora = Date.now();
+        const puntaje = new Map(recursos.map((r) => [r.id, orden.puntuar({
+          votosAFavor: r.votos_a_favor,
+          votosEnContra: r.votos_en_contra,
+          dias: antiguedadEnHoras(r.creado_en, ahora) / 24,
+        })]));
+        recursos.sort((a, b) => puntaje.get(b.id) - puntaje.get(a.id) || String(b.creado_en).localeCompare(String(a.creado_en)));
+      }
+
+      const respuesta = recursos
         .map((fila) => ({
           id: String(fila.id),
           titulo: fila.titulo,
@@ -180,7 +197,7 @@ export function registrarBiblioteca(app, db, notificaciones) {
           esMio: fila.autor_id === usuario.id,
         }));
 
-      res.json({ ambito, recursos });
+      res.json({ ambito, recursos: respuesta });
     })
   );
 

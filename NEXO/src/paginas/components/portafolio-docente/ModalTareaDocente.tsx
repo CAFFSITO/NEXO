@@ -11,6 +11,7 @@ import { useState } from "react";
 import type { Catedra, DatosNuevaTarea, TareaDocente } from "../../../servicios/tareas";
 import { subirArchivo, tamanoLegible } from "../../../servicios/archivos";
 import { ErrorDeApi } from "../../../servicios/api";
+import Selector from "../shared/Selector";
 
 interface ModalTareaDocenteProps {
   abierto: boolean;
@@ -106,10 +107,10 @@ export default function ModalTareaDocente({
       onClick={onCerrar}
     >
       <div
-        className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[#2D1B4E] rounded-2xl border border-outline-variant/20 shadow-2xl"
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-lienzo rounded-2xl border border-outline-variant/20 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant/20 sticky top-0 bg-[#2D1B4E] z-10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant/20 sticky top-0 bg-lienzo z-10">
           <h3 className="text-xl font-bold text-white font-headline">
             {esEdicion ? "Editar tarea" : "Nueva tarea"}
           </h3>
@@ -129,16 +130,16 @@ export default function ModalTareaDocente({
               Materia y curso
             </label>
             {esEdicion ? (
-              <p className="w-full bg-[#1C1030]/60 border border-outline-variant/20 rounded-lg px-4 py-2.5 text-slate-300">
+              <p className="w-full bg-fondo/60 border border-outline-variant/20 rounded-lg px-4 py-2.5 text-slate-300">
                 {catedraEditada
                   ? `${catedraEditada.materia} — ${catedraEditada.curso}`
                   : `${tareaEditando?.materia} — ${tareaEditando?.curso}`}
               </p>
             ) : (
-              <select
+              <Selector
                 value={datos.catedraId}
                 onChange={(e) => actualizar("catedraId", e.target.value)}
-                className="w-full bg-[#1C1030] border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-[#C548F5]"
+                className="w-full bg-fondo border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-acento"
               >
                 {catedras.length === 0 && <option value="">No tenés cátedras asignadas</option>}
                 {catedras.map((c) => (
@@ -146,7 +147,7 @@ export default function ModalTareaDocente({
                     {c.materia} — {c.curso} ({c.alumnos} alumnos)
                   </option>
                 ))}
-              </select>
+              </Selector>
             )}
           </div>
 
@@ -160,7 +161,7 @@ export default function ModalTareaDocente({
               value={datos.titulo}
               onChange={(e) => actualizar("titulo", e.target.value)}
               placeholder="Ej: Ecuaciones de 2° grado"
-              className="w-full bg-[#1C1030] border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-[#C548F5]"
+              className="w-full bg-fondo border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-acento"
             />
           </div>
 
@@ -174,7 +175,7 @@ export default function ModalTareaDocente({
               onChange={(e) => actualizar("consigna", e.target.value)}
               rows={4}
               placeholder="Qué tienen que hacer los estudiantes…"
-              className="w-full bg-[#1C1030] border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-[#C548F5] resize-none"
+              className="w-full bg-fondo border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-acento resize-none"
             />
           </div>
 
@@ -188,22 +189,22 @@ export default function ModalTareaDocente({
                 type="date"
                 value={datos.fechaLimite}
                 onChange={(e) => actualizar("fechaLimite", e.target.value)}
-                className="w-full bg-[#1C1030] border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-[#C548F5] [color-scheme:dark]"
+                className="w-full bg-fondo border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-acento [color-scheme:dark]"
               />
             </div>
             <div>
               <label htmlFor="tipo" className="block text-sm font-semibold text-on-surface-variant mb-1">
                 Tipo de asignación
               </label>
-              <select
+              <Selector
                 id="tipo"
                 value={datos.tipoAsignacion}
                 onChange={(e) => actualizar("tipoAsignacion", e.target.value)}
-                className="w-full bg-[#1C1030] border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-[#C548F5]"
+                className="w-full bg-fondo border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-acento"
               >
                 <option value="individual">Individual</option>
                 <option value="grupal">Grupal</option>
-              </select>
+              </Selector>
             </div>
           </div>
 
@@ -217,7 +218,7 @@ export default function ModalTareaDocente({
               value={datos.metodoEstudio}
               onChange={(e) => actualizar("metodoEstudio", e.target.value)}
               placeholder="Ej: Práctica espaciada, mapas conceptuales…"
-              className="w-full bg-[#1C1030] border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-[#C548F5]"
+              className="w-full bg-fondo border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-acento"
             />
           </div>
 
@@ -233,9 +234,9 @@ export default function ModalTareaDocente({
                   {adjuntos.map((f, i) => (
                     <li
                       key={i}
-                      className="flex items-center gap-3 bg-[#1C1030] rounded-lg px-3 py-2"
+                      className="flex items-center gap-3 bg-fondo rounded-lg px-3 py-2"
                     >
-                      <span className="material-symbols-outlined text-[#C548F5] text-lg">draft</span>
+                      <span className="material-symbols-outlined text-acento text-lg">draft</span>
                       <span className="text-slate-200 text-sm flex-1 truncate">{f.name}</span>
                       <span className="text-slate-500 text-xs">{tamanoLegible(f.size)}</span>
                       <button
@@ -250,7 +251,7 @@ export default function ModalTareaDocente({
                   ))}
                 </ul>
               )}
-              <label className="inline-flex items-center gap-2 px-4 py-2 border-2 border-dashed border-slate-600 hover:border-[#C548F5] text-slate-300 hover:text-white rounded-lg cursor-pointer transition-colors text-sm">
+              <label className="inline-flex items-center gap-2 px-4 py-2 border-2 border-dashed border-slate-600 hover:border-acento text-slate-300 hover:text-white rounded-lg cursor-pointer transition-colors text-sm">
                 <span className="material-symbols-outlined text-lg">attach_file</span>
                 Adjuntar archivo
                 <input type="file" multiple onChange={agregarAdjuntos} className="hidden" />

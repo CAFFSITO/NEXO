@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
+import { PESTANAS_OBJETIVOS } from "./components/shared/pestanasModulos";
 import TarjetaMeta from "./components/objetivos/TarjetaMeta";
 import TarjetaRacha from "./components/objetivos/TarjetaRacha";
 import ResumenCompetenciasCard from "./components/objetivos/ResumenCompetenciasCard";
@@ -13,16 +14,6 @@ import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 // Se fueron de acá: dos metas, tres hábitos y tres competencias inventados. Los
 // tres hábitos eran, además, una versión distinta de los cuatro que mostraba la
 // sección Hábitos, con rachas distintas para el mismo hábito (Error 13.5).
-
-// Sub-navegación del módulo Objetivos
-const SUBNAV = [
-  { label: "Dashboard", ruta: "/objetivos" },
-  { label: "Mis Metas", ruta: "/objetivos/metas" },
-  { label: "Hábitos", ruta: "/objetivos/habitos" },
-  { label: "Competencias", ruta: "/objetivos/competencias" },
-];
-
-const RUTA_ACTIVA = "/objetivos";
 
 // ─── PÁGINA ─────────────────────────────────────────────
 
@@ -84,7 +75,7 @@ export default function DashboardObjetivosPage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen text-on-surface">
+    <div className="flex bg-fondo min-h-screen text-on-surface">
       <Sidebar
         usuario={usuario}
         onNavegar={handleNavegar}
@@ -92,44 +83,24 @@ export default function DashboardObjetivosPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen relative">
-        <TopBar title="Objetivos Personales" subtitle="Dashboard" />
+        <TopBar title="Objetivos Personales" pestanas={PESTANAS_OBJETIVOS} />
 
-        {/* Sub-navegación del módulo */}
-        <div className="flex gap-6 items-center px-8 h-12 border-b border-purple-900/20 bg-[#1C1030]/60">
-          {SUBNAV.map((tab) => {
-            const activa = tab.ruta === RUTA_ACTIVA;
-            return (
-              <button
-                key={tab.ruta}
-                onClick={() => handleNavegar(tab.ruta)}
-                className={`pb-1 font-headline text-sm font-medium transition-all ${
-                  activa
-                    ? "text-[#C548F5] border-b-2 border-[#C548F5] font-bold"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex-1 overflow-y-auto bg-[#190d2d] p-8">
+        <div className="flex-1 overflow-y-auto bg-background p-8">
           <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
             {/* Columna izquierda: panel diario + metas */}
             <div className="flex-1 space-y-8">
               {/* Panel diario */}
-              <section className="relative overflow-hidden rounded-lg p-8 bg-gradient-to-br from-[#2D1B4E] to-[#1C1030] border border-[#C548F5]/20">
-                <div className="absolute -right-12 -top-12 w-64 h-64 bg-[#C548F5]/10 rounded-full blur-3xl" />
+              <section className="relative overflow-hidden rounded-lg p-8 bg-gradient-to-br from-lienzo to-fondo border border-acento/20">
+                <div className="absolute -right-12 -top-12 w-64 h-64 bg-acento/10 rounded-full blur-3xl" />
                 <div className="relative z-10">
                   <div className="flex items-center space-x-3 mb-4">
                     <span
-                      className="material-symbols-outlined text-[#C548F5]"
+                      className="material-symbols-outlined text-acento"
                       style={{ fontVariationSettings: "'FILL' 1" }}
                     >
                       star
                     </span>
-                    <span className="text-[#C548F5] font-bold text-xs tracking-widest uppercase">
+                    <span className="text-acento font-bold text-xs tracking-widest uppercase">
                       Panel diario
                     </span>
                   </div>
@@ -156,7 +127,7 @@ export default function DashboardObjetivosPage() {
                   <div className="flex flex-wrap gap-3">
                     <button
                       onClick={registrarHabitosHoy}
-                      className="px-5 py-2.5 border border-[#C548F5] text-[#C548F5] rounded-full text-sm font-bold hover:bg-[#C548F5]/10 transition-colors"
+                      className="px-5 py-2.5 border border-acento text-acento rounded-full text-sm font-bold hover:bg-acento/10 transition-colors"
                     >
                       Registrar hábitos de hoy
                     </button>
@@ -176,7 +147,7 @@ export default function DashboardObjetivosPage() {
                   <h3 className="text-xl font-headline font-bold">Metas activas</h3>
                   <button
                     onClick={() => handleNavegar("/objetivos/metas")}
-                    className="text-xs font-bold text-[#C548F5] hover:underline tracking-tighter"
+                    className="text-xs font-bold text-acento hover:underline tracking-tighter"
                   >
                     VER TODAS
                   </button>
@@ -209,7 +180,7 @@ export default function DashboardObjetivosPage() {
                   </h3>
                   <button
                     onClick={registrarHabitosHoy}
-                    className="text-xs font-bold text-[#C548F5] hover:underline tracking-tighter"
+                    className="text-xs font-bold text-acento hover:underline tracking-tighter"
                   >
                     VER TODOS
                   </button>

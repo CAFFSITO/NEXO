@@ -18,8 +18,8 @@ export default function SidebarTendencias({ onVer }: SidebarTendenciasProps) {
   const top = (tendencias ?? []).slice(0, 5);
 
   return (
-    <aside className="w-80 shrink-0 hidden xl:block">
-      <div className="bg-[#2D1B4E]/30 rounded-[14px] border border-white/5 overflow-hidden sticky top-8">
+    <aside className="w-full">
+      <div className="bg-lienzo/30 rounded-[14px] border border-white/5 overflow-hidden">
         {/* Encabezado: también es un acceso a la pestaña completa. */}
         <button
           onClick={onVer}
@@ -27,14 +27,14 @@ export default function SidebarTendencias({ onVer }: SidebarTendenciasProps) {
         >
           <span className="flex items-center gap-2 text-white font-bold">
             <span
-              className="material-symbols-outlined text-[#C548F5]"
+              className="material-symbols-outlined text-acento"
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
               local_fire_department
             </span>
             Tendencias
           </span>
-          <span className="material-symbols-outlined text-white/30 text-lg group-hover:text-[#C548F5] transition-colors">
+          <span className="material-symbols-outlined text-white/30 text-lg group-hover:text-acento transition-colors">
             chevron_right
           </span>
         </button>
@@ -58,14 +58,14 @@ export default function SidebarTendencias({ onVer }: SidebarTendenciasProps) {
                   onClick={onVer}
                   className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-[10px] hover:bg-white/5 transition-colors group"
                 >
-                  <span className="text-lg font-black text-[#C548F5]/50 w-5 shrink-0">
+                  <span className="text-lg font-black text-acento/50 w-5 shrink-0">
                     {i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#C548F5]/80">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-acento/80">
                       {t.tipo === "debate" ? "Debate" : "Publicación"}
                     </span>
-                    <p className="text-white/90 text-xs font-medium truncate group-hover:text-[#C548F5]">
+                    <p className="text-white/90 text-xs font-medium truncate group-hover:text-acento">
                       {t.titulo}
                     </p>
                   </div>
@@ -88,7 +88,7 @@ export default function SidebarTendencias({ onVer }: SidebarTendenciasProps) {
         {top.length > 0 && (
           <button
             onClick={onVer}
-            className="w-full text-center px-6 py-3 border-t border-white/5 text-xs font-bold text-[#C548F5] hover:bg-[#C548F5]/10 transition-colors"
+            className="w-full text-center px-6 py-3 border-t border-white/5 text-xs font-bold text-acento hover:bg-acento/10 transition-colors"
           >
             Ver todas las tendencias
           </button>

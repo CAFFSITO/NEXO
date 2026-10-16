@@ -23,7 +23,7 @@ export default function EstadoCicloLectivo({
   const avance = Math.max(0, Math.min(100, avanceCronograma));
 
   return (
-    <div className="lg:col-span-2 bg-[#2D1B4E]/40 backdrop-blur-sm p-8 rounded-lg border border-surface-variant">
+    <div className="lg:col-span-2 bg-lienzo/40 backdrop-blur-sm p-8 rounded-lg border border-surface-variant">
       <h3 className="text-xl font-bold text-white font-headline mb-6 flex items-center gap-2">
         <span className="material-symbols-outlined text-primary">trending_up</span>
         Estado del Ciclo Lectivo
@@ -40,7 +40,7 @@ export default function EstadoCicloLectivo({
         </div>
         <div className="w-full bg-slate-900 h-3 rounded-full overflow-hidden">
           <div
-            className="bg-[#C548F5] h-full rounded-full transition-all duration-500"
+            className="bg-acento h-full rounded-full transition-all duration-500"
             style={{ width: `${avance}%` }}
           />
         </div>

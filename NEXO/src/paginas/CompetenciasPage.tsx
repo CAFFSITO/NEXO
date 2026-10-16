@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
+import { PESTANAS_OBJETIVOS } from "./components/shared/pestanasModulos";
 import TarjetaCompetencia from "./components/objetivos/TarjetaCompetencia";
 import ModalAgregarEvidencia from "./components/objetivos/ModalAgregarEvidencia";
 import { usePortafolio } from "../servicios/portafolio";
@@ -35,14 +36,6 @@ const ICONOS: Record<string, string> = {
   "Trabajo en equipo": "diversity_3",
   Autogestión: "bolt",
 };
-
-// Sub-navegación del módulo Objetivos
-const SUBNAV = [
-  { label: "Dashboard", ruta: "/objetivos" },
-  { label: "Mis Metas", ruta: "/objetivos/metas" },
-  { label: "Hábitos", ruta: "/objetivos/habitos" },
-  { label: "Competencias", ruta: "/objetivos/competencias" },
-];
 
 // El selector de "agregar evidencia" se conecta al portafolio en la Etapa 5
 // (por eso va vacío por ahora: sin escritura, no hay a dónde guardar).
@@ -110,7 +103,7 @@ export default function CompetenciasPage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen">
+    <div className="flex bg-fondo min-h-screen">
       <Sidebar
         usuario={usuario}
         onNavegar={handleNavegar}
@@ -118,29 +111,9 @@ export default function CompetenciasPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        <TopBar title="Objetivos Personales" subtitle="Competencias" />
+        <TopBar title="Objetivos Personales" pestanas={PESTANAS_OBJETIVOS} />
 
-        {/* Sub-navegación del módulo */}
-        <div className="flex gap-6 items-center px-8 h-12 border-b border-purple-900/20 bg-[#1C1030]/60">
-          {SUBNAV.map((tab) => {
-            const activa = tab.ruta === "/objetivos/competencias";
-            return (
-              <button
-                key={tab.ruta}
-                onClick={() => handleNavegar(tab.ruta)}
-                className={`pb-1 font-headline text-sm font-medium transition-all ${
-                  activa
-                    ? "text-[#C548F5] border-b-2 border-[#C548F5] font-bold"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-10 pt-8 pb-12 bg-[#190d2d]">
+        <div className="flex-1 overflow-y-auto px-10 pt-8 pb-12 bg-background">
           {/* Encabezado */}
           <div className="mb-10">
             <h1 className="text-4xl font-bold font-headline text-white mb-2">Mis Competencias</h1>
@@ -163,7 +136,7 @@ export default function CompetenciasPage() {
           ) : competencias.length === 0 ? (
             <Vacio icono="verified" mensaje="Tu institución todavía no definió competencias para trabajar." />
           ) : competencias.length === 0 ? (
-            <div className="bg-[#2D1B4E]/40 border border-white/5 rounded-[20px] p-12 text-center">
+            <div className="bg-lienzo/40 border border-white/5 rounded-[20px] p-12 text-center">
               <span className="material-symbols-outlined text-4xl text-slate-500 mb-2">
                 workspace_premium
               </span>

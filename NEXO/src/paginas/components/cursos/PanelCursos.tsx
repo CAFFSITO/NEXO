@@ -9,7 +9,7 @@
 // base ("Preceptor López", "Preceptor Suárez", que no existen — Error 13.4).
 
 import { useMemo, useState } from "react";
-import TarjetaCurso from "./TarjetaCurso";
+import CursosPorAnio from "./CursosPorAnio";
 import EstadoCicloLectivo from "./EstadoCicloLectivo";
 import ReporteSemanalCard from "./ReporteSemanalCard";
 import ModalNuevoCurso from "./ModalNuevoCurso";
@@ -18,6 +18,7 @@ import { useCursos } from "../../../servicios/perfiles";
 import { crearCurso, type DatosCurso } from "../../../servicios/gestionAcademica";
 import { generarInstitucional, descargarArchivo } from "../../../servicios/reportes";
 import { Cargando, Fallo } from "../shared/EstadoCarga";
+import { useFuncion } from "../../../servicios/instancia";
 
 export default function PanelCursos() {
   const { datos, cargando, error, recargar } = useCursos();
@@ -26,7 +27,11 @@ export default function PanelCursos() {
   const [detalleId, setDetalleId] = useState<string | null>(null);
   const [generandoPDF, setGenerandoPDF] = useState(false);
   const [aviso, setAviso] = useState("");
+  const [exito, setExito] = useState("");
   const cursos = useMemo(() => datos?.cursos ?? [], [datos]);
+  // Sin "Cátedras e inscripciones" la escuela usa los cursos solo para ordenar a
+  // los preceptores: no hay alumnos, materias ni tareas que mostrar.
+  const conAlumnos = useFuncion("cursos.organizar");
 
   // ── Filtro por año/división/preceptor ──
   const cursosFiltrados = useMemo(() => {
@@ -45,11 +50,12 @@ export default function PanelCursos() {
   );
 
   // ── Handlers ──
+  // Crear y volver a la lista (sin abrir el curso): se confirma con un aviso.
   const handleCrearCurso = async (nuevo: DatosCurso) => {
-    const creado = await crearCurso(nuevo);
+    await crearCurso(nuevo);
     setModalAbierto(false);
+    setExito(`Listo: se creó el curso ${nuevo.anio}° ${nuevo.division}.`);
     recargar();
-    setDetalleId(creado.id);
   };
 
   // "Ver detalle" abre la vista de solo lectura del curso. Los cursos creados en
@@ -71,7 +77,7 @@ export default function PanelCursos() {
     } finally { setGenerandoPDF(false); }
   };
 
-  if (cargando) return <Cargando que="los cursos del colegio" />;
+  if (cargando && !datos) return <Cargando que="los cursos del colegio" />;
   if (error) return <Fallo error={error} onReintentar={recargar} />;
   if (!datos) return null;
 
@@ -86,18 +92,29 @@ export default function PanelCursos() {
 
   return (
     <>
-      {aviso && <p role="alert" className="mb-5 rounded-xl bg-rose-500/10 border border-rose-400/20 px-4 py-3 text-rose-300">{aviso}</p>}
+      {aviso && <p role="alert" className="mb-5 rounded-xl bg-rose-500/10 px-4 py-3 text-rose-300">{aviso}</p>}
+      {exito && (
+        <div role="status" className="mb-5 flex items-center justify-between gap-4 rounded-xl bg-emerald-500/10 px-4 py-3 text-emerald-300">
+          <span className="flex items-center gap-2 font-semibold">
+            <span className="material-symbols-outlined" aria-hidden="true">check_circle</span>
+            {exito}
+          </span>
+          <button type="button" onClick={() => setExito("")} className="text-emerald-200/70 hover:text-white" aria-label="Cerrar el aviso">
+            <span className="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+      )}
       {/* ── Hero header + acción ── */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-8">
         <div>
           <h2 className="text-3xl font-extrabold text-white font-headline">Cursos Activos</h2>
           <p className="text-on-surface-variant/70 mt-1">
-            Gestión y monitoreo de las divisiones académicas.
+            {conAlumnos ? "Gestión y monitoreo de las divisiones académicas." : "Los cursos de la escuela, con su turno y su preceptor a cargo."}
           </p>
         </div>
         <button
           onClick={() => setModalAbierto(true)}
-          className="bg-[#C548F5] hover:bg-[#C548F5]/90 text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-95 self-start md:self-auto"
+          className="bg-acento hover:bg-acento/90 text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-95 self-start md:self-auto"
         >
           <span className="material-symbols-outlined">add_circle</span>
           Nuevo curso
@@ -115,7 +132,7 @@ export default function PanelCursos() {
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por año, división o preceptor…"
-            className="w-full bg-[#2D1B4E] border border-surface-variant rounded-full pl-10 pr-4 py-3 text-white placeholder:text-on-surface-variant/50 focus:border-primary outline-none transition-colors"
+            className="w-full bg-lienzo border border-surface-variant rounded-full pl-10 pr-4 py-3 text-white placeholder:text-on-surface-variant/50 focus:border-primary outline-none transition-colors"
           />
         </div>
         {cursosSinPreceptor > 0 && (
@@ -126,13 +143,9 @@ export default function PanelCursos() {
         )}
       </div>
 
-      {/* ── Grilla de cursos ── */}
+      {/* ── Años en tarjetas; al abrir uno, sus divisiones separadas por turno ── */}
       {cursosFiltrados.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {cursosFiltrados.map((curso) => (
-            <TarjetaCurso key={curso.id} curso={curso} onVerDetalle={handleVerDetalle} />
-          ))}
-        </div>
+        <CursosPorAnio cursos={cursosFiltrados} busqueda={busqueda} conAlumnos={conAlumnos} onVerDetalle={handleVerDetalle} />
       ) : (
         <div className="text-center py-16 text-on-surface-variant mb-12">
           <span className="material-symbols-outlined text-5xl mb-2 block">search_off</span>
@@ -142,8 +155,8 @@ export default function PanelCursos() {
         </div>
       )}
 
-      {/* ── Dashboard inferior ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      {/* ── Dashboard inferior (alumnos, materias y tareas) ── */}
+      {conAlumnos && <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <EstadoCicloLectivo
           avanceCronograma={datos.ciclo.avanceCronograma}
           inscripciones={datos.ciclo.inscripciones}
@@ -155,7 +168,7 @@ export default function PanelCursos() {
           generando={generandoPDF}
           onGenerarPDF={handleGenerarPDF}
         />
-      </div>
+      </div>}
 
       {modalAbierto && <ModalNuevoCurso
         abierto={modalAbierto}

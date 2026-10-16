@@ -22,7 +22,7 @@ import type { PuntoProgreso } from "../../../servicios/materia";
 //   · Línea  → evolución de la nota en el tiempo (por fecha de corrección).
 //   · Barras → nota por tarea corregida.
 
-const FUCSIA = "#C548F5";
+const FUCSIA = "var(--nexo-acento)";
 const APROBACION = 6; // escala 1–10, criterio argentino
 
 // Verde si aprobó, ámbar si no: color por barra, del dato real (no decorativo).
@@ -37,7 +37,7 @@ export default function GraficoProgresoAlumno({ serie }: Props) {
 
   if (serie.length === 0) {
     return (
-      <div className="bg-[#1C1030] border border-white/5 rounded-[14px] p-8 text-center">
+      <div className="bg-fondo border border-white/5 rounded-[14px] p-8 text-center">
         <span className="material-symbols-outlined text-4xl text-slate-600 mb-2 block">show_chart</span>
         <p className="text-slate-400 text-sm">
           Todavía no hay notas corregidas de este alumno en la materia.
@@ -58,20 +58,20 @@ export default function GraficoProgresoAlumno({ serie }: Props) {
     Math.round((serie.reduce((a, p) => a + p.nota, 0) / serie.length) * 10) / 10;
 
   return (
-    <div className="bg-[#1C1030] border border-white/5 rounded-[14px] p-4">
+    <div className="bg-fondo border border-white/5 rounded-[14px] p-4">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-baseline gap-2">
           <span className="text-slate-400 text-xs uppercase tracking-wider font-bold">Promedio</span>
           <span className="text-2xl font-black text-white">{promedio}</span>
           <span className="text-slate-500 text-xs">/ 10 · {serie.length} corregidas</span>
         </div>
-        <div className="flex bg-[#2D1B4E] rounded-full p-1">
+        <div className="flex bg-lienzo rounded-full p-1">
           {(["linea", "barras"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setModo(m)}
               className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-                modo === m ? "bg-[#C548F5] text-white" : "text-slate-400 hover:text-white"
+                modo === m ? "bg-acento text-white" : "text-slate-400 hover:text-white"
               }`}
             >
               {m === "linea" ? "Evolución" : "Por tarea"}
@@ -88,7 +88,7 @@ export default function GraficoProgresoAlumno({ serie }: Props) {
             <XAxis dataKey="fechaLabel" stroke="#94a3b8" fontSize={11} tickMargin={8} />
             <YAxis domain={[1, 10]} ticks={[1, 4, 6, 8, 10]} stroke="#94a3b8" fontSize={11} />
             <Tooltip
-              contentStyle={{ background: "#2D1B4E", border: "1px solid #ffffff20", borderRadius: 12, color: "#fff" }}
+              contentStyle={{ background: "var(--nexo-lienzo)", border: "1px solid #ffffff20", borderRadius: 12, color: "#fff" }}
               labelStyle={{ color: "#cbd5e1" }}
               formatter={(v, _n, item) => [`${v} / 10`, item?.payload?.tarea ?? "Nota"]}
             />
@@ -108,7 +108,7 @@ export default function GraficoProgresoAlumno({ serie }: Props) {
             <YAxis domain={[0, 10]} ticks={[0, 2, 4, 6, 8, 10]} stroke="#94a3b8" fontSize={11} />
             <Tooltip
               cursor={{ fill: "#ffffff0a" }}
-              contentStyle={{ background: "#2D1B4E", border: "1px solid #ffffff20", borderRadius: 12, color: "#fff" }}
+              contentStyle={{ background: "var(--nexo-lienzo)", border: "1px solid #ffffff20", borderRadius: 12, color: "#fff" }}
               labelStyle={{ color: "#cbd5e1" }}
               formatter={(v, _n, item) => [`${v} / 10`, item?.payload?.tarea ?? "Nota"]}
             />

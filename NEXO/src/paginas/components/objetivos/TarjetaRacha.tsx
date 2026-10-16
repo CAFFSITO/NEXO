@@ -38,7 +38,7 @@ export default function TarjetaRacha({ habito, onToggle }: TarjetaRachaProps) {
           aria-label={`Registrar ${nombre}`}
           className={`w-5 h-5 rounded cursor-pointer focus:ring-0 focus:ring-offset-0 ${
             cumplidoHoy
-              ? "border-none bg-[#C548F5]"
+              ? "border-none bg-acento"
               : "border-2 border-slate-700 bg-transparent"
           }`}
         />
@@ -49,7 +49,7 @@ export default function TarjetaRacha({ habito, onToggle }: TarjetaRachaProps) {
             key={dia.fecha}
             title={dia.fecha}
             className={`w-2.5 h-2.5 rounded-full ${
-              dia.cumplido ? "bg-[#C548F5]" : "bg-surface-container-highest"
+              dia.cumplido ? "bg-acento" : "bg-surface-container-highest"
             }`}
           />
         ))}

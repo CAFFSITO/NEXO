@@ -18,7 +18,7 @@ export default function TarjetaHabito({ habito, onToggle, onEditar, onArchivar, 
 
   return (
     <div
-      className={`bg-[#2D1B4E] p-6 rounded-[14px] flex justify-between items-center group hover:ring-1 ring-[#C548F5]/30 transition-all ${
+      className={`bg-lienzo p-6 rounded-[14px] flex justify-between items-center group hover:ring-1 ring-acento/30 transition-all ${
         sinRacha ? "opacity-80" : ""
       }`}
     >
@@ -40,7 +40,7 @@ export default function TarjetaHabito({ habito, onToggle, onEditar, onArchivar, 
               key={dia.fecha}
               title={dia.fecha}
               className={`w-2.5 h-2.5 rounded-full ${
-                dia.cumplido ? "bg-emerald-500" : "bg-[#1C1030]"
+                dia.cumplido ? "bg-emerald-500" : "bg-fondo"
               }`}
             />
           ))}
@@ -73,7 +73,7 @@ export default function TarjetaHabito({ habito, onToggle, onEditar, onArchivar, 
           onChange={() => onToggle(id)}
           aria-label={`Registrar ${nombre} hoy`}
         />
-        <div className="w-14 h-14 bg-[#1C1030] rounded-2xl flex items-center justify-center border border-white/5 peer-checked:bg-[#C548F5] transition-all group-hover:border-[#C548F5]/40">
+        <div className="w-14 h-14 bg-fondo rounded-2xl flex items-center justify-center border border-white/5 peer-checked:bg-acento transition-all group-hover:border-acento/40">
           <span className="material-symbols-outlined text-white/20 peer-checked:text-white">
             check
           </span>

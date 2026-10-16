@@ -17,7 +17,7 @@ export default function PanelAlumnosProfesor({ catedraId }: { catedraId: string 
   return (
     <section>
       <h2 className="text-lg font-bold text-white font-headline mb-4 flex items-center gap-2">
-        <span className="material-symbols-outlined text-[#C548F5]">group</span>
+        <span className="material-symbols-outlined text-acento">group</span>
         Alumnos
         {alumnos && <span className="text-slate-500 text-sm font-normal">({alumnos.length})</span>}
       </h2>
@@ -27,7 +27,7 @@ export default function PanelAlumnosProfesor({ catedraId }: { catedraId: string 
       ) : error ? (
         <Fallo error={error} onReintentar={recargar} />
       ) : !alumnos || alumnos.length === 0 ? (
-        <p className="text-slate-400 text-sm bg-[#2D1B4E]/40 border border-white/5 rounded-[14px] p-5">
+        <p className="text-slate-400 text-sm bg-lienzo/40 border border-white/5 rounded-[14px] p-5">
           Todavía no hay alumnos inscriptos en este curso.
         </p>
       ) : (
@@ -36,9 +36,9 @@ export default function PanelAlumnosProfesor({ catedraId }: { catedraId: string 
             <button
               key={a.id}
               onClick={() => setSeleccionado(a)}
-              className="text-left bg-[#2D1B4E] border border-white/5 hover:border-[#C548F5]/40 rounded-xl p-4 flex items-center gap-3 transition-all group"
+              className="text-left bg-lienzo border border-white/5 hover:border-acento/40 rounded-xl p-4 flex items-center gap-3 transition-all group"
             >
-              <div className="w-10 h-10 rounded-full bg-[#1C1030] flex items-center justify-center overflow-hidden text-xs font-bold text-white/60 shrink-0">
+              <div className="w-10 h-10 rounded-full bg-fondo flex items-center justify-center overflow-hidden text-xs font-bold text-white/60 shrink-0">
                 {a.avatar ? (
                   <img src={a.avatar} alt={a.nombre} className="w-full h-full object-cover" />
                 ) : (
@@ -46,7 +46,7 @@ export default function PanelAlumnosProfesor({ catedraId }: { catedraId: string 
                 )}
               </div>
               <span className="text-white text-sm font-medium truncate flex-1">{a.nombre}</span>
-              <span className="material-symbols-outlined text-white/30 group-hover:text-[#C548F5] transition-colors">
+              <span className="material-symbols-outlined text-white/30 group-hover:text-acento transition-colors">
                 bar_chart
               </span>
             </button>

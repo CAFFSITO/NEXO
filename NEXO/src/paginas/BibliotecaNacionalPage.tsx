@@ -1,6 +1,8 @@
 import { FILTROS_INICIALES } from "./components/biblioteca/estadoFiltros";
 import { useMemo, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
+import TopBar from "./components/shared/TopBar";
+import { PESTANAS_BIBLIOTECA } from "./components/shared/pestanasModulos";
 import { useNavegacion } from "../navegacion";
 import TarjetaRecursoNacional from "./components/biblioteca/TarjetaRecursoNacional";
 import FiltrosNacional, {
@@ -141,84 +143,59 @@ export default function BibliotecaNacionalPage() {
   };
 
   return (
-    <div className="bg-[#1C1030] min-h-screen text-[#ecdcff] font-body">
+    <div className="bg-fondo min-h-screen text-[#ecdcff] font-body">
       <Sidebar
         usuario={usuario ?? { nombre: "", rol }}
         onNavegar={handleNavegar}
         onCerrarSesion={handleCerrarSesion}
       />
 
-      {/* Top App Bar: tabs Nacional / Institucional */}
-      <header className="fixed top-0 right-0 app-fixed-header h-16 bg-[#1C1030]/80 backdrop-blur-md border-b border-fuchsia-900/20 z-40 flex items-center justify-between px-8">
-        <div className="flex items-center gap-8">
-          <h1 className="font-headline font-extrabold text-white text-lg tracking-tight">Biblioteca</h1>
-          <nav className="flex gap-6">
-          <button aria-current="page" onClick={() => handleNavegar("/biblioteca/nacional")} className="text-sm font-medium text-fuchsia-500 border-b-2 border-fuchsia-500 pb-1">
-              Nacional
-            </button>
-            <button
-              onClick={() => handleNavegar("/biblioteca/institucional")}
-              className="text-sm font-medium text-slate-400 hover:text-fuchsia-400 transition-colors"
-            >
-              Institucional
-            </button>
-          </nav>
-        </div>
-        <div className="flex items-center gap-4">
-          <button aria-label="Buscar sección" onClick={() => window.dispatchEvent(new Event("nexo:buscar"))} className="p-2 text-slate-400 hover:text-fuchsia-400 transition-colors">
-            <span className="material-symbols-outlined">search</span>
-          </button>
-          <button aria-label="Notificaciones" onClick={() => handleNavegar("/notificaciones")} className="p-2 text-slate-400 hover:text-fuchsia-400 transition-colors relative">
-            <span className="material-symbols-outlined">notifications</span>
-            <span className="absolute top-2 right-2 w-2 h-2 bg-fuchsia-500 rounded-full" />
-          </button>
-        </div>
-      </header>
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
+        <TopBar title="Biblioteca" pestanas={PESTANAS_BIBLIOTECA} />
+        <div className="flex-1 px-8 pt-8 pb-12">
+          <FiltrosNacional
+            filtros={filtros}
+            materias={materias}
+            escuelas={escuelas}
+            onChange={setFiltros}
+          />
 
-      {/* Main Content */}
-      <main id="contenido-principal" tabIndex={-1} className="app-content pt-24 px-8 pb-12 min-h-screen">
-        <FiltrosNacional
-          filtros={filtros}
-          materias={materias}
-          escuelas={escuelas}
-          onChange={setFiltros}
-        />
+          <div className="grid grid-cols-10 gap-8">
+            {/* Feed principal (70%) */}
+            <div className="col-span-7 flex flex-col gap-4">
+              {cargando ? (
+                <Cargando que="la biblioteca nacional" />
+              ) : error ? (
+                <Fallo error={error} onReintentar={recargar} />
+              ) : recursosVisibles.length > 0 ? (
+                recursosVisibles.map((r) => (
+                  <TarjetaRecursoNacional
+                    key={r.id}
+                    recurso={r}
+                    voto={A_VOTO[estadoVoto[r.id]?.miVoto ?? ""] ?? null}
+                    onVotar={handleVotar}
+                    onAbrir={handleAbrir}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-16 text-slate-400">
+                  <span className="material-symbols-outlined text-4xl block mb-3">search_off</span>
+                  <p>No se encontraron recursos con esos filtros.</p>
+                </div>
+              )}
+            </div>
 
-        <div className="grid grid-cols-10 gap-8">
-          {/* Feed principal (70%) */}
-          <div className="col-span-7 flex flex-col gap-4">
-            {cargando ? (
-              <Cargando que="la biblioteca nacional" />
-            ) : error ? (
-              <Fallo error={error} onReintentar={recargar} />
-            ) : recursosVisibles.length > 0 ? (
-              recursosVisibles.map((r) => (
-                <TarjetaRecursoNacional
-                  key={r.id}
-                  recurso={r}
-                  voto={A_VOTO[estadoVoto[r.id]?.miVoto ?? ""] ?? null}
-                  onVotar={handleVotar}
-                  onAbrir={handleAbrir}
-                />
-              ))
-            ) : (
-              <div className="text-center py-16 text-slate-400">
-                <span className="material-symbols-outlined text-4xl block mb-3">search_off</span>
-                <p>No se encontraron recursos con esos filtros.</p>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar derecho (30%) */}
-          <div className="col-span-3 space-y-6">
-            <PanelTendencias
-              tendencias={tendencias}
-              onSeleccionar={(materia) => setFiltros((f) => ({ ...f, materia }))}
-            />
-            <WidgetNovedades
-              cantidad={nuevosEstaSemana}
-              onVerNovedades={() => setFiltros((f) => ({ ...f, fecha: "recientes" }))}
-            />
+            {/* Sidebar derecho (30%) */}
+            <div className="col-span-3 space-y-6">
+              <PanelTendencias
+                tendencias={tendencias}
+                onSeleccionar={(materia) => setFiltros((f) => ({ ...f, materia }))}
+              />
+              <WidgetNovedades
+                cantidad={nuevosEstaSemana}
+                onVerNovedades={() => setFiltros((f) => ({ ...f, fecha: "recientes" }))}
+              />
+            </div>
           </div>
         </div>
       </main>

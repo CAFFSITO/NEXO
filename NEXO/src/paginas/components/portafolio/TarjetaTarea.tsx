@@ -34,7 +34,7 @@ export default function TarjetaTarea({
       className={`${
         vencida
           ? "border-l-[3px] border-red-500"
-          : "border border-transparent hover:border-[#C548F5]/30"
+          : "border border-transparent hover:border-acento/30"
       } ${entregada ? "opacity-80 hover:opacity-100" : ""}`}
       badges={
         <div className="flex flex-wrap gap-2">
@@ -115,7 +115,7 @@ export default function TarjetaTarea({
             </button>
             <button
               onClick={() => onEntregar(tarea.id)}
-              className="px-6 py-2 bg-[#C548F5] text-black font-bold rounded-full hover:bg-white transition-colors"
+              className="px-6 py-2 bg-acento text-black font-bold rounded-full hover:bg-white transition-colors"
             >
               Entregar
             </button>

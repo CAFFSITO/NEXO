@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
+import TopBar from "./components/shared/TopBar";
 import { useNavegacion } from "../navegacion";
 import {
   useOpcionesReportes,
@@ -9,6 +10,7 @@ import {
   descargarArchivo,
   type BloqueReporte,
 } from "../servicios/reportes";
+import Selector from "./components/shared/Selector";
 
 // Herramienta de Reportes de la dirección (sección 14.18, Errores 6.F.1 a 6.F.5).
 // Es una herramienta REAL —no el panel del administrador reusado (Error 6.F.1)—:
@@ -72,16 +74,11 @@ export default function ReportesPage() {
       : Boolean(alumnoId) && Object.values(marcadosExp).some(Boolean);
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen text-on-surface">
+    <div className="flex bg-fondo min-h-screen text-on-surface">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content min-h-screen">
-        <header className="flex items-center gap-3 w-full px-8 h-16 bg-[#1C1030]/80 backdrop-blur-md border-b border-[#2D1B4E] sticky top-0 z-40">
-          <span className="material-symbols-outlined text-fuchsia-500">assessment</span>
-          <h1 className="text-fuchsia-500 font-headline font-extrabold text-xl tracking-tight">
-            Reportes
-          </h1>
-        </header>
+        <TopBar title="Reportes" />
 
         <section className="p-8 max-w-3xl mx-auto space-y-6">
           {cargando && <p className="text-slate-400 text-sm">Cargando opciones…</p>}
@@ -90,7 +87,7 @@ export default function ReportesPage() {
           {opciones && (
             <>
               {/* Selector de tipo de reporte */}
-              <div className="flex gap-2 bg-[#2D1B4E]/40 p-1.5 rounded-xl w-fit">
+              <div className="flex gap-2 bg-lienzo/40 p-1.5 rounded-xl w-fit">
                 <TabBtn activo={modo === "institucional"} onClick={() => setModo("institucional")}>
                   Reporte institucional
                 </TabBtn>
@@ -112,10 +109,10 @@ export default function ReportesPage() {
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                       Alumno
                     </label>
-                    <select
+                    <Selector
                       value={alumnoId}
                       onChange={(e) => setAlumnoId(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#1C1030] border border-white/10 rounded-xl text-white text-sm focus:border-[#C548F5] focus:outline-none"
+                      className="w-full px-4 py-3 bg-fondo border border-white/10 rounded-xl text-white text-sm focus:border-acento focus:outline-none"
                     >
                       <option value="">Elegí un alumno…</option>
                       {alumnos.map((a) => (
@@ -123,7 +120,7 @@ export default function ReportesPage() {
                           {a.nombre} — {a.curso}
                         </option>
                       ))}
-                    </select>
+                    </Selector>
                   </div>
 
                   <BloqueCasillas
@@ -167,7 +164,7 @@ export default function ReportesPage() {
               <button
                 onClick={handleGenerar}
                 disabled={!puedeGenerar || generando}
-                className="w-full sm:w-auto px-6 py-3 bg-[#C548F5] hover:bg-[#d15aff] text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-6 py-3 bg-acento hover:bg-[#d15aff] text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="material-symbols-outlined">
                   {generando ? "progress_activity" : "download"}
@@ -185,7 +182,7 @@ export default function ReportesPage() {
                     {reportes.map((r) => (
                       <li
                         key={r.id}
-                        className="flex items-center justify-between gap-3 bg-[#2D1B4E]/40 border border-white/5 rounded-lg px-4 py-2.5"
+                        className="flex items-center justify-between gap-3 bg-lienzo/40 border border-white/5 rounded-lg px-4 py-2.5"
                       >
                         <div className="min-w-0">
                           <p className="text-sm text-white truncate">
@@ -234,7 +231,7 @@ function TabBtn({
     <button
       onClick={onClick}
       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-        activo ? "bg-[#C548F5] text-white" : "text-slate-300 hover:text-white"
+        activo ? "bg-acento text-white" : "text-slate-300 hover:text-white"
       }`}
     >
       {children}
@@ -262,13 +259,13 @@ function BloqueCasillas({
         {bloques.map((b) => (
           <label
             key={b.clave}
-            className="flex items-center gap-3 bg-[#2D1B4E]/40 border border-white/5 rounded-xl px-4 py-3 cursor-pointer hover:border-[#C548F5]/40 transition-colors"
+            className="flex items-center gap-3 bg-lienzo/40 border border-white/5 rounded-xl px-4 py-3 cursor-pointer hover:border-acento/40 transition-colors"
           >
             <input
               type="checkbox"
               checked={marcados[b.clave] ?? false}
               onChange={() => onToggle(b.clave)}
-              className="w-4 h-4 accent-[#C548F5]"
+              className="w-4 h-4 accent-acento"
             />
             <span className="text-sm text-white">{b.etiqueta}</span>
           </label>

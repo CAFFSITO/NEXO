@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Sidebar from "./components/shared/Sidebar";
 import TopBar from "./components/shared/TopBar";
+import { PESTANAS_PORTAFOLIO_DOCENTE } from "./components/shared/pestanasModulos";
 import { useNavegacion } from "../navegacion";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 import SalaClase from "./components/aula-virtual/SalaClase";
@@ -27,6 +28,7 @@ import {
   type ClasePlanificada,
 } from "../servicios/aula";
 import { fechaCorta } from "../servicios/fechas";
+import Selector from "./components/shared/Selector";
 
 export default function AulaVirtualProfesorPage() {
   const { usuario, navegar, cerrarSesion } = useNavegacion();
@@ -36,11 +38,11 @@ export default function AulaVirtualProfesorPage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen">
+    <div className="flex bg-fondo min-h-screen">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        <TopBar title="Aula Virtual" subtitle={claseActiva ? "En vivo" : undefined} />
-        <div className="flex-1 overflow-y-auto bg-[#190d2d] p-6">
+        <TopBar title="Aula Virtual" subtitle={claseActiva ? "En vivo" : undefined} pestanas={claseActiva ? undefined : PESTANAS_PORTAFOLIO_DOCENTE} />
+        <div className="flex-1 overflow-y-auto bg-background p-6">
           {claseActiva ? (
             <SalaClase key={claseActiva}
               claseId={claseActiva}
@@ -234,7 +236,7 @@ function FormularioClase({ onCreada }: { onCreada: () => void }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <label className="text-xs text-slate-400 flex flex-col gap-1">
           Materia y curso
-          <select
+          <Selector
             value={catedraElegida}
             onChange={(e) => setCatedraId(e.target.value === "" ? "" : Number(e.target.value))}
             className={campo}
@@ -243,11 +245,11 @@ function FormularioClase({ onCreada }: { onCreada: () => void }) {
             {cargando && <option>Cargando…</option>}
             {!cargando && !catedras?.length && <option value="">Sin cátedras asignadas</option>}
             {catedras?.map((c) => (
-              <option key={c.id} value={c.id} className="bg-[#190d2d]">
+              <option key={c.id} value={c.id} className="bg-background">
                 {c.etiqueta}
               </option>
             ))}
-          </select>
+          </Selector>
         </label>
         <label className="text-xs text-slate-400 flex flex-col gap-1">
           Fecha y hora

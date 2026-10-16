@@ -6,7 +6,7 @@ import TarjetaCalificacion from "./components/portafolio/TarjetaCalificacion";
 import ResumenCalificaciones from "./components/portafolio/ResumenCalificaciones";
 import ModalDevolucion from "./components/portafolio/ModalDevolucion";
 import ModalDetalleTarea from "./components/shared/tareas/ModalDetalleTarea";
-import SubNavPortafolio from "./components/portafolio/SubNavPortafolio";
+import { PESTANAS_PORTAFOLIO } from "./components/shared/pestanasModulos";
 import {
   estiloMateria,
   type Calificacion,
@@ -104,7 +104,7 @@ export default function CalificacionesPage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen">
+    <div className="flex bg-fondo min-h-screen">
       <Sidebar
         usuario={usuario}
         onNavegar={handleNavegar}
@@ -112,12 +112,9 @@ export default function CalificacionesPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        <TopBar title="Portafolio de Aprendizaje" subtitle="Calificaciones" />
+        <TopBar title="Portafolio de aprendizaje" pestanas={PESTANAS_PORTAFOLIO} />
 
-        {/* Sub-navegación del módulo */}
-        <SubNavPortafolio rutaActiva="/portafolio/calificaciones" />
-
-        <div className="flex-1 overflow-y-auto px-10 pt-8 pb-12 bg-[#190d2d] relative">
+        <div className="flex-1 overflow-y-auto px-10 pt-8 pb-12 bg-background relative">
           {/* Decoración de fondo */}
           <div className="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none opacity-40">
             <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px]" />

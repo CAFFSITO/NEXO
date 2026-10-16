@@ -51,6 +51,7 @@
 
 import { exigirSesion, ventanilla } from "./comun.js";
 import { asegurarConversacionClase } from "./chat.js";
+import { algoritmo } from "./genoma.js";
 
 // Cada cuánto el servidor revisa el ritmo de las clases en vivo (14.3, paso 6).
 const INTERVALO_ALERTA_MS = 30_000; // medio minuto
@@ -250,6 +251,11 @@ export function registrarAula(app, db, mensajero, notificaciones) {
 
       const info = insertarClase.run(catedraId, titulo, fechaHora, objetivos, materiales);
       const claseId = info.lastInsertRowid;
+      // El umbral inicial de la alerta de ritmo sale del genoma de la escuela
+      // (lo diseña el Maestro); el docente lo puede ajustar después, por clase.
+      const alerta = algoritmo(db, usuario.institucionId, "aula.alerta-ritmo");
+      db.prepare("UPDATE clases_planificadas SET umbral_alerta_pct = ?, umbral_alerta_min = ? WHERE id = ?")
+        .run(Math.round(alerta.parametros.umbralPct), Math.round(alerta.parametros.umbralMin), claseId);
 
       let orden = 1;
       for (const e of etapas) {
@@ -692,8 +698,13 @@ export function registrarAula(app, db, mensajero, notificaciones) {
     for (const { id } of clasesVivas) {
       const clase = claseConCatedra.get(id);
       if (!clase) continue;
+      // La regla es el algoritmo «Alerta de ritmo» del genoma de la escuela: el
+      // nativo (porcentaje ≥ umbral con al menos un pulso) o el grafo que haya
+      // diseñado y aprobado el Maestro. Si está apagado, no hay alertas.
+      const alerta = algoritmo(db, clase.institucion_id, "aula.alerta-ritmo");
       const p = pulsoDeClase(db, clase);
-      const superado = p.total > 0 && p.pctEnRiesgo >= clase.umbral_alerta_pct;
+      const superado = alerta.activo &&
+        alerta.puntuar({ pctEnRiesgo: p.pctEnRiesgo, total: p.total, umbral: clase.umbral_alerta_pct }) >= 0.5;
 
       if (!superado) {
         desde.delete(id);

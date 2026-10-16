@@ -1,4 +1,5 @@
 import { LABEL_POR_TIPO, type TipoRecurso } from "./tiposNacional";
+import Selector from "../shared/Selector";
 
 // Estado de los filtros. "todos" = sin filtrar.
 export interface EstadoFiltros {
@@ -19,7 +20,7 @@ interface FiltrosNacionalProps {
 }
 
 const SELECT_CLASS =
-  "appearance-none bg-[#25193a] border border-fuchsia-900/20 rounded-full py-2 pl-4 pr-10 text-sm text-slate-300 focus:outline-none hover:border-fuchsia-500/30 transition-all cursor-pointer";
+  "bg-[#25193a] border border-fuchsia-900/20 rounded-full py-2 pl-4 pr-3 text-sm text-slate-300 focus:outline-none hover:border-fuchsia-500/30 transition-all cursor-pointer";
 
 export default function FiltrosNacional({ filtros, materias, escuelas, onChange }: FiltrosNacionalProps) {
   // Helper genérico para actualizar un solo campo del estado de filtros
@@ -98,14 +99,9 @@ interface FiltroSelectProps {
 
 function FiltroSelect({ value, placeholder, onChange, children }: FiltroSelectProps) {
   return (
-    <div className="relative">
-      <select className={SELECT_CLASS} value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="todos">{placeholder}</option>
-        {children}
-      </select>
-      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-lg">
-        expand_more
-      </span>
-    </div>
+    <Selector className={SELECT_CLASS} value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="todos">{placeholder}</option>
+      {children}
+    </Selector>
   );
 }

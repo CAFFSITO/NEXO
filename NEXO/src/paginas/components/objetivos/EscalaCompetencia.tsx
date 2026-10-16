@@ -23,13 +23,13 @@ export default function EscalaCompetencia({ nivel, onCambiarNivel }: EscalaCompe
               onClick={onCambiarNivel ? () => onCambiarNivel(id) : undefined}
               className={`relative h-10 rounded-lg flex items-center justify-center text-center text-[10px] font-bold transition-colors ${
                 activo
-                  ? "bg-[#C548F5] text-white"
-                  : "bg-[#1C1030] text-slate-500"
+                  ? "bg-acento text-white"
+                  : "bg-fondo text-slate-500"
               } ${onCambiarNivel ? "cursor-pointer hover:text-slate-300" : ""}`}
             >
               {label}
               {activo && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#C548F5] rounded-full border-2 border-[#2D1B4E]" />
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-acento rounded-full border-2 border-lienzo" />
               )}
             </Cell>
           );

@@ -8,6 +8,7 @@
 
 import { useMemo, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
+import TopBar from "./components/shared/TopBar";
 import { useNavegacion } from "../navegacion";
 import TarjetaQueja, {
   type Queja,
@@ -20,6 +21,7 @@ import TendenciasQuejasCard from "./components/centro-estudiantes/TendenciasQuej
 import { useQuejas, marcarQuejaVista } from "../servicios/quejas";
 import { textoRelativo } from "../servicios/fechas";
 import { Cargando, Fallo } from "./components/shared/EstadoCarga";
+import Selector from "./components/shared/Selector";
 
 const CATEGORIAS: CategoriaQueja[] = [
   "Metodología",
@@ -102,92 +104,95 @@ export default function GestionQuejasPage() {
     <div className="flex bg-background min-h-screen text-on-background">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
-      <main id="contenido-principal" tabIndex={-1} className="app-content flex-1 pt-8 px-8 pb-12 max-w-7xl">
-        {/* ── Header ── */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
-          <div>
-            <h2 className="text-3xl font-extrabold font-headline text-white tracking-tight">
-              Quejas Estudiantiles
-            </h2>
-            <p className="text-slate-400 mt-1">
-              Retroalimentación anónima de la comunidad estudiantil.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <label
-              htmlFor="filtro-categoria"
-              className="text-xs font-bold uppercase tracking-widest text-slate-500"
-            >
-              Vista:
-            </label>
-            <select
-              id="filtro-categoria"
-              value={filtroCategoria}
-              onChange={(e) => setFiltroCategoria(e.target.value as FiltroCategoria)}
-              className="bg-surface-container border-none text-on-surface rounded-full px-6 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 cursor-pointer hover:bg-surface-container-high transition-colors"
-            >
-              <option value="todas">Filtrar por categoría</option>
-              {CATEGORIAS.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* ── Barra de búsqueda ── */}
-        <div className="relative mb-6 max-w-md">
-          <input
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar reporte..."
-            type="text"
-            className="bg-surface-container/60 border-none rounded-full pl-4 pr-10 py-2.5 text-sm w-full focus:ring-1 focus:ring-primary/50 transition-all text-white placeholder:text-slate-500"
-          />
-          <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xl">
-            search
-          </span>
-        </div>
-
-        {cargando && <Cargando que="las quejas" />}
-        {error && <Fallo error={error} onReintentar={recargar} />}
-
-        {/* ── Grid ── */}
-        {!cargando && !error && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Columna izquierda: Feed */}
-            <div className="lg:col-span-8 space-y-4">
-              {quejasVisibles.length > 0 ? (
-                quejasVisibles.map((queja) => (
-                  <TarjetaQueja
-                    key={queja.id}
-                    queja={queja}
-                    onMarcarVista={marcarComoVista}
-                  />
-                ))
-              ) : (
-                <div className="bg-surface border border-surface-container-highest rounded-lg p-10 text-center text-slate-400">
-                  <span className="material-symbols-outlined text-4xl mb-2 block opacity-50">
-                    inbox
-                  </span>
-                  No hay quejas que coincidan con tu búsqueda.
-                </div>
-              )}
+      <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
+        <TopBar title="Buzón estudiantil" />
+        <div className="flex-1 w-full max-w-7xl mx-auto px-8 pt-8 pb-12">
+          {/* ── Header ── */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+            <div>
+              <h2 className="text-3xl font-extrabold font-headline text-white tracking-tight">
+                Quejas Estudiantiles
+              </h2>
+              <p className="text-slate-400 mt-1">
+                Retroalimentación anónima de la comunidad estudiantil.
+              </p>
             </div>
-
-            {/* Columna derecha: Estadísticas */}
-            <div className="lg:col-span-4 space-y-6">
-              <ResumenQuejasCard
-                totales={totales}
-                nuevas={nuevas}
-                distribucion={distribucion}
-              />
-              <TendenciasQuejasCard
-                temaMasMencionado={temaMasMencionado}
-                variacionPorcentual={estadistica?.variacionPorcentual ?? 0}
-              />
+            <div className="flex items-center gap-3">
+              <label
+                htmlFor="filtro-categoria"
+                className="text-xs font-bold uppercase tracking-widest text-slate-500"
+              >
+                Vista:
+              </label>
+              <Selector
+                id="filtro-categoria"
+                value={filtroCategoria}
+                onChange={(e) => setFiltroCategoria(e.target.value as FiltroCategoria)}
+                className="bg-surface-container border-none text-on-surface rounded-full px-6 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 cursor-pointer hover:bg-surface-container-high transition-colors"
+              >
+                <option value="todas">Filtrar por categoría</option>
+                {CATEGORIAS.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </Selector>
             </div>
           </div>
-        )}
+
+          {/* ── Barra de búsqueda ── */}
+          <div className="relative mb-6 max-w-md">
+            <input
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar reporte..."
+              type="text"
+              className="bg-surface-container/60 border-none rounded-full pl-4 pr-10 py-2.5 text-sm w-full focus:ring-1 focus:ring-primary/50 transition-all text-white placeholder:text-slate-500"
+            />
+            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xl">
+              search
+            </span>
+          </div>
+
+          {cargando && <Cargando que="las quejas" />}
+          {error && <Fallo error={error} onReintentar={recargar} />}
+
+          {/* ── Grid ── */}
+          {!cargando && !error && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Columna izquierda: Feed */}
+              <div className="lg:col-span-8 space-y-4">
+                {quejasVisibles.length > 0 ? (
+                  quejasVisibles.map((queja) => (
+                    <TarjetaQueja
+                      key={queja.id}
+                      queja={queja}
+                      onMarcarVista={marcarComoVista}
+                    />
+                  ))
+                ) : (
+                  <div className="bg-surface border border-surface-container-highest rounded-lg p-10 text-center text-slate-400">
+                    <span className="material-symbols-outlined text-4xl mb-2 block opacity-50">
+                      inbox
+                    </span>
+                    No hay quejas que coincidan con tu búsqueda.
+                  </div>
+                )}
+              </div>
+
+              {/* Columna derecha: Estadísticas */}
+              <div className="lg:col-span-4 space-y-6">
+                <ResumenQuejasCard
+                  totales={totales}
+                  nuevas={nuevas}
+                  distribucion={distribucion}
+                />
+                <TendenciasQuejasCard
+                  temaMasMencionado={temaMasMencionado}
+                  variacionPorcentual={estadistica?.variacionPorcentual ?? 0}
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

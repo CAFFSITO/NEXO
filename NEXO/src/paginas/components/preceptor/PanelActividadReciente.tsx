@@ -17,15 +17,15 @@ interface PanelActividadRecienteProps {
 
 // Config visual por tipo de actividad
 const CONFIG: Record<TipoActividad, { bg: string; icono: string; fill: boolean; colorCurso: string }> = {
-    mensaje: { bg: "bg-[#C548F5]", icono: "chat", fill: false, colorCurso: "text-primary" },
-    posteo: { bg: "bg-[#C548F5]", icono: "person", fill: true, colorCurso: "text-[#C548F5]" },
+    mensaje: { bg: "bg-acento", icono: "chat", fill: false, colorCurso: "text-primary" },
+    posteo: { bg: "bg-acento", icono: "person", fill: true, colorCurso: "text-acento" },
     bloqueo: { bg: "bg-amber-500", icono: "lock", fill: false, colorCurso: "text-amber-400" },
     cierre: { bg: "bg-slate-500", icono: "close", fill: false, colorCurso: "text-white" },
 };
 
 export default function PanelActividadReciente({ actividades }: PanelActividadRecienteProps) {
     return (
-        <div className="bg-[#2D1B4E] rounded-lg p-6 border border-white/5">
+        <div className="bg-lienzo rounded-lg p-6 border border-white/5">
             <h4 className="text-sm font-black font-headline text-white uppercase tracking-widest mb-6">
                 Actividad Reciente
             </h4>

@@ -19,6 +19,7 @@
 // ============================================================================
 
 import { usuarioDeLaSesion } from "./sesiones.js";
+import { paginaVisible } from "./genoma.js";
 
 // Qué roles pueden VER cada pantalla. Un rol ausente = acceso denegado.
 // El nombre de cada pantalla es el mismo que usa el tipo `Page` de la vidriera.
@@ -45,6 +46,9 @@ export const ROLES_POR_PAGINA = {
   comunidad: ["estudiante", "profesor", "admin-academico", "preceptor", "centro-estudiantes", "bibliotecario"],
   debates: ["estudiante", "profesor", "admin-academico", "preceptor", "centro-estudiantes", "bibliotecario"],
   tendencias: ["estudiante", "profesor", "admin-academico", "preceptor", "centro-estudiantes", "bibliotecario"],
+  // Llevar una tendencia de la escuela a lo NACIONAL: solo la dirección de esa
+  // escuela (el algoritmo propone; la persona decide). Ver servidor/tendencias.js.
+  "tendencias-direccion": ["admin-academico"],
   // Bandeja de moderación de la comunidad (denuncias, sección 14.4). Solo la ven
   // quienes pueden ELIMINAR contenido denunciado: la dirección y los preceptores.
   // El botón que la abre vive dentro de Comunidad; el permiso, como siempre, se
@@ -58,15 +62,28 @@ export const ROLES_POR_PAGINA = {
     "estudiante", "profesor", "admin-academico", "preceptor",
     "centro-estudiantes", "bibliotecario", "familia",
   ],
-  // Editar el calendario: solo algunos (Error 6.E.9, 7.B.1, 8.C.1). El permiso
-  // de PANTALLA deja pasar a estos cuatro; qué visibilidad puede darle cada uno
-  // a un evento (la dirección cualquiera, el preceptor solo su curso, el centro
-  // solo eventos propios) lo decide `validarVisibilidad` en calendario.js.
-  "calendario-editar": ["admin-academico", "preceptor", "centro-estudiantes", "profesor"],
+  // Crear eventos: todos (sección 14.12, con jerarquía). A QUIÉN se los puede
+  // mostrar cada uno lo decide la jerarquía de la escuela (genoma): cada nivel
+  // al suyo y a los de abajo; estudiantes y familias, solo eventos personales.
+  // La validación fina vive en servidor/agenda.js.
+  "calendario-editar": [
+    "admin-academico", "centro-estudiantes", "profesor", "bibliotecario", "preceptor", "estudiante", "familia",
+  ],
 
   // Emitir comunicados a familias (14.13): el preceptor a su curso, la dirección
   // a un curso o a toda la institución. Las familias solo los reciben.
   "comunicados-emitir": ["preceptor", "admin-academico"],
+
+  // Anuncios obligatorios (servidor/anuncios.js): avisos que llegan como
+  // tarjetas encima de todo y que hay que marcar como leídos para seguir usando
+  // NEXO. Esta lista es también QUIÉNES PARTICIPAN: los que pueden recibir,
+  // mandar a personas puntuales y estar en grupos. Sumar a los profesores es
+  // agregar "profesor" acá.
+  anuncios: ["preceptor", "admin-academico"],
+  // Armar los grupos de difusión de la escuela: la dirección. El Maestro también
+  // puede, desde su pantalla propia ("anuncios-maestro"), para cualquier escuela.
+  "anuncios-grupos": ["admin-academico"],
+  "anuncios-maestro": ["administrador"],
 
   // Enviar una queja anónima (14.14): es el canal del estudiante. La base ni
   // siquiera guarda quién la escribió; el permiso solo controla quién ABRE el
@@ -121,9 +138,15 @@ export const ROLES_POR_PAGINA = {
   // la vida interna de un colegio. La generación real vive en reportes.js.
   reportes: ["admin-academico"],
 
-  // Administrador de PLATAFORMA ("nosotros"). Sus dos pantallas propias: la
-  // gestión de instituciones y la salud del sistema con los logs (sección 5).
-  // Ningún otro rol las ve; este rol no ve ninguna pantalla escolar interna.
+  // Módulos de la institución: la dirección ve qué ocultó el Maestro en el
+  // genoma de su escuela y puede volver a mostrarlo. Es núcleo: no se oculta.
+  "modulos-institucion": ["admin-academico"],
+
+  // Administrador de PLATAFORMA = el perfil MAESTRO. Sus pantallas propias: el
+  // estudio donde forja y diseña instancias, la gestión de instituciones y la
+  // salud del sistema con los logs (sección 5). Ningún otro rol las ve; este
+  // rol no ve ninguna pantalla escolar interna.
+  "maestro-estudio": ["administrador"],
   "gestion-instituciones": ["administrador"],
   "salud-sistema": ["administrador"],
 
@@ -172,6 +195,13 @@ export function registrarPermisos(app, db) {
       return res
         .status(403)
         .json({ error: "No tenés permiso para ver esta sección." });
+    }
+
+    // El genoma de la escuela puede haber ocultado el módulo de esta pantalla.
+    if (!paginaVisible(db, usuario, pagina)) {
+      return res
+        .status(403)
+        .json({ error: "Esta sección está oculta en tu institución.", codigo: "modulo-oculto" });
     }
 
     res.json({ permitido: true });

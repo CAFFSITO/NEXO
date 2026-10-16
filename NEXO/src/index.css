@@ -5,14 +5,62 @@
 @config "../tailwind.config.ts";
 
 :root { --sidebar-width: 248px; --nexo-border: rgba(212,193,213,.11); --nexo-muted: #a99ab9; }
-html { color-scheme: dark; background: #190d2d; scroll-behavior: smooth; }
-body { margin: 0; min-width: 320px; font-family: "Inter", sans-serif; background: #190d2d; color: #ecdcff; -webkit-font-smoothing: antialiased; }
+
+/* Paleta de la instancia (perfil Maestro). Estos son los valores originales de
+   NEXO; cuando la escuela tiene otra paleta en su genoma, servicios/tema.ts los
+   pisa en <html> con los colores derivados de esa paleta. */
+:root {
+  --nexo-acento: #c548f5;
+  --nexo-acento-vivo: #d15aff;
+  --nexo-acento-oscuro: #9a06cb;
+  /* La letra sobre el acento: blanca, salvo que el acento de la escuela sea tan
+     claro que no se lea (servicios/tema.ts → letraSobre elige una oscura). */
+  --nexo-sobre-acento: #ffffff;
+  --nexo-primario: #edb1ff;
+  --nexo-primario-claro: #f9d8ff;
+  --nexo-sobre-primario: #53006f;
+  --nexo-sobre-primario-fuerte: #480062;
+  --nexo-secundario: #d2bcfa;
+  --nexo-secundario-contenedor: #4f3d72;
+  --nexo-sobre-secundario: #c1abe8;
+  --nexo-terciario: #efc04c;
+  --nexo-terciario-oscuro: #b38b15;
+  --nexo-fondo: #190d2d;
+  --nexo-fondo-pagina: #1c1030;
+  --nexo-lienzo: #2d1b4e;
+  --nexo-sidebar: #160d28;
+  --nexo-sup-0: #130727;
+  --nexo-sup-1: #211535;
+  --nexo-sup-2: #25193a;
+  --nexo-sup-3: #302445;
+  --nexo-sup-4: #3b2f50;
+  --nexo-sup-brillante: #403355;
+  --nexo-texto: #ecdcff;
+  --nexo-texto-suave: #d4c1d5;
+  --nexo-borde: #9c8b9e;
+  --nexo-borde-suave: #504253;
+  --nexo-radio: 12px;
+}
+html { color-scheme: dark; background: var(--nexo-fondo); scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; font-family: "Inter", sans-serif; background: var(--nexo-fondo); color: var(--nexo-texto); -webkit-font-smoothing: antialiased; }
 #root { min-height: 100dvh; }
-::selection { background: #c548f550; color: #fff; }
+/* Los botones y marcas pintados con el acento (bg-acento) escriben "text-white",
+   y con un acento claro eso es blanco sobre blanco. Esta regla es la única que
+   lo resuelve, para los que ya existen y para los que vengan: arriba del acento,
+   la letra es la que eligió el tema. Va fuera de las capas de Tailwind a
+   propósito, para ganarle a la utilidad text-white. */
+.bg-acento.text-white,
+.bg-acento > .text-white { color: var(--nexo-sobre-acento); }
+/* El desplegable propio (components/shared/Selector.tsx): en NEXO no se usa el
+   <select> del navegador. El aspecto del botón lo traen sus clases. */
+.nexo-selector { cursor: pointer; text-align: left; }
+.nexo-selector:disabled { cursor: not-allowed; opacity: .6; }
+.nexo-selector:focus-visible { outline: 2px solid var(--nexo-acento); outline-offset: 2px; }
+::selection { background: color-mix(in srgb, var(--nexo-acento) 31.4%, transparent); color: #fff; }
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 button:not(:disabled), a { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
-:focus-visible { outline: 2px solid #edb1ff; outline-offset: 4px; }
+:focus-visible { outline: 2px solid var(--nexo-primario); outline-offset: 4px; }
 input, textarea, select { max-width: 100%; }
 select { color-scheme: dark; }
 input[type="date"], input[type="datetime-local"], input[type="time"] { min-width: 0; }
@@ -29,72 +77,101 @@ input::placeholder, textarea::placeholder { opacity: 1; }
 .app-content :is(h2,h3) { letter-spacing: -.025em; }
 .app-content > .p-8, .app-content > .px-8 { padding-left: clamp(20px,3vw,48px); padding-right: clamp(20px,3vw,48px); }
 .app-content > .overflow-y-auto { scrollbar-gutter: stable; }
-.nexo-topbar { min-height: 76px; flex-shrink: 0; padding: 16px clamp(20px,3vw,48px); display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--nexo-border); background: #190d2d; }
-.nexo-pill { align-items: center; border: 1px solid #edb1ff25; border-radius: 999px; background: #edb1ff0a; color: #edb1ff; font-size: 10px; font-weight: 600; padding: 4px 9px; }
+/* La barra de arriba (components/shared/TopBar.tsx): pegada al bajar y sin línea.
+   Arriba de todo es transparente (toma el fondo de cada pantalla); cuando el
+   contenido pasa por debajo, gana superficie, desenfoque y una sombra suave. */
+.nexo-topbar { position: sticky; top: 0; z-index: 40; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding: 14px clamp(20px,3vw,48px); background: transparent; transition: box-shadow .2s, background-color .2s; }
+.nexo-topbar.is-elevada { background: color-mix(in srgb, var(--nexo-fondo-pagina) 88%, transparent); -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%); box-shadow: 0 16px 36px -24px #000d; }
+.nexo-topbar-fila { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.nexo-topbar-lugar { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.nexo-topbar-icono { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; font-size: 22px; color: var(--nexo-primario); background: color-mix(in srgb, var(--nexo-acento) 14%, transparent); font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
+.nexo-topbar-seccion { margin-bottom: 3px; font-size: 10px; font-weight: 600; line-height: 1.2; letter-spacing: 1.6px; text-transform: uppercase; color: var(--nexo-texto-suave); opacity: .62; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nexo-topbar-titulos { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.nexo-topbar-titulo { min-width: 0; font: 700 19px/1.25 "Plus Jakarta Sans", sans-serif; letter-spacing: -.02em; color: var(--nexo-texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nexo-topbar-contexto { min-width: 0; max-width: 380px; padding: 4px 11px; border-radius: 999px; background: color-mix(in srgb, var(--nexo-acento) 13%, transparent); color: var(--nexo-primario); font-size: 12px; font-weight: 600; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nexo-topbar-acciones { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+.nexo-topbar-fecha { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--nexo-texto-suave); white-space: nowrap; }
+.nexo-topbar-fecha .material-symbols-outlined { font-size: 17px; color: var(--nexo-primario); }
+.nexo-topbar-herramientas { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 14px; background: var(--nexo-sup-1); }
+.nexo-topbar-herramientas .nexo-icon-button { color: var(--nexo-texto-suave); }
+.nexo-topbar-herramientas .nexo-icon-button:hover { color: var(--nexo-primario); background: var(--nexo-sup-3); }
+.nexo-topbar-globo { position: absolute; top: 1px; right: 0; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; display: grid; place-items: center; background: var(--nexo-acento); color: var(--nexo-sobre-acento); font-size: 10px; font-weight: 700; line-height: 1; box-shadow: 0 0 0 2px var(--nexo-sup-1); }
+.nexo-topbar-pestanas { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; padding: 2px 4px; }
+.nexo-topbar-pestanas::-webkit-scrollbar { display: none; }
+.nexo-topbar-pestana { flex-shrink: 0; padding: 8px 16px; border-radius: 999px; font: 600 13px/1.2 "Plus Jakarta Sans", sans-serif; color: var(--nexo-texto-suave); transition: background .15s, color .15s; }
+.nexo-topbar-pestana:hover { color: var(--nexo-texto); background: var(--nexo-sup-2); }
+.nexo-topbar-pestana[aria-current="page"] { color: var(--nexo-primario); background: color-mix(in srgb, var(--nexo-acento) 14%, transparent); }
+/* La fecha y la escuela ceden su lugar antes que el título. (El buscador en
+   celular ya está en la barra del menú.) */
+@media (max-width: 1279px) { .nexo-topbar-fecha { display: none; } }
+@media (max-width: 639px) { .nexo-topbar-contexto, .nexo-topbar-seccion { display: none; } }
+.nexo-pill { align-items: center; border: 1px solid color-mix(in srgb, var(--nexo-primario) 14.5%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--nexo-primario) 3.9%, transparent); color: var(--nexo-primario); font-size: 10px; font-weight: 600; padding: 4px 9px; }
 .nexo-icon-button { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; flex-shrink: 0; color: #b6a6c9; transition: background .15s, color .15s; }
-.nexo-icon-button:hover { color: #edb1ff; background: #edb1ff0d; }
+.nexo-icon-button:hover { color: var(--nexo-primario); background: color-mix(in srgb, var(--nexo-primario) 5.1%, transparent); }
 .nexo-icon-button .material-symbols-outlined { font-size: 21px; }
-.nexo-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 50; width: var(--sidebar-width); height: 100dvh; background: #160d28; border-right: 1px solid var(--nexo-border); padding: 30px 16px 16px; display: flex; flex-direction: column; overflow: hidden; }
+.nexo-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 50; width: var(--sidebar-width); height: 100dvh; background: var(--nexo-sidebar); border-right: 1px solid var(--nexo-border); padding: 30px 16px 16px; display: flex; flex-direction: column; overflow: hidden; }
 .nexo-brand-row { display: flex; align-items: center; gap: 10px; padding: 0 12px; }
-.nexo-brand-icon { color: #c548f5; background: #c548f517; padding: 8px; border-radius: 12px; font-size: 23px; }
-.nexo-wordmark { color: #ecdcff; font: 800 32px/1 "Plus Jakarta Sans", sans-serif; letter-spacing: -2px; }
-.nexo-wordmark > span { color: #c548f5; }
+.nexo-brand-icon { color: var(--nexo-acento); background: color-mix(in srgb, var(--nexo-acento) 9%, transparent); padding: 8px; border-radius: 12px; font-size: 23px; }
+.nexo-wordmark { color: var(--nexo-texto); font: 800 32px/1 "Plus Jakarta Sans", sans-serif; letter-spacing: -2px; }
+.nexo-wordmark > span { color: var(--nexo-acento); }
 .nexo-brand-caption { font-size: 8px; font-weight: 600; letter-spacing: 1.8px; color: #a99ab9; margin: 14px 12px 28px; }
-.nexo-nav-search { display: flex; align-items: center; gap: 8px; width: 100%; padding: 11px 10px; border-radius: 9px; background: #211535; border: 1px solid var(--nexo-border); color: #b6a6c9; font-size: 11px; }
+.nexo-nav-search { display: flex; align-items: center; gap: 8px; width: 100%; padding: 11px 10px; border-radius: 9px; background: var(--nexo-sup-1); border: 1px solid var(--nexo-border); color: #b6a6c9; font-size: 11px; }
 .nexo-nav-search .material-symbols-outlined { font-size: 18px; }
-.nexo-nav-search kbd { margin-left: auto; color: #a99ab9; font: 9px "Inter",sans-serif; white-space: nowrap; border: 1px solid #504253; border-radius: 4px; padding: 3px; }
-.nexo-nav-section-label { margin: 28px 12px 12px; font-size: 9px; letter-spacing: 1.8px; font-weight: 600; color: #8b7c9b; }
+.nexo-nav-search kbd { margin-left: auto; color: #a99ab9; font: 9px "Inter",sans-serif; white-space: nowrap; border: 1px solid var(--nexo-borde-suave); border-radius: 4px; padding: 3px; }
+.nexo-nav-section-label { margin: 28px 12px 12px; font-size: 9px; letter-spacing: 1.8px; font-weight: 600; color: #8b7c9b; display: flex; align-items: center; gap: 6px; }
+.nexo-nav-section-label .material-symbols-outlined { font-size: 13px; color: var(--nexo-acento); opacity: .8; }
+.nexo-nav-group + .nexo-nav-group .nexo-nav-section-label { margin-top: 20px; }
 .nexo-nav-items { display: flex; flex-direction: column; gap: 5px; padding-bottom: 20px; }
 .nexo-nav-item { width: 100%; min-height: 45px; display: flex; gap: 11px; align-items: center; padding: 11px 12px; border-radius: 9px; color: #b6a6c9; font-size: 12px; font-weight: 500; text-align: left; border: 1px solid transparent; transition: background .15s,color .15s; }
 .nexo-nav-item > .material-symbols-outlined { font-size: 21px; }
-.nexo-nav-item:hover { color: #ecdcff; background: #25193a; }
-.nexo-nav-item.is-active { color: #edb1ff; background: #c548f515; border-color: #c548f525; }
+.nexo-nav-item:hover { color: var(--nexo-texto); background: var(--nexo-sup-2); }
+.nexo-nav-item.is-active { color: var(--nexo-primario); background: color-mix(in srgb, var(--nexo-acento) 8.2%, transparent); border-color: color-mix(in srgb, var(--nexo-acento) 14.5%, transparent); }
 .nexo-nav-item.is-active > .material-symbols-outlined { font-variation-settings: "FILL" 1; }
-.nexo-nav-badge { margin-left: auto; background: #c548f5; color: #fff; min-width: 19px; border-radius: 6px; text-align: center; padding: 2px 4px; font-size: 10px; }
+.nexo-nav-badge { margin-left: auto; background: var(--nexo-acento); color: var(--nexo-sobre-acento); min-width: 19px; border-radius: 6px; text-align: center; padding: 2px 4px; font-size: 10px; }
 .nexo-sidebar-scroll { flex: 1 1 auto; min-height: 0; margin: 0 -8px; padding: 0 8px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
 .nexo-sidebar-scroll::-webkit-scrollbar { display: none; }
 .nexo-sidebar-tools { padding-top: 14px; padding-bottom: 8px; border-top: 1px solid var(--nexo-border); }
-.nexo-user-card { flex: 0 0 auto; margin-top: 8px; padding: 16px 0 0; border-top: 1px solid var(--nexo-border); display: flex; align-items: center; gap: 9px; background: #160d28; }
-.nexo-avatar { width: 36px; height: 36px; flex-shrink: 0; object-fit: cover; border-radius: 12px; display: grid; place-items: center; background: #4f3d72; color: #ebddff; font-size: 11px; font-weight: 700; }
+.nexo-user-card { flex: 0 0 auto; margin-top: 8px; padding: 16px 0 0; border-top: 1px solid var(--nexo-border); display: flex; align-items: center; gap: 9px; background: var(--nexo-sidebar); }
+.nexo-avatar { width: 36px; height: 36px; flex-shrink: 0; object-fit: cover; border-radius: 12px; display: grid; place-items: center; background: var(--nexo-secundario-contenedor); color: #ebddff; font-size: 11px; font-weight: 700; }
 .nexo-mobile-bar, .nexo-drawer-close, .nexo-drawer-backdrop { display: none; }
-.nexo-skip-link { position: fixed; top: -100px; left: 16px; z-index: 200; background: #edb1ff; color: #320045; border-radius: 8px; padding: 12px 18px; }
+.nexo-skip-link { position: fixed; top: -100px; left: 16px; z-index: 200; background: var(--nexo-primario); color: #320045; border-radius: 8px; padding: 12px 18px; }
 .nexo-skip-link:focus { top: 12px; }
-.nexo-search-dialog { position: fixed; inset: 12vh 0 auto; margin: 0 auto; width: min(560px,calc(100% - 32px)); max-height: 78dvh; border: 1px solid #504253; border-radius: 18px; background: #211535; color: #ecdcff; padding: 0; box-shadow: 0 30px 100px #0008; }
+.nexo-search-dialog { position: fixed; inset: 12vh 0 auto; margin: 0 auto; width: min(560px,calc(100% - 32px)); max-height: 78dvh; border: 1px solid var(--nexo-borde-suave); border-radius: 18px; background: var(--nexo-sup-1); color: var(--nexo-texto); padding: 0; box-shadow: 0 30px 100px #0008; }
 .nexo-search-dialog::backdrop { background: #0d061bcc; backdrop-filter: blur(6px); }
-.nexo-search-input { display: flex; align-items: center; gap: 10px; border: 1px solid #504253; background: #190d2d; border-radius: 10px; padding: 12px; color: #b6a6c9; }
-.nexo-search-input input { outline: none; width: 100%; background: transparent; font-size: 14px; color: #ecdcff; }
+.nexo-search-input { display: flex; align-items: center; gap: 10px; border: 1px solid var(--nexo-borde-suave); background: var(--nexo-fondo); border-radius: 10px; padding: 12px; color: #b6a6c9; }
+.nexo-search-input input { outline: none; width: 100%; background: transparent; font-size: 14px; color: var(--nexo-texto); }
 .nexo-search-results { overflow-y: auto; max-height: 44dvh; padding: 0 12px 12px; }
 .nexo-search-result { width: 100%; display: flex; align-items: center; gap: 14px; padding: 13px 12px; text-align: left; font-size: 13px; border-radius: 8px; }
-.nexo-search-result:hover, .nexo-search-result:focus-visible { background: #302445; }
+.nexo-search-result:hover, .nexo-search-result:focus-visible { background: var(--nexo-sup-3); }
 .nexo-search-result .material-symbols-outlined { font-size: 20px; }
 
 /* Acceso institucional: una portada útil sin estadísticas inventadas. */
-.nexo-login { min-height: 100dvh; display: grid; grid-template-columns: minmax(0,1.1fr) minmax(400px,1fr); background: #190d2d; }
-.nexo-login-story { padding: clamp(32px,5vw,80px); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; border-right: 1px solid var(--nexo-border); background: radial-gradient(ellipse at 25% 45%,#4f3d7245,transparent 65%),#160d28; }
-.nexo-login-story::after { content: ""; position: absolute; width: 460px; height: 460px; border: 1px solid #c548f516; border-radius: 50%; right: -240px; bottom: -170px; box-shadow: 0 0 0 70px #c548f508,0 0 0 140px #c548f505; pointer-events: none; }
+.nexo-login { min-height: 100dvh; display: grid; grid-template-columns: minmax(0,1.1fr) minmax(400px,1fr); background: var(--nexo-fondo); }
+.nexo-login-story { padding: clamp(32px,5vw,80px); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; border-right: 1px solid var(--nexo-border); background: radial-gradient(ellipse at 25% 45%,#4f3d7245,transparent 65%),var(--nexo-sidebar); }
+.nexo-login-story::after { content: ""; position: absolute; width: 460px; height: 460px; border: 1px solid color-mix(in srgb, var(--nexo-acento) 8.6%, transparent); border-radius: 50%; right: -240px; bottom: -170px; box-shadow: 0 0 0 70px color-mix(in srgb, var(--nexo-acento) 3.1%, transparent),0 0 0 140px color-mix(in srgb, var(--nexo-acento) 2%, transparent); pointer-events: none; }
 .nexo-login-heading { max-width: 560px; padding: 56px 0 40px; position: relative; z-index: 1; }
-.nexo-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: #edb1ff; }
-.nexo-eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #c548f5; }
+.nexo-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: var(--nexo-primario); }
+.nexo-eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--nexo-acento); }
 .nexo-login-heading h1 { font: 700 clamp(38px,4.3vw,66px)/1.1 "Plus Jakarta Sans",sans-serif; letter-spacing: -.055em; margin: 24px 0; }
-.nexo-login-heading h1 span { color: #edb1ff; }
+.nexo-login-heading h1 span { color: var(--nexo-primario); }
 .nexo-login-heading > p { color: #b6a6c9; max-width: 390px; font-size: 15px; line-height: 1.8; }
 .nexo-login-features { display: grid; gap: 17px; margin-top: 40px; }
 .nexo-login-feature { display: flex; gap: 13px; align-items: center; }
-.nexo-login-feature > span { color: #edb1ff; font-size: 20px; padding: 10px; border: 1px solid #504253; border-radius: 12px; }
+.nexo-login-feature > span { color: var(--nexo-primario); font-size: 20px; padding: 10px; border: 1px solid var(--nexo-borde-suave); border-radius: 12px; }
 .nexo-login-feature p { font-size: 12px; color: #b6a6c9; margin-top: 3px; }
 .nexo-login-feature h2 { font-size: 13px; font-weight: 600; }
 .nexo-login-form-panel { display: flex; flex-direction: column; justify-content: center; padding: 48px clamp(24px,5vw,80px); }
 .nexo-login-form-panel > main { width: 100%; max-width: 400px; margin: auto; padding: 40px 0; }
 .nexo-login-form-panel footer { margin-top: 28px; }
 .nexo-login-form-panel form > button[type="submit"] { border-radius: 10px; box-shadow: none; }
-.nexo-login-form-panel input { border-radius: 10px; background: #211535; }
+.nexo-login-form-panel input { border-radius: 10px; background: var(--nexo-sup-1); }
 
 .chalkboard-texture { background-color: #12241c; background-image: radial-gradient(circle at 20% 30%,#ffffff0a,transparent 40%),linear-gradient(135deg,#14261e,#0f1f18); }
 .whiteboard-grid { background-image: linear-gradient(#ffffff0a 1px,transparent 1px),linear-gradient(90deg,#ffffff0a 1px,transparent 1px); background-size: 32px 32px; }
-.custom-scrollbar, .nexo-search-results { scrollbar-width: thin; scrollbar-color: #504253 transparent; }
+.custom-scrollbar, .nexo-search-results { scrollbar-width: thin; scrollbar-color: var(--nexo-borde-suave) transparent; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #504253; border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: var(--nexo-borde-suave); border-radius: 10px; }
 
 @media (max-width: 1023px) {
   .app-content { margin-left: 0; width: 100%; padding-top: 64px; }
@@ -104,11 +181,16 @@ input::placeholder, textarea::placeholder { opacity: 1; }
   .app-content:has(~ .app-fixed-header), .app-fixed-header ~ .app-content { padding-top: 152px; }
   .nexo-sidebar { transform: translateX(-100%); visibility: hidden; transition: transform .2s,visibility .2s; z-index: 90; width: 270px; }
   .nexo-sidebar.is-open { transform: translateX(0); visibility: visible; }
-  .nexo-mobile-bar { display: flex; position: fixed; inset: 0 0 auto; height: 64px; background: #160d28; border-bottom: 1px solid var(--nexo-border); z-index: 45; align-items: center; justify-content: space-between; padding: 0 16px; }
+  .nexo-mobile-bar { display: flex; position: fixed; inset: 0 0 auto; height: 64px; background: var(--nexo-sidebar); z-index: 45; align-items: center; justify-content: space-between; padding: 0 16px; }
   .nexo-mobile-bar .nexo-wordmark { font-size: 27px; }
   .nexo-drawer-close { display: inline-flex; margin-left: auto; }
   .nexo-drawer-backdrop { display: block; position: fixed; inset: 0; background: #080311b3; z-index: 80; backdrop-filter: blur(3px); }
-  .nexo-topbar { min-height: 64px; }
+  .nexo-topbar { top: 64px; padding: 10px 16px; gap: 10px; }
+  .nexo-topbar-fila { min-height: 44px; gap: 12px; }
+  .nexo-topbar-lugar { gap: 11px; }
+  .nexo-topbar-icono { width: 38px; height: 38px; border-radius: 12px; font-size: 20px; }
+  .nexo-topbar-titulo { font-size: 17px; }
+  .nexo-topbar-buscar { display: none; }
 }
 @media (max-width: 767px) {
   .nexo-login { grid-template-columns: 1fr; }
@@ -134,13 +216,13 @@ input::placeholder, textarea::placeholder { opacity: 1; }
 .nexo-community-welcome h1 { font-family: "Plus Jakarta Sans",sans-serif; font-size: clamp(27px,2.8vw,38px); font-weight: 700; margin: 13px 0 10px; }
 .nexo-community-welcome h1 > span { color: #b6a6c9; font-weight: 500; }
 .nexo-community-welcome p:not(.nexo-eyebrow) { font-size: 13px; line-height: 1.7; color: #a99ab9; }
-.nexo-welcome-symbol { font-size: 72px; color: #c548f5; background: #c548f50b; border: 1px solid #c548f518; padding: 25px; border-radius: 30px; transform: rotate(-7deg); }
+.nexo-welcome-symbol { font-size: 72px; color: var(--nexo-acento); background: color-mix(in srgb, var(--nexo-acento) 4.3%, transparent); border: 1px solid color-mix(in srgb, var(--nexo-acento) 9.4%, transparent); padding: 25px; border-radius: 30px; transform: rotate(-7deg); }
 .nexo-quick-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin-bottom: 38px; }
-.nexo-quick-card { display: flex; align-items: center; gap: 14px; padding: 19px; text-align: left; background: #211535; border: 1px solid var(--nexo-border); border-radius: 14px; transition: border-color .2s,transform .2s; }
-.nexo-quick-card:hover { border-color: #c548f560; transform: translateY(-2px); }
+.nexo-quick-card { display: flex; align-items: center; gap: 14px; padding: 19px; text-align: left; background: var(--nexo-sup-1); border: 1px solid var(--nexo-border); border-radius: 14px; transition: border-color .2s,transform .2s; }
+.nexo-quick-card:hover { border-color: color-mix(in srgb, var(--nexo-acento) 37.6%, transparent); transform: translateY(-2px); }
 .nexo-quick-card strong { display: block; font-size: 12px; font-weight: 600; }
 .nexo-quick-card small { display: block; color: #a99ab9; margin-top: 5px; font-size: 10px; }
-.nexo-quick-icon { font-size: 23px; padding: 10px; border-radius: 11px; background: #c548f51a; color: #edb1ff; }
+.nexo-quick-icon { font-size: 23px; padding: 10px; border-radius: 11px; background: color-mix(in srgb, var(--nexo-acento) 10.2%, transparent); color: var(--nexo-primario); }
 .nexo-quick-icon.tone-1 { background: #10b98115; color: #10b981; }
 .nexo-quick-icon.tone-2 { background: #efc04c15; color: #efc04c; }
 .nexo-quick-arrow { margin-left: auto; font-size: 17px; color: #8b7c9b; }
@@ -154,3 +236,14 @@ input::placeholder, textarea::placeholder { opacity: 1; }
  .nexo-quick-card small { display: none; }
  .nexo-quick-icon { padding: 8px; font-size: 20px; }
 }
+
+/* Movimiento de la instancia (genoma → tema.movimiento). "Sereno" apaga los
+   desplazamientos al pasar el mouse; "vibrante" suma brillo al ítem activo y a
+   las tarjetas. "Normal" es el NEXO de siempre. */
+:root[data-movimiento="sereno"] .nexo-quick-card:hover { transform: none; }
+:root[data-movimiento="sereno"] * { transition-duration: 80ms !important; }
+:root[data-movimiento="vibrante"] .nexo-nav-item.is-active { box-shadow: 0 0 22px color-mix(in srgb, var(--nexo-acento) 30%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--nexo-acento) 35%, transparent); }
+:root[data-movimiento="vibrante"] .nexo-quick-card:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 18px 50px color-mix(in srgb, var(--nexo-acento) 22%, transparent); }
+:root[data-movimiento="vibrante"] .nexo-brand-icon { animation: nexo-latido 3.2s ease-in-out infinite; }
+@keyframes nexo-latido { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--nexo-acento) 0%, transparent); } 50% { box-shadow: 0 0 26px 2px color-mix(in srgb, var(--nexo-acento) 45%, transparent); } }
+.nexo-perfil-punto { width: 8px; height: 8px; border-radius: 999px; display: inline-block; flex-shrink: 0; }

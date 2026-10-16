@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
+import { PESTANAS_OBJETIVOS } from "./components/shared/pestanasModulos";
 import TarjetaHabito from "./components/objetivos/TarjetaHabito";
 import ModalNuevoHabito from "./components/objetivos/ModalNuevoHabito";
 import { useState } from "react";
@@ -18,16 +19,6 @@ import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 // que mostraba el Dashboard: la misma "Lectura diaria" tenía racha 8 acá y 7
 // allá (Error 13.5). Ahora las dos pantallas piden `/api/objetivos` y muestran
 // lo mismo.
-
-// Sub-navegación del módulo Objetivos (igual que el resto de la sección)
-const SUBNAV = [
-  { label: "Dashboard", ruta: "/objetivos" },
-  { label: "Mis Metas", ruta: "/objetivos/metas" },
-  { label: "Hábitos", ruta: "/objetivos/habitos" },
-  { label: "Competencias", ruta: "/objetivos/competencias" },
-];
-
-const RUTA_ACTIVA = "/objetivos/habitos";
 
 // ─── PÁGINA ─────────────────────────────────────────────
 
@@ -90,7 +81,7 @@ export default function HabitosPage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen text-on-surface">
+    <div className="flex bg-fondo min-h-screen text-on-surface">
       <Sidebar
         usuario={usuario}
         onNavegar={handleNavegar}
@@ -98,29 +89,9 @@ export default function HabitosPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen relative">
-        <TopBar title="Objetivos Personales" subtitle="Hábitos" />
+        <TopBar title="Objetivos Personales" pestanas={PESTANAS_OBJETIVOS} />
 
-        {/* Sub-navegación del módulo */}
-        <div className="flex gap-6 items-center px-8 h-12 border-b border-purple-900/20 bg-[#1C1030]/60">
-          {SUBNAV.map((tab) => {
-            const activa = tab.ruta === RUTA_ACTIVA;
-            return (
-              <button
-                key={tab.ruta}
-                onClick={() => handleNavegar(tab.ruta)}
-                className={`pb-1 font-headline text-sm font-medium transition-all ${
-                  activa
-                    ? "text-[#C548F5] border-b-2 border-[#C548F5] font-bold"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex-1 overflow-y-auto bg-[#190d2d] p-8">
+        <div className="flex-1 overflow-y-auto bg-background p-8">
           <section className="max-w-5xl w-full mx-auto space-y-8">
             {/* Encabezado de la vista */}
             <div className="flex justify-between items-end">
@@ -134,7 +105,7 @@ export default function HabitosPage() {
               </div>
               <button
                 onClick={() => { setEditando(null); setModalAbierto(true); }}
-                className="bg-[#C548F5] text-white px-6 py-2.5 rounded-full font-bold flex items-center gap-2 hover:brightness-110 transition-all shadow-lg shadow-[#C548F5]/20"
+                className="bg-acento text-white px-6 py-2.5 rounded-full font-bold flex items-center gap-2 hover:brightness-110 transition-all shadow-lg shadow-acento/20"
               >
                 <span className="material-symbols-outlined text-sm">add</span>
                 Nuevo Hábito
@@ -169,8 +140,8 @@ export default function HabitosPage() {
                 días — de verdad "esta semana" (Error 2.D.16). */}
             {!cargando && !error && habitos.length > 0 && (
               <footer className="mt-12">
-                <div className="bg-[#1C1030] border border-[#C548F5]/20 p-5 rounded-2xl flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-[#C548F5]/20 flex items-center justify-center text-[#C548F5] shrink-0">
+                <div className="bg-fondo border border-acento/20 p-5 rounded-2xl flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-acento/20 flex items-center justify-center text-acento shrink-0">
                     <span
                       className="material-symbols-outlined"
                       style={{ fontVariationSettings: "'FILL' 1" }}
@@ -180,7 +151,7 @@ export default function HabitosPage() {
                   </div>
                   <p className="text-white/80 font-medium">
                     Registraste{" "}
-                    <span className="text-[#C548F5] font-bold">
+                    <span className="text-acento font-bold">
                       {habitosDeLaSemana}{" "}
                       {habitosDeLaSemana === 1 ? "hábito" : "hábitos"}
                     </span>{" "}

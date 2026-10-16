@@ -42,12 +42,12 @@ export default function TarjetaMetaGestion({
 
   return (
     <div
-      className={`bg-[#2D1B4E] rounded-[14px] p-6 shadow-2xl border flex flex-col transition-all ${
+      className={`bg-lienzo rounded-[14px] p-6 shadow-2xl border flex flex-col transition-all ${
         completada
-          ? "bg-[#2D1B4E]/60 opacity-90 grayscale-[0.2] hover:grayscale-0 border-white/5"
+          ? "bg-lienzo/60 opacity-90 grayscale-[0.2] hover:grayscale-0 border-white/5"
           : vencida
             ? "border-red-500/40 hover:border-red-500"
-            : "border-white/5 hover:border-[#C548F5]/30"
+            : "border-white/5 hover:border-acento/30"
       }`}
     >
       {/* ── Header: materia + estado + vencimiento ── */}
@@ -102,7 +102,7 @@ export default function TarjetaMetaGestion({
           className={`text-left text-lg font-bold headline-font mb-6 transition-colors ${
             completada
               ? "text-gray-400 line-through decoration-emerald-500/50 decoration-2"
-              : "text-white hover:text-[#C548F5]"
+              : "text-white hover:text-acento"
           }`}
         >
           {meta.titulo}
@@ -118,7 +118,7 @@ export default function TarjetaMetaGestion({
             </span>
             <span
               className={`text-xs font-bold ${
-                completada ? "text-emerald-400" : "text-[#C548F5]"
+                completada ? "text-emerald-400" : "text-acento"
               }`}
             >
               {progreso}%
@@ -129,7 +129,7 @@ export default function TarjetaMetaGestion({
               className={`h-full rounded-full transition-all ${
                 completada
                   ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
-                  : "bg-[#C548F5] shadow-[0_0_8px_rgba(197,72,245,0.6)]"
+                  : "bg-acento shadow-[0_0_8px_rgba(197,72,245,0.6)]"
               }`}
               style={{ width: `${progreso}%` }}
             />

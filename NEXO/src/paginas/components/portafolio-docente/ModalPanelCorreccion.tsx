@@ -44,10 +44,10 @@ export default function ModalPanelCorreccion({ tareaId, onCerrar, onCambio }: Pr
       onClick={onCerrar}
     >
       <div
-        className="w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-[#2D1B4E] rounded-2xl border border-white/10 shadow-2xl"
+        className="w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-lienzo rounded-2xl border border-white/10 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between p-6 border-b border-white/10 sticky top-0 bg-[#2D1B4E] z-10">
+        <div className="flex items-start justify-between p-6 border-b border-white/10 sticky top-0 bg-lienzo z-10">
           <div>
             <h3 className="text-xl font-extrabold text-white font-headline">
               {panel?.tarea.titulo ?? "Panel de corrección"}
@@ -110,7 +110,7 @@ function FilaAlumno({
   const tieneEntrega = fila.entregaId !== null;
 
   return (
-    <div className="bg-[#1C1030] rounded-[12px] border border-white/5">
+    <div className="bg-fondo rounded-[12px] border border-white/5">
       {/* Cabecera de la fila */}
       <button
         onClick={tieneEntrega ? onToggle : undefined}
@@ -131,7 +131,7 @@ function FilaAlumno({
           )}
         </div>
         {fila.correccion && (
-          <span className="text-lg font-black text-[#C548F5]">
+          <span className="text-lg font-black text-acento">
             {fila.correccion.nota}
             <span className="text-xs text-slate-400">/10</span>
           </span>
@@ -150,7 +150,7 @@ function FilaAlumno({
       {expandido && tieneEntrega && (
         <div className="px-4 pb-4 space-y-4 border-t border-white/5 pt-4">
           {fila.comentario && (
-            <p className="text-slate-300 text-sm bg-[#2D1B4E] rounded-lg p-3">
+            <p className="text-slate-300 text-sm bg-lienzo rounded-lg p-3">
               {fila.comentario}
             </p>
           )}
@@ -161,9 +161,9 @@ function FilaAlumno({
                 <li key={a.id}>
                   <a
                     href={urlDescarga(a.id)}
-                    className="flex items-center gap-3 bg-[#2D1B4E] rounded-lg px-4 py-2.5 hover:bg-[#37205c] transition-colors group"
+                    className="flex items-center gap-3 bg-lienzo rounded-lg px-4 py-2.5 hover:bg-[#37205c] transition-colors group"
                   >
-                    <span className="material-symbols-outlined text-[#C548F5]">description</span>
+                    <span className="material-symbols-outlined text-acento">description</span>
                     <span className="text-slate-200 text-sm flex-1 truncate group-hover:text-white">
                       {a.nombre}
                     </span>
@@ -218,7 +218,7 @@ function FormularioCorreccion({
   };
 
   return (
-    <div className="bg-[#2D1B4E] rounded-lg p-4 space-y-3">
+    <div className="bg-lienzo rounded-lg p-4 space-y-3">
       <div className="flex items-center gap-3">
         <label className="text-sm font-semibold text-slate-300">Nota</label>
         <input
@@ -228,7 +228,7 @@ function FormularioCorreccion({
           step={0.5}
           value={nota}
           onChange={(e) => setNota(e.target.value)}
-          className="w-24 bg-[#1C1030] border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#C548F5]"
+          className="w-24 bg-fondo border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-acento"
         />
         <span className="text-slate-500 text-sm">/ 10</span>
       </div>
@@ -237,14 +237,14 @@ function FormularioCorreccion({
         onChange={(e) => setDevolucion(e.target.value)}
         rows={3}
         placeholder="Devolución para el estudiante…"
-        className="w-full bg-[#1C1030] border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C548F5] resize-none"
+        className="w-full bg-fondo border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-acento resize-none"
       />
       {aviso && <p className="text-sm text-rose-400 font-medium">{aviso}</p>}
       <div className="flex justify-end">
         <button
           onClick={guardar}
           disabled={guardando}
-          className="px-5 py-2 bg-[#C548F5] text-black font-bold rounded-full hover:bg-white transition-colors disabled:opacity-40"
+          className="px-5 py-2 bg-acento text-black font-bold rounded-full hover:bg-white transition-colors disabled:opacity-40"
         >
           {guardando
             ? "Guardando…"

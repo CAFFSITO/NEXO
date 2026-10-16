@@ -19,5 +19,13 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // En NEXO los desplegables tienen diseño propio: el <select> del
+      // navegador abre una lista que dibuja el sistema y no sigue la escuela.
+      'no-restricted-syntax': ['error', {
+        selector: "JSXOpeningElement[name.name='select']",
+        message: 'Usá <Selector> (paginas/components/shared/Selector.tsx): se escribe igual que un <select>.',
+      }],
+    },
   },
 ])

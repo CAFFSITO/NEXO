@@ -1,323 +1,243 @@
-import { useState } from "react";
+// src/paginas/ComunidadPage.tsx
+// VISTA: Comunidad (ruta /comunidad), estilo X y Reddit.
+//   · Pestañas: Para vos (algoritmo del genoma), Siguiendo, Recientes,
+//     Guardados y Menciones; filtro por #tema y búsqueda.
+//   · Publicar: emojis, @menciones, #temas, fotos, videos y archivos (si el
+//     perfil tiene la capacidad que da la dirección), encuesta, hilo, programar,
+//     quién responde; citar y repostear.
+//   · Conversación en hilos y sub-hilos con la línea vertical (Reddit), votos
+//     con flechas verde y roja (no hay "me gusta") y reacciones con emoji.
+//   · Fijar sin límite: lo último que se fija queda arriba (capacidad "fijar").
+// El servidor decide y valida todo; acá solo se dibuja.
+
+import { useEffect, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
-import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
-import TarjetaPosteo from "./components/comunidad/TarjetaPosteo";
-import SidebarTendencias from "./components/comunidad/SidebarTendencias";
-import ModalDetalleComunidad from "./components/comunidad/ModalDetalleComunidad";
+import { useNavegacion } from "../navegacion";
+import { usePestanasComunidad } from "./components/comunidad/pestanas";
+import { rutaVisible } from "./components/shared/navegacionItems";
+import { useCapacidad, useFuncion, useInstancia } from "../servicios/instancia";
+import { limpiarEnfoque, verEnfoque } from "../servicios/enfoque";
+import { denunciar, registrarVistas, usePublicaciones, type ObjetoVotable, type Publicacion, type VistaFeed } from "../servicios/comunidad";
+import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
+import Compositor from "./components/comunidad/Compositor";
+import TarjetaPublicacion from "./components/comunidad/TarjetaPublicacion";
+import DetallePublicacion from "./components/comunidad/DetallePublicacion";
+import PerfilComunidad from "./components/comunidad/PerfilComunidad";
+import PanelLateral from "./components/comunidad/PanelLateral";
 import ModalDenuncia from "./components/comunidad/ModalDenuncia";
 import ModalModeracion from "./components/comunidad/ModalModeracion";
-import {
-  usePublicaciones,
-  votar,
-  crearPublicacion,
-  fijarPublicacion,
-  denunciar,
-  eliminarContenido,
-  type ObjetoVotable,
-} from "../servicios/comunidad";
-import { textoRelativo } from "../servicios/fechas";
-import { useInstitucion } from "../servicios/institucion";
-import { NAV_POR_ROL } from "./components/shared/navegacionItems";
-import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
+import { useDialogo } from "../servicios/useDialogo";
+import "./components/comunidad/comunidad.css";
 
-// El feed inventado se fue en la Etapa 2. La Etapa 5 le da vida: publicar guarda
-// en `publicaciones`, votar es a favor/en contra (único y privado, Error 2.B.1),
-// el ícono de comentarios abre el hilo real (2.B.2/2.B.3) y el menú de tres
-// puntos denuncia o elimina según el rol (2.B.5). La dirección y el preceptor
-// tienen además la bandeja de moderación.
+const VISTAS: { id: VistaFeed; nombre: string }[] = [
+  { id: "para-vos", nombre: "Para vos" },
+  { id: "siguiendo", nombre: "Siguiendo" },
+  { id: "recientes", nombre: "Recientes" },
+  { id: "guardados", nombre: "Guardados" },
+  { id: "menciones", nombre: "Menciones" },
+];
+const PUBLICAN = ["estudiante", "profesor", "admin-academico", "centro-estudiantes"];
+const VACIO: Record<VistaFeed, string> = {
+  "para-vos": "Todavía no hay publicaciones en la comunidad.",
+  siguiendo: "Todavía no seguís a nadie (o no publicaron). Buscá gente en «A quién seguir».",
+  recientes: "Todavía no hay publicaciones.",
+  guardados: "No guardaste nada todavía: tocá el marcador de una publicación.",
+  menciones: "Nadie te mencionó todavía.",
+  perfil: "",
+};
+
+/** El enlace compartido (?publicacion=ID) abre esa publicación. */
+const publicacionDelEnlace = () => {
+  try { return new URLSearchParams(window.location.search).get("publicacion"); } catch { return null; }
+};
+
+function DialogoCita({ pub, usuario, onCerrar, onPublicado }: { pub: Publicacion; usuario: { nombre: string; avatarUrl?: string }; onCerrar: () => void; onPublicado: (m: string) => void }) {
+  const ref = useDialogo<HTMLDivElement>(onCerrar);
+  return (
+    <div className="c-velo" onClick={onCerrar}>
+      <div ref={ref} className="c-dialogo p-4" role="dialog" aria-modal="true" aria-label="Citar publicación" onClick={(e) => e.stopPropagation()}>
+        <Compositor usuario={usuario} citando={pub} autoFocus onCancelar={onCerrar} onPublicado={onPublicado} />
+      </div>
+    </div>
+  );
+}
 
 export default function ComunidadPage() {
-  const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } = useNavegacion();
-  const { publicaciones, cargando, error, recargar } = usePublicaciones();
-  const { institucion } = useInstitucion();
-  const [busqueda, setBusqueda] = useState("");
-  const [programando, setProgramando] = useState(false);
-
+  const { navegar, cerrarSesion, usuario } = useNavegacion();
+  const { instancia } = useInstancia();
+  const pestanas = usePestanasComunidad();
+  const publicarHabilitado = useFuncion("comunidad.publicar");
+  const puedeFijar = useCapacidad("comunidad.fijar");
   const rol = usuario?.rol ?? "estudiante";
-  const nombre = usuario?.nombre ?? "Usuario";
-  const usuarioId = usuario?.id ?? 0;
-
-  const [texto, setTexto] = useState("");
-  // Fecha-hora de publicación programada (valor de un <input datetime-local>).
-  // Vacío = "Publicar ahora", que es el modo por defecto (Prompt 13).
-  const [programarEn, setProgramarEn] = useState("");
-  const [publicando, setPublicando] = useState(false);
-  const [avisoError, setAvisoError] = useState<string | null>(null);
-  const [detalleId, setDetalleId] = useState<string | null>(null);
-  const [denunciaDe, setDenunciaDe] = useState<{ tipo: ObjetoVotable; id: string } | null>(null);
-  const [moderando, setModerando] = useState(false);
-
-  // Quién puede publicar en la Comunidad general (arquitectura NEXO):
-  // estudiantes, profesores, admin académica y centro de estudiantes.
-  // Preceptor y bibliotecario tienen acceso de solo lectura.
-  const puedePublicar =
-    rol === "estudiante" ||
-    rol === "profesor" ||
-    rol === "admin-academico" ||
-    rol === "centro-estudiantes";
-
-  // La dirección y el preceptor moderan (la ventanilla del servidor vuelve a
-  // controlarlo; esto solo decide si se muestra el botón).
+  const yo = { id: usuario?.id ?? 0, rol };
+  const puedePublicar = publicarHabilitado && PUBLICAN.includes(rol);
   const puedeModerar = rol === "admin-academico" || rol === "preceptor";
 
-  const publicar = async () => {
-    if (!texto.trim()) return;
-    setPublicando(true);
-    setAvisoError(null);
-    try {
-      // El <input datetime-local> da hora LOCAL ("2026-08-03T15:30"); se pasa a
-      // ISO para el servidor, que decide si es futuro (programada) o no. Vacío =
-      // publicar ya.
-      const publicarEn = programarEn ? new Date(programarEn).toISOString() : null;
-      await crearPublicacion(texto.trim(), { publicarEn });
-      setTexto("");
-      setProgramarEn("");
-      recargar();
-    } catch (e) {
-      setAvisoError(e instanceof Error ? e.message : "No se pudo publicar.");
-    } finally {
-      setPublicando(false);
-    }
-  };
+  const [vista, setVista] = useState<VistaFeed>("para-vos");
+  const [tag, setTag] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const { publicaciones, cargando, error, recargar } = usePublicaciones({ vista, tag: tag ?? undefined, q: q || undefined });
+  // Lo que cambia por una acción (votar, reaccionar, repostear…) hasta que llega la lista nueva.
+  const [cambios, setCambios] = useState<{ base: Publicacion[] | null; mapa: Record<string, Partial<Publicacion>> }>({ base: null, mapa: {} });
+  const mapa = cambios.base === publicaciones ? cambios.mapa : {};
+  const lista = publicaciones?.map((p) => (mapa[p.id] ? { ...p, ...mapa[p.id] } : p)) ?? null;
+  const actualizar = (id: string, cambio: Partial<Publicacion>) => setCambios({ base: publicaciones, mapa: { ...mapa, [id]: { ...mapa[id], ...cambio } } });
 
-  // Fijar / desfijar (solo la dirección; el servidor vuelve a validarlo).
-  const handleFijar = async (id: string, fijado: boolean) => {
-    try {
-      await fijarPublicacion(id, fijado);
-      recargar();
-    } catch (e) {
-      setAvisoError(e instanceof Error ? e.message : "No se pudo fijar la publicación.");
-    }
-  };
+  const [detalle, setDetalle] = useState<string | null>(publicacionDelEnlace);
+  const [perfil, setPerfil] = useState<string | null>(null);
+  const [citando, setCitando] = useState<Publicacion | null>(null);
+  const [denunciaDe, setDenunciaDe] = useState<{ tipo: ObjetoVotable; id: string } | null>(null);
+  const [moderando, setModerando] = useState(false);
+  const [aviso, setAviso] = useState<{ texto: string; tipo: "ok" | "error" } | null>(null);
+  const [enfoqueUsado, setEnfoqueUsado] = useState(false);
 
-  const handleVotar = async (id: string, postura: "a-favor" | "en-contra") => {
-    try {
-      await votar("publicacion", id, postura === "a-favor" ? 1 : -1);
-      recargar();
-    } catch (e) {
-      setAvisoError(e instanceof Error ? e.message : "No se pudo votar.");
-    }
-  };
+  // Una notificación puede pedir abrir una publicación o un perfil.
+  const enfoquePub = !enfoqueUsado ? verEnfoque("publicacion") : null;
+  const enfoqueUsuario = !enfoqueUsado ? verEnfoque("usuario") : null;
+  const detalleAbierto = detalle ?? enfoquePub;
+  const perfilAbierto = perfil ?? enfoqueUsuario;
+  const consumirEnfoque = () => { if (enfoquePub || enfoqueUsuario) { limpiarEnfoque(); setEnfoqueUsado(true); } };
 
-  const handleEliminar = async (tipo: ObjetoVotable, id: string) => {
-    try {
-      await eliminarContenido(tipo, id);
-      recargar();
-    } catch (e) {
-      setAvisoError(e instanceof Error ? e.message : "No se pudo eliminar.");
-    }
+  // Las vistas de lo que se mostró (una por persona y publicación).
+  useEffect(() => {
+    if (!publicaciones?.length) return;
+    registrarVistas(publicaciones.slice(0, 40).map((p) => p.id)).catch(() => { /* las vistas no son críticas */ });
+  }, [publicaciones]);
+
+  const avisar = (texto: string, tipo: "ok" | "error" = "ok") => {
+    setAviso({ texto, tipo });
+    window.setTimeout(() => setAviso((a) => (a?.texto === texto ? null : a)), 3500);
   };
+  const filtrarTag = (t: string) => { setTag(t); setQ(""); setVista("recientes"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+
+  if (!usuario) return null;
+  const tarjeta = (p: Publicacion) => (
+    <TarjetaPublicacion
+      key={p.clave}
+      pub={p}
+      yo={yo}
+      puedeFijar={puedeFijar}
+      puedePublicar={puedePublicar}
+      onActualizar={actualizar}
+      onAbrir={setDetalle}
+      onPerfil={setPerfil}
+      onTag={filtrarTag}
+      onCitar={setCitando}
+      onRecargar={recargar}
+      onDenunciar={(id) => setDenunciaDe({ tipo: "publicacion", id })}
+      onAviso={avisar}
+    />
+  );
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen">
-      <Sidebar
-        usuario={usuario ?? { nombre, rol }}
-        onNavegar={handleNavegar}
-        onCerrarSesion={handleCerrarSesion}
-      />
-
+    <div className="flex bg-fondo min-h-screen">
+      <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        <TopBar title="Comunidad" />
+        <TopBar title="Comunidad" pestanas={pestanas} />
 
-        {/* Sub-navegación del módulo Comunidad */}
-        <div className="flex gap-6 items-center px-8 h-12 border-b border-purple-900/20 bg-[#1C1030]/60">
-          {[
-            { label: "Feed", ruta: "/comunidad" },
-            { label: "Debates", ruta: "/comunidad/debates" },
-            { label: "Tendencias", ruta: "/comunidad/tendencias" },
-          ].map((tab) => {
-            const activa = tab.ruta === "/comunidad";
-            return (
-              <button
-                key={tab.ruta}
-                onClick={() => handleNavegar(tab.ruta)}
-                className={`pb-1 font-headline text-sm font-medium transition-all ${
-                  activa
-                    ? "text-[#C548F5] border-b-2 border-[#C548F5] font-bold"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <div className="mx-auto flex w-full max-w-[1180px] flex-1 gap-8 px-3 py-6 sm:px-8">
+          <div className="min-w-0 max-w-[680px] flex-1">
+            <form className="relative mb-3 xl:hidden" onSubmit={(e) => { e.preventDefault(); setQ(new FormData(e.currentTarget).get("q")?.toString().trim() ?? ""); }}>
+              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-on-surface-variant/50" aria-hidden="true">search</span>
+              <input name="q" className="c-input !rounded-full !py-2.5 !pl-10" placeholder="Buscar en la comunidad" aria-label="Buscar en la comunidad" />
+            </form>
 
-        <div className="flex-1 overflow-y-auto p-8 bg-[#190d2d]">
-          <section className="nexo-community-welcome">
-            <div><p className="nexo-eyebrow">{institucion?.nombre ?? "Tu comunidad educativa"}</p>
-              <h1>Hola, {nombre.split(" ")[0]}. <span>Seguimos aprendiendo.</span></h1>
-              <p>Tu próxima idea, tu próximo logro, tu próxima conversación. Todo empieza acá.</p>
+            <div className="c-pestanas mb-4" role="tablist" aria-label="Qué ver">
+              {VISTAS.map((v) => (
+                <button key={v.id} type="button" role="tab" aria-selected={vista === v.id && !tag} className="c-pestana" onClick={() => { setVista(v.id); setTag(null); }}>{v.nombre}</button>
+              ))}
             </div>
-            <span className="material-symbols-outlined nexo-welcome-symbol" aria-hidden="true">diversity_3</span>
-          </section>
-          <div className="nexo-quick-grid">
-            {NAV_POR_ROL[rol].filter(i => i.ruta !== "/comunidad").slice(0, 3).map((item, index) => <button className="nexo-quick-card" key={item.ruta} onClick={() => handleNavegar(item.ruta)}>
-              <span className={`material-symbols-outlined nexo-quick-icon tone-${index}`} aria-hidden="true">{item.icono}</span>
-              <span><strong>{item.label}</strong><small>Explorá tu espacio</small></span>
-              <span className="material-symbols-outlined nexo-quick-arrow" aria-hidden="true">arrow_outward</span>
-            </button>)}
-          </div>
-          {/* Columna del feed (izquierda) + previsualización de Tendencias
-              (derecha). En pantallas chicas la sidebar se oculta (xl:block) y el
-              feed ocupa todo, sin scroll horizontal. */}
-          <div className="flex gap-8 items-start">
-          <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="mb-6 flex flex-wrap gap-3 items-start justify-between max-w-2xl">
-            <div>
-              <h2 className="text-xl font-bold font-headline text-white mb-1">
-                La conversación sigue acá
-              </h2>
-              <p className="text-on-surface-variant/60 text-sm">
-                Ideas, novedades y preguntas de tu comunidad.
-              </p>
-            </div>
-            {puedeModerar && (
-              <button
-                onClick={() => setModerando(true)}
-                className="flex items-center gap-2 bg-[#2D1B4E] border border-orange-400/30 text-orange-300 px-4 py-2 rounded-full text-xs font-bold hover:bg-orange-500/10 transition-all shrink-0"
-              >
-                <span className="material-symbols-outlined text-[18px]">gavel</span>
-                Moderación
-              </button>
-            )}
-          </div>
 
-          {avisoError && (
-            <div className="max-w-2xl mb-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">
-              {avisoError}
-            </div>
-          )}
-
-          {/* Nueva publicación (Error 2.B.4: publicar de verdad) */}
-          {puedePublicar ? (
-            <div className="bg-surface-container border border-outline-variant/30 rounded-2xl p-5 mb-6 max-w-2xl">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-container to-primary flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-bold text-white">{nombre.charAt(0)}</span>
-                </div>
-                <div className="flex-1">
-                  <textarea
-                    aria-label="Nueva publicación"
-                    maxLength={10000}
-                    value={texto}
-                    onChange={(e) => setTexto(e.target.value)}
-                    rows={2}
-                    placeholder="Compartí una idea, una pregunta o algo que aprendiste…"
-                    className="w-full bg-[#1C1030] text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary/50 border border-[#3b2f50] placeholder-gray-500 resize-none"
-                  />
-                  <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
-                    {/* Selector opcional de fecha/hora de publicación. Vacío =
-                        "Publicar ahora" (el modo por defecto, Prompt 13). */}
-                    <button type="button" onClick={() => { setProgramando(!programando); if (programando) setProgramarEn(""); }} className="flex items-center gap-2 text-xs text-on-surface-variant hover:text-primary"><span className="material-symbols-outlined text-lg" aria-hidden="true">schedule</span>{programando ? "Publicar ahora" : "Programar publicación"}</button>
-                    {programando && <label className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-                      <span className="material-symbols-outlined text-[18px] text-[#C548F5]">schedule</span>
-                      <span>Programar:</span>
-                      <input
-                        type="datetime-local"
-                        value={programarEn}
-                        onChange={(e) => setProgramarEn(e.target.value)}
-                        className="bg-[#1C1030] text-white rounded-lg px-2 py-1 border border-[#3b2f50] text-xs focus:ring-2 focus:ring-primary/50 [color-scheme:dark]"
-                      />
-                      {programarEn && (
-                        <button
-                          type="button"
-                          onClick={() => setProgramarEn("")}
-                          className="text-gray-500 hover:text-white"
-                          aria-label="Publicar ahora"
-                          title="Publicar ahora"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">close</span>
-                        </button>
-                      )}
-                    </label>}
-                    <button
-                      onClick={publicar}
-                      disabled={!texto.trim() || publicando}
-                      className="px-6 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-bold hover:bg-primary-container disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                    >
-                      {publicando ? "Publicando…" : programarEn ? "Programar" : "Publicar"}
-                    </button>
-                  </div>
-                </div>
+            {(tag || q) && (
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                {tag && <span className="c-reaccion !py-1 !text-sm" aria-pressed="true">#{tag}<button type="button" onClick={() => setTag(null)} aria-label="Quitar el filtro por tema"><span className="material-symbols-outlined !text-[16px]">close</span></button></span>}
+                {q && <span className="c-reaccion !py-1 !text-sm" aria-pressed="true">«{q}»<button type="button" onClick={() => setQ("")} aria-label="Quitar la búsqueda"><span className="material-symbols-outlined !text-[16px]">close</span></button></span>}
               </div>
-            </div>
-          ) : (
-            <div className="bg-[#2D1B4E]/40 border border-[#3b2f50] rounded-lg p-4 mb-8 flex items-center gap-3 text-gray-400 text-sm max-w-2xl">
-              <span className="material-symbols-outlined text-[#C548F5]">visibility</span>
-              Tenés acceso de solo lectura a la Comunidad general.
-            </div>
-          )}
-
-          {/* Feed */}
-          <div className="max-w-2xl mb-5 flex items-center justify-between gap-4">
-            <p className="text-xs font-semibold text-on-surface-variant/70 whitespace-nowrap">PUBLICACIONES</p>
-            <label className="flex items-center gap-2 text-on-surface-variant/60"><span className="material-symbols-outlined text-lg" aria-hidden="true">search</span><input aria-label="Buscar publicaciones" value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar en la comunidad" className="bg-transparent w-full max-w-48 text-xs py-2 outline-none" /></label>
-          </div>
-          <div className="space-y-6 max-w-2xl">
-            {cargando && <Cargando que="el feed de la comunidad" />}
-            {error && <Fallo error={error} onReintentar={recargar} />}
-            {!cargando && !error && publicaciones?.length === 0 && (
-              <Vacio icono="forum" mensaje="Todavía no hay publicaciones en la comunidad." />
             )}
-            {publicaciones?.filter(p => `${p.contenido} ${p.autor}`.toLocaleLowerCase().includes(busqueda.toLocaleLowerCase())).map((posteo) => (
-              <TarjetaPosteo
-                key={posteo.id}
-                id={posteo.id}
-                autor={posteo.autor}
-                rol={posteo.autorRol}
-                rolLector={rol}
-                esAutor={posteo.autorId === String(usuarioId)}
-                contenido={posteo.contenido}
-                fecha={textoRelativo(posteo.creadoEn)}
-                avatarUrl={posteo.autorAvatar}
-                votosAFavor={posteo.votosAFavor}
-                votosEnContra={posteo.votosEnContra}
-                comentarios={posteo.comentarios}
-                miVoto={posteo.miVoto}
-                fijado={posteo.fijado}
-                programada={posteo.programada}
-                publicarEn={posteo.publicarEn}
-                onVotar={(postura) => handleVotar(posteo.id, postura)}
-                onComentar={() => setDetalleId(posteo.id)}
-                onDenunciar={(tipo, id) => setDenunciaDe({ tipo, id })}
-                onEliminar={handleEliminar}
-                onFijar={rol === "admin-academico" ? handleFijar : undefined}
-              />
-            ))}
-            {busqueda && publicaciones && !publicaciones.some(p => `${p.contenido} ${p.autor}`.toLocaleLowerCase().includes(busqueda.toLocaleLowerCase())) && <Vacio icono="search_off" mensaje="No hay publicaciones que coincidan con tu búsqueda." />}
-          </div>
+
+            {puedePublicar ? (
+              <div className="mb-5"><Compositor usuario={usuario} onPublicado={(m) => { avisar(m); recargar(); }} /></div>
+            ) : (
+              <div className="c-panel mb-5 flex items-center gap-3 p-4 text-sm text-on-surface-variant">
+                <span className="material-symbols-outlined text-acento" aria-hidden="true">visibility</span>
+                Tu perfil lee, vota, reacciona y responde en la Comunidad; publicar queda para otros perfiles.
+              </div>
+            )}
+
+            {puedeModerar && (
+              <button type="button" onClick={() => setModerando(true)} className="c-boton-fantasma c-chico mb-4 xl:hidden"><span className="material-symbols-outlined" aria-hidden="true">gavel</span>Moderación</button>
+            )}
+
+            <div className="flex flex-col gap-3">
+              {cargando && !lista && <Cargando que="la comunidad" />}
+              {error && !lista && <Fallo error={error} onReintentar={recargar} />}
+              {lista?.length === 0 && <Vacio icono={tag || q ? "search_off" : "forum"} mensaje={tag || q ? "No hay publicaciones con ese filtro." : VACIO[vista]} />}
+              {lista?.map(tarjeta)}
+            </div>
           </div>
 
-          <SidebarTendencias onVer={() => handleNavegar("/comunidad/tendencias")} />
+          <div className="hidden w-80 shrink-0 xl:block">
+            <div className="sticky top-6 flex flex-col gap-4">
+              {puedeModerar && (
+                <button type="button" onClick={() => setModerando(true)} className="c-boton-fantasma self-start"><span className="material-symbols-outlined" aria-hidden="true">gavel</span>Bandeja de moderación</button>
+              )}
+              <PanelLateral
+                onBuscar={(texto) => { setQ(texto); setTag(null); }}
+                onTag={filtrarTag}
+                onPerfil={setPerfil}
+                onVerTendencias={rutaVisible(instancia, "/comunidad/tendencias") ? () => navegar("/comunidad/tendencias") : undefined}
+                onAviso={avisar}
+              />
+            </div>
           </div>
         </div>
       </main>
 
-      {detalleId && (
-        <ModalDetalleComunidad
-          tipo="publicacion"
-          id={detalleId}
-          rol={rol}
-          usuarioId={usuarioId}
-          onCerrar={() => setDetalleId(null)}
-          onCambio={recargar}
+      {perfilAbierto && (
+        <PerfilComunidad
+          id={perfilAbierto}
+          yo={yo}
+          puedeFijar={puedeFijar}
+          puedePublicar={puedePublicar}
+          onCerrar={() => { setPerfil(null); consumirEnfoque(); }}
+          onAbrir={setDetalle}
+          onPerfil={setPerfil}
+          onTag={filtrarTag}
+          onCitar={setCitando}
+          onDenunciar={(id) => setDenunciaDe({ tipo: "publicacion", id })}
+          onAviso={avisar}
         />
       )}
-
+      {detalleAbierto && (
+        <DetallePublicacion
+          tipo="publicacion"
+          id={detalleAbierto}
+          yo={yo}
+          puedeFijar={puedeFijar}
+          puedePublicar={puedePublicar}
+          onCerrar={() => { setDetalle(null); consumirEnfoque(); }}
+          onCambio={recargar}
+          onPerfil={setPerfil}
+          onTag={filtrarTag}
+          onCitar={setCitando}
+          onDenunciar={(tipo, id) => setDenunciaDe({ tipo, id })}
+          onAviso={avisar}
+        />
+      )}
+      {citando && <DialogoCita pub={citando} usuario={usuario} onCerrar={() => setCitando(null)} onPublicado={(m) => { setCitando(null); avisar(m); recargar(); }} />}
       {denunciaDe && (
         <ModalDenuncia
           onCerrar={() => setDenunciaDe(null)}
-          onEnviar={async (motivo) => {
-            await denunciar(denunciaDe.tipo, denunciaDe.id, motivo);
-            setDenunciaDe(null);
-          }}
+          onEnviar={async (motivo) => { await denunciar(denunciaDe.tipo, denunciaDe.id, motivo); setDenunciaDe(null); avisar("Gracias: la denuncia llegó a moderación."); }}
         />
       )}
-
       {moderando && <ModalModeracion onCerrar={() => setModerando(false)} />}
+      {aviso && (
+        <div role="status" className={`fixed bottom-6 left-1/2 z-[90] -translate-x-1/2 rounded-full px-5 py-3 text-sm font-semibold shadow-2xl c-aparecer ${aviso.tipo === "ok" ? "bg-primary text-on-primary" : "bg-rose-500 text-white"}`}>
+          {aviso.texto}
+        </div>
+      )}
     </div>
   );
 }

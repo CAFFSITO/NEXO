@@ -34,7 +34,7 @@ export default function ResumenCompetenciasCard({
                   <div
                     key={i}
                     className={`flex-1 h-1.5 rounded-full ${
-                      i < llenos ? "bg-[#C548F5]" : "bg-surface-container-highest"
+                      i < llenos ? "bg-acento" : "bg-surface-container-highest"
                     }`}
                   />
                 ))}

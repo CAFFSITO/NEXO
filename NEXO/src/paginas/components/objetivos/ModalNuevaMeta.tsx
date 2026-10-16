@@ -4,6 +4,7 @@ import {
   type DatosNuevaMeta,
   type MateriaConUnidades,
 } from "../../../servicios/objetivos";
+import Selector from "../shared/Selector";
 
 interface ModalNuevaMetaProps {
   /** El servidor ya validó y guardó; la página refresca al volver. */
@@ -82,7 +83,7 @@ export default function ModalNuevaMeta({
   const agregarSubtarea = () => setSubtareas((prev) => [...prev, ""]);
 
   const inputCls =
-    "w-full bg-[#1C1030] text-white text-sm rounded-lg px-4 py-3 border border-purple-900/30 focus:ring-2 focus:ring-[#C548F5]/50 focus:border-[#C548F5]/50 outline-none placeholder-slate-500";
+    "w-full bg-fondo text-white text-sm rounded-lg px-4 py-3 border border-purple-900/30 focus:ring-2 focus:ring-acento/50 focus:border-acento/50 outline-none placeholder-slate-500";
   const labelCls = "block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider";
 
   return (
@@ -95,7 +96,7 @@ export default function ModalNuevaMeta({
           e.preventDefault();
           guardar();
         }}
-        className="w-full max-w-md bg-[#2D1B4E] rounded-[20px] border border-purple-900/30 shadow-2xl p-6 max-h-[88vh] overflow-y-auto"
+        className="w-full max-w-md bg-lienzo rounded-[20px] border border-purple-900/30 shadow-2xl p-6 max-h-[88vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-start mb-6">
@@ -160,7 +161,7 @@ export default function ModalNuevaMeta({
         <div className="grid grid-cols-2 gap-4 mb-5">
           <div>
             <label htmlFor="materia-meta" className={labelCls}>Materia</label>
-            <select
+            <Selector
               id="materia-meta"
               value={materiaId}
               onChange={(e) => {
@@ -173,11 +174,11 @@ export default function ModalNuevaMeta({
               {materias.map((m) => (
                 <option key={m.id} value={m.id}>{m.nombre}</option>
               ))}
-            </select>
+            </Selector>
           </div>
           <div>
             <label htmlFor="unidad-meta" className={labelCls}>Unidad</label>
-            <select
+            <Selector
               id="unidad-meta"
               value={unidadId}
               onChange={(e) => setUnidadId(e.target.value)}
@@ -192,7 +193,7 @@ export default function ModalNuevaMeta({
                   {u.numero}. {u.titulo}
                 </option>
               ))}
-            </select>
+            </Selector>
           </div>
         </div>
 
@@ -226,7 +227,7 @@ export default function ModalNuevaMeta({
             <button
               type="button"
               onClick={agregarSubtarea}
-              className="mt-2 text-[#C548F5] text-xs font-bold hover:underline flex items-center gap-1"
+              className="mt-2 text-acento text-xs font-bold hover:underline flex items-center gap-1"
             >
               <span className="material-symbols-outlined text-[16px]">add</span>
               Agregar subtarea
@@ -247,7 +248,7 @@ export default function ModalNuevaMeta({
           <button
             type="submit"
             disabled={!puedeGuardar || guardando}
-            className="px-6 py-2.5 bg-[#C548F5] hover:bg-[#b039df] text-white rounded-full text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-6 py-2.5 bg-acento hover:bg-[#b039df] text-white rounded-full text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {guardando ? "Guardando…" : modoEdicion ? "Guardar cambios" : "Crear meta"}
           </button>

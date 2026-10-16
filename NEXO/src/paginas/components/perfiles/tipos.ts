@@ -13,6 +13,7 @@
 // sobre quién existe en NEXO, y solo puede estar desactualizada.
 
 import { ROL_LABELS, type Rol } from "../shared/roles";
+import type { Asignacion } from "../../../servicios/perfiles";
 
 export type { Rol };
 
@@ -34,6 +35,12 @@ export interface PerfilEditable {
   // En el alta el estado siempre es 'activo'; en la edición se pasa entre activo
   // e inactivo. La papelera tiene su propio camino y no se toca desde el modal.
   estado: "activo" | "inactivo";
+  // Perfil diseñado por el Maestro dentro del genoma de la escuela ("" = el
+  // predeterminado del rol). Tiene que nacer del mismo rol: lo valida el servidor.
+  perfilClave: string;
+  // Solo en el alta y opcional: el curso del estudiante, los cursos del
+  // preceptor, o los cursos del profesor con la materia que da en cada uno.
+  asignaciones?: Asignacion[];
 }
 
 // ─── Metadatos de presentación por rol ──────────────────

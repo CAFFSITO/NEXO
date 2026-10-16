@@ -26,10 +26,10 @@ export default function TarjetaCursoPreceptor({ curso, onModerar }: TarjetaCurso
 
     return (
         <div
-            className={`bg-[#2D1B4E] p-6 rounded-lg border transition-all relative overflow-hidden group ${
+            className={`bg-lienzo p-6 rounded-lg border transition-all relative overflow-hidden group ${
                 tienePendientes
                     ? "border-white/5"
-                    : "border-white/5 hover:border-[#C548F5]/30"
+                    : "border-white/5 hover:border-acento/30"
             }`}
         >
             {/* Badge de pendientes (esquina) */}
@@ -69,7 +69,7 @@ export default function TarjetaCursoPreceptor({ curso, onModerar }: TarjetaCurso
 
             {/* Línea de detalle */}
             {tienePendientes ? (
-                <div className="flex items-center gap-2 text-[#C548F5] mb-8">
+                <div className="flex items-center gap-2 text-acento mb-8">
                     <span className="material-symbols-outlined text-sm">pending_actions</span>
                     <p className="text-xs font-semibold">
                         {curso.posteosPendientes} posteos pendientes de revisión
@@ -92,8 +92,8 @@ export default function TarjetaCursoPreceptor({ curso, onModerar }: TarjetaCurso
                 onClick={() => onModerar(curso.id)}
                 className={`w-full py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
                     tienePendientes
-                        ? "bg-[#C548F5] text-white hover:bg-opacity-90"
-                        : "bg-white/5 hover:bg-[#C548F5] text-white"
+                        ? "bg-acento text-white hover:bg-opacity-90"
+                        : "bg-white/5 hover:bg-acento text-white"
                 }`}
             >
                 Moderar curso

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FRECUENCIA_LABELS } from "./tiposDashboard";
+import Selector from "../shared/Selector";
 
 interface ModalNuevoHabitoProps {
   inicial?: { nombre: string; frecuencia: "diario" | "semanal" };
@@ -42,7 +43,7 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar, inicial }: Modal
     >
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md bg-[#2D1B4E] rounded-[20px] border border-purple-900/30 shadow-2xl p-6"
+        className="w-full max-w-md bg-lienzo rounded-[20px] border border-purple-900/30 shadow-2xl p-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -80,7 +81,7 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar, inicial }: Modal
             onChange={(e) => setNombre(e.target.value)}
             autoFocus
             placeholder="Ej: Estudiar 30 min sin distracciones"
-            className="w-full bg-[#1C1030] text-white text-sm rounded-lg px-4 py-3 border border-purple-900/30 focus:ring-2 focus:ring-[#C548F5]/50 focus:border-[#C548F5]/50 outline-none placeholder-slate-500"
+            className="w-full bg-fondo text-white text-sm rounded-lg px-4 py-3 border border-purple-900/30 focus:ring-2 focus:ring-acento/50 focus:border-acento/50 outline-none placeholder-slate-500"
           />
         </div>
 
@@ -92,18 +93,18 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar, inicial }: Modal
           >
             Frecuencia
           </label>
-          <select
+          <Selector
             id="frecuencia-habito"
             value={frecuencia}
             onChange={(e) => setFrecuencia(e.target.value as (typeof FRECUENCIAS)[number])}
-            className="w-full bg-[#1C1030] text-white text-sm rounded-lg px-4 py-3 border border-purple-900/30 focus:ring-2 focus:ring-[#C548F5]/50 focus:border-[#C548F5]/50 outline-none"
+            className="w-full bg-fondo text-white text-sm rounded-lg px-4 py-3 border border-purple-900/30 focus:ring-2 focus:ring-acento/50 focus:border-acento/50 outline-none"
           >
             {FRECUENCIAS.map((f) => (
               <option key={f} value={f}>
                 {FRECUENCIA_LABELS[f]}
               </option>
             ))}
-          </select>
+          </Selector>
         </div>
 
         {error && <p role="alert" className="text-error text-sm mb-4">{error}</p>}
@@ -119,7 +120,7 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar, inicial }: Modal
           <button
             type="submit"
             disabled={!puedeGuardar || guardando}
-            className="px-6 py-2.5 bg-[#C548F5] hover:bg-[#b039df] text-white rounded-full text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-6 py-2.5 bg-acento hover:bg-[#b039df] text-white rounded-full text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {guardando ? "Guardando…" : "Guardar hábito"}
           </button>

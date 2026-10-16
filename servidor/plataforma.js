@@ -15,9 +15,8 @@
 // escuela es su NOMBRE y sus totales, nunca el detalle de las personas.
 // ============================================================================
 
-import { randomBytes } from "node:crypto";
 import { usuarioDeLaSesion } from "./sesiones.js";
-import { hashearContrasena } from "./contrasenas.js";
+import { generarContrasenaInicial, hashearContrasena } from "./contrasenas.js";
 import { ventanilla } from "./comun.js";
 
 // Solo el operador de plataforma entra acá. No es una pantalla de un módulo
@@ -33,10 +32,6 @@ function exigirAdministrador(db, req, res) {
     return null;
   }
   return usuario;
-}
-
-function generarContrasenaInicial() {
-  return randomBytes(9).toString("base64url");
 }
 
 export function registrarPlataforma(app, db) {
@@ -115,8 +110,8 @@ export function registrarPlataforma(app, db) {
     "INSERT INTO instituciones (nombre, ciclo_lectivo) VALUES (?, ?)"
   );
   const insertarDireccion = db.prepare(
-    `INSERT INTO usuarios (institucion_id, email, hash_contrasena, nombre, rol)
-     VALUES (?, ?, ?, ?, 'admin-academico')`
+    `INSERT INTO usuarios (institucion_id, email, hash_contrasena, nombre, rol, primer_ingreso)
+     VALUES (?, ?, ?, ?, 'admin-academico', 1)`
   );
   const registrarLog = db.prepare(
     `INSERT INTO logs_sistema (nivel, mensaje, contexto) VALUES ('info', ?, 'alta-institucion')`
@@ -147,7 +142,7 @@ export function registrarPlataforma(app, db) {
       // La escuela y su primera cuenta (la dirección) nacen juntas: sin una
       // dirección que entre, la institución sería una escuela a la que nadie
       // puede administrar. La dirección después crea al resto desde su panel.
-      const contrasenaInicial = generarContrasenaInicial();
+      const contrasenaInicial = generarContrasenaInicial(dirNombre);
       const hash = await hashearContrasena(contrasenaInicial);
 
       const infoInst = insertarInstitucion.run(nombre, cicloLectivo);
@@ -256,23 +251,10 @@ export function registrarPlataforma(app, db) {
   );
 
   // ── Aplicar una plantilla a una institución ────────────────────────────────
-  // Inserta las materias/competencias que faltan (saltea las que ya existen por
-  // nombre): aplicar dos veces no duplica. Es lo ÚNICO que el operador escribe en
-  // la vida de una escuela, y es estructura.
+  // La regla vive en `aplicarPlantillaEn` (al final del archivo): la usa esta
+  // ventanilla y también la Forja del Maestro al crear una instancia.
   const institucionPorId = db.prepare("SELECT id, nombre FROM instituciones WHERE id = ?");
   const plantillaPorId = db.prepare("SELECT id, nombre FROM plantillas WHERE id = ?");
-  const materiaExiste = db.prepare(
-    "SELECT 1 FROM materias WHERE institucion_id = ? AND nombre = ?"
-  );
-  const insertarMateria = db.prepare(
-    "INSERT INTO materias (institucion_id, nombre) VALUES (?, ?)"
-  );
-  const competenciaExiste = db.prepare(
-    "SELECT 1 FROM competencias WHERE institucion_id = ? AND nombre = ? AND padre_id IS NULL"
-  );
-  const insertarCompetencia = db.prepare(
-    "INSERT INTO competencias (institucion_id, nombre) VALUES (?, ?)"
-  );
 
   app.post(
     "/api/plataforma/instituciones/:id/aplicar-plantilla",
@@ -288,27 +270,10 @@ export function registrarPlataforma(app, db) {
       const plantilla = Number.isInteger(plantillaId) ? plantillaPorId.get(plantillaId) : null;
       if (!plantilla) return res.status(404).json({ error: "Esa plantilla no existe." });
 
-      const items = itemsDePlantilla.all(plantillaId);
-      const creado = { materias: 0, competencias: 0 };
-      const omitido = { materias: 0, competencias: 0 };
-
+      let creado, omitido;
       db.exec("BEGIN");
       try {
-        for (const it of items) {
-          if (it.tipo === "materia") {
-            if (materiaExiste.get(institucionId, it.nombre)) omitido.materias++;
-            else {
-              insertarMateria.run(institucionId, it.nombre);
-              creado.materias++;
-            }
-          } else if (it.tipo === "competencia") {
-            if (competenciaExiste.get(institucionId, it.nombre)) omitido.competencias++;
-            else {
-              insertarCompetencia.run(institucionId, it.nombre);
-              creado.competencias++;
-            }
-          }
-        }
+        ({ creado, omitido } = aplicarPlantillaEn(db, institucionId, plantillaId));
         db.exec("COMMIT");
       } catch (e) {
         db.exec("ROLLBACK");
@@ -323,4 +288,41 @@ export function registrarPlataforma(app, db) {
       res.json({ creado, omitido });
     })
   );
+}
+
+/**
+ * Inserta en una institución las materias y competencias de una plantilla que
+ * todavía no tiene (por nombre exacto): aplicar dos veces no duplica. No abre
+ * transacción propia: la abre quien la llama (la ventanilla de plantillas o la
+ * Forja del Maestro, que crea la escuela entera de un solo golpe).
+ */
+export function aplicarPlantillaEn(db, institucionId, plantillaId) {
+  const items = db
+    .prepare("SELECT tipo, nombre FROM plantilla_items WHERE plantilla_id = ? ORDER BY id")
+    .all(plantillaId);
+  const materiaExiste = db.prepare("SELECT 1 FROM materias WHERE institucion_id = ? AND nombre = ?");
+  const insertarMateria = db.prepare("INSERT INTO materias (institucion_id, nombre) VALUES (?, ?)");
+  const competenciaExiste = db.prepare(
+    "SELECT 1 FROM competencias WHERE institucion_id = ? AND nombre = ? AND padre_id IS NULL"
+  );
+  const insertarCompetencia = db.prepare("INSERT INTO competencias (institucion_id, nombre) VALUES (?, ?)");
+
+  const creado = { materias: 0, competencias: 0 };
+  const omitido = { materias: 0, competencias: 0 };
+  for (const it of items) {
+    if (it.tipo === "materia") {
+      if (materiaExiste.get(institucionId, it.nombre)) omitido.materias++;
+      else {
+        insertarMateria.run(institucionId, it.nombre);
+        creado.materias++;
+      }
+    } else if (it.tipo === "competencia") {
+      if (competenciaExiste.get(institucionId, it.nombre)) omitido.competencias++;
+      else {
+        insertarCompetencia.run(institucionId, it.nombre);
+        creado.competencias++;
+      }
+    }
+  }
+  return { creado, omitido };
 }

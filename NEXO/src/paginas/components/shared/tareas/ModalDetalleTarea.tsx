@@ -121,11 +121,11 @@ export default function ModalDetalleTarea({
       onClick={onCerrar}
     >
       <div
-        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#2D1B4E] border border-white/10 rounded-[20px] shadow-2xl"
+        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-lienzo border border-white/10 rounded-[20px] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Encabezado */}
-        <div className="flex items-start justify-between p-6 border-b border-white/10 sticky top-0 bg-[#2D1B4E] z-10">
+        <div className="flex items-start justify-between p-6 border-b border-white/10 sticky top-0 bg-lienzo z-10">
           <h3 className="text-xl font-extrabold text-white font-headline pr-4">
             {titulo}
           </h3>
@@ -149,16 +149,16 @@ export default function ModalDetalleTarea({
             <>
               {/* Metadatos */}
               <div className="flex flex-wrap gap-3 text-sm">
-                <span className="px-3 py-1 rounded-full bg-[#1C1030] text-slate-300 flex items-center gap-1.5">
+                <span className="px-3 py-1 rounded-full bg-fondo text-slate-300 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-base">menu_book</span>
                   {detalle.tarea.materia}
                 </span>
-                <span className="px-3 py-1 rounded-full bg-[#1C1030] text-slate-300 flex items-center gap-1.5">
+                <span className="px-3 py-1 rounded-full bg-fondo text-slate-300 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-base">person</span>
                   {detalle.tarea.profesor}
                 </span>
                 <span
-                  className={`px-3 py-1 rounded-full bg-[#1C1030] flex items-center gap-1.5 ${colorVencimiento(
+                  className={`px-3 py-1 rounded-full bg-fondo flex items-center gap-1.5 ${colorVencimiento(
                     detalle.tarea.fechaLimite
                   )}`}
                 >
@@ -189,7 +189,7 @@ export default function ModalDetalleTarea({
                     Método de estudio sugerido
                   </h4>
                   <p className="text-slate-200 text-sm flex items-center gap-2">
-                    <span className="material-symbols-outlined text-lg text-[#C548F5]">
+                    <span className="material-symbols-outlined text-lg text-acento">
                       neurology
                     </span>
                     {detalle.tarea.metodoEstudio}
@@ -258,16 +258,16 @@ function DetalleDocente({
   return (
     <>
       <div className="flex flex-wrap gap-3 text-sm">
-        <span className="px-3 py-1 rounded-full bg-[#1C1030] text-slate-300 flex items-center gap-1.5">
+        <span className="px-3 py-1 rounded-full bg-fondo text-slate-300 flex items-center gap-1.5">
           <span className="material-symbols-outlined text-base">menu_book</span>
           {tarea.materia}
         </span>
-        <span className="px-3 py-1 rounded-full bg-[#1C1030] text-slate-300 flex items-center gap-1.5">
+        <span className="px-3 py-1 rounded-full bg-fondo text-slate-300 flex items-center gap-1.5">
           <span className="material-symbols-outlined text-base">school</span>
           {tarea.curso}
         </span>
         <span
-          className={`px-3 py-1 rounded-full bg-[#1C1030] flex items-center gap-1.5 ${colorVencimiento(
+          className={`px-3 py-1 rounded-full bg-fondo flex items-center gap-1.5 ${colorVencimiento(
             tarea.fechaLimite
           )}`}
         >
@@ -297,7 +297,7 @@ function DetalleDocente({
             Método de estudio sugerido
           </h4>
           <p className="text-slate-200 text-sm flex items-center gap-2">
-            <span className="material-symbols-outlined text-lg text-[#C548F5]">neurology</span>
+            <span className="material-symbols-outlined text-lg text-acento">neurology</span>
             {tarea.metodoEstudio}
           </p>
         </section>
@@ -322,9 +322,9 @@ function ArchivoDescargable({
     <li>
       <a
         href={urlDescarga(archivo.id)}
-        className="flex items-center gap-3 bg-[#1C1030] rounded-[10px] px-4 py-3 hover:bg-[#241640] transition-colors group"
+        className="flex items-center gap-3 bg-fondo rounded-[10px] px-4 py-3 hover:bg-[#241640] transition-colors group"
       >
-        <span className="material-symbols-outlined text-[#C548F5]">description</span>
+        <span className="material-symbols-outlined text-acento">description</span>
         <span className="text-slate-200 text-sm flex-1 truncate group-hover:text-white">
           {archivo.nombre}
         </span>
@@ -352,7 +352,7 @@ function EntregaHecha({
       </div>
 
       {entrega.comentario && (
-        <p className="text-slate-300 text-sm bg-[#1C1030] rounded-[10px] p-4">
+        <p className="text-slate-300 text-sm bg-fondo rounded-[10px] p-4">
           {entrega.comentario}
         </p>
       )}
@@ -367,12 +367,12 @@ function EntregaHecha({
 
       {/* Devolución del profesor (Error 2.C.6) */}
       {entrega.corregida ? (
-        <div className="bg-gradient-to-br from-[#1C1030] to-[#241640] rounded-[14px] p-5 border border-[#C548F5]/20">
+        <div className="bg-gradient-to-br from-fondo to-[#241640] rounded-[14px] p-5 border border-acento/20">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Devolución del profesor
             </h4>
-            <span className="text-2xl font-black text-[#C548F5]">
+            <span className="text-2xl font-black text-acento">
               {entrega.nota}
               <span className="text-sm text-slate-400">/10</span>
             </span>
@@ -382,7 +382,7 @@ function EntregaHecha({
           </p>
         </div>
       ) : (
-        <div className="flex items-center justify-between gap-4 bg-[#1C1030] rounded-[10px] px-4 py-3">
+        <div className="flex items-center justify-between gap-4 bg-fondo rounded-[10px] px-4 py-3">
           <p className="text-slate-400 text-sm flex items-center gap-2">
             <span className="material-symbols-outlined text-lg text-amber-400">
               hourglass_top
@@ -431,7 +431,7 @@ function FormularioEntrega({
         onChange={(e) => setComentario(e.target.value)}
         placeholder="Comentario para el profesor (opcional)…"
         rows={3}
-        className="w-full bg-[#1C1030] border-none rounded-[10px] py-3 px-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-[#C548F5] transition-all resize-none"
+        className="w-full bg-fondo border-none rounded-[10px] py-3 px-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-acento transition-all resize-none"
       />
 
       {/* Archivos elegidos, todavía sin subir */}
@@ -440,9 +440,9 @@ function FormularioEntrega({
           {seleccionados.map((f, i) => (
             <li
               key={i}
-              className="flex items-center gap-3 bg-[#1C1030] rounded-[10px] px-4 py-2.5"
+              className="flex items-center gap-3 bg-fondo rounded-[10px] px-4 py-2.5"
             >
-              <span className="material-symbols-outlined text-[#C548F5]">draft</span>
+              <span className="material-symbols-outlined text-acento">draft</span>
               <span className="text-slate-200 text-sm flex-1 truncate">{f.name}</span>
               <span className="text-slate-500 text-xs">{tamanoLegible(f.size)}</span>
               <button
@@ -458,7 +458,7 @@ function FormularioEntrega({
       )}
 
       <div className="flex items-center justify-between gap-4">
-        <label className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-600 hover:border-[#C548F5] text-slate-300 hover:text-white rounded-[10px] cursor-pointer transition-colors">
+        <label className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-600 hover:border-acento text-slate-300 hover:text-white rounded-[10px] cursor-pointer transition-colors">
           <span className="material-symbols-outlined text-lg">attach_file</span>
           Adjuntar archivo
           <input type="file" multiple onChange={onAgregar} className="hidden" />
@@ -467,7 +467,7 @@ function FormularioEntrega({
         <button
           onClick={onEntregar}
           disabled={enviando}
-          className="px-6 py-2.5 bg-[#C548F5] text-black font-bold rounded-full hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-6 py-2.5 bg-acento text-black font-bold rounded-full hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {enviando ? "Entregando…" : "Entregar"}
         </button>

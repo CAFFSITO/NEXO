@@ -1,6 +1,9 @@
 // src/paginas/components/perfiles/PanelPerfiles.tsx
 // Gestión de Perfiles de la dirección. Lista con búsqueda + filtros (rol/estado),
 // paginación, alta/edición por modal y papelera con contador de 7 días.
+// Eliminar y borrar definitivamente piden confirmación con un cartel que explica
+// qué va a pasar: quien administra suele ser un adulto de la dirección, y un clic
+// de más no puede costarle una cuenta.
 // Reutilizado por PerfilesAcademicosPage (Gestión de Perfiles de la dirección).
 //
 // Etapa 3: todo esto ahora es REAL y persiste. El alta crea una cuenta con
@@ -17,6 +20,7 @@ import FiltrosPerfiles, {
 } from "./FiltrosPerfiles";
 import TablaPerfiles from "./TablaPerfiles";
 import ModalPerfil from "./ModalPerfil";
+import DialogoConfirmar from "../shared/DialogoConfirmar";
 import { type Perfil, type PerfilEditable } from "./tipos";
 import {
   usePerfiles,
@@ -24,7 +28,9 @@ import {
   editarPerfil,
   enviarAPapelera,
   restaurarPerfilEnServidor,
+  borrarDefinitivamente,
 } from "../../../servicios/perfiles";
+import { usePerfilesEscuela } from "../../../servicios/instancia";
 import { Cargando, Fallo } from "../shared/EstadoCarga";
 
 const POR_PAGINA = 5;
@@ -38,7 +44,8 @@ interface Credenciales {
 }
 
 export default function PanelPerfiles() {
-  const { perfiles: perfilesDelServidor, cargando, error, recargar } = usePerfiles();
+  const { perfiles: perfilesDelServidor, diasPapelera, cargando, error, recargar } = usePerfiles();
+  const { perfiles: perfilesEscuela } = usePerfilesEscuela();
 
   // La lista viene del servidor y es la única verdad. No hay copia en memoria que
   // editar: cada cambio se guarda en la base y se vuelve a leer.
@@ -57,6 +64,10 @@ export default function PanelPerfiles() {
   // Avisos
   const [credenciales, setCredenciales] = useState<Credenciales | null>(null);
   const [avisoError, setAvisoError] = useState("");
+  const [avisoExito, setAvisoExito] = useState("");
+
+  // El cartel de "¿Estás seguro?" abierto, y para qué perfil.
+  const [aConfirmar, setAConfirmar] = useState<{ accion: "papelera" | "definitivo"; perfil: Perfil } | null>(null);
 
   // ─── Derivados ──────────────────────────────────────────
 
@@ -128,6 +139,7 @@ export default function PanelPerfiles() {
         rol: datos.rol,
         email: datos.email,
         estado: datos.estado,
+        perfilClave: datos.perfilClave || null,
       });
       if (!r.ok) return r.error ?? "No se pudo guardar.";
       cerrarModal();
@@ -135,7 +147,7 @@ export default function PanelPerfiles() {
       return null;
     }
 
-    const r = await crearPerfil({ nombre: datos.nombre, rol: datos.rol, email: datos.email });
+    const r = await crearPerfil({ nombre: datos.nombre, rol: datos.rol, email: datos.email, perfilClave: datos.perfilClave || null, asignaciones: datos.asignaciones ?? [] });
     if (!r.ok) return r.error ?? "No se pudo crear el perfil.";
     // Las credenciales viajan una sola vez: se muestran para que la dirección las
     // copie y se las dé a la persona.
@@ -153,17 +165,31 @@ export default function PanelPerfiles() {
     setPerfilEnEdicion(null);
   };
 
-  const eliminarPerfil = async (id: string) => {
+  const eliminarPerfil = async (perfil: Perfil) => {
     setAvisoError("");
-    const r = await enviarAPapelera(id);
+    setAvisoExito("");
+    const r = await enviarAPapelera(perfil.id);
+    setAConfirmar(null);
     if (!r.ok) setAvisoError(r.error ?? "No se pudo enviar a la papelera.");
+    else setAvisoExito(`${perfil.nombre} pasó a la papelera. Para verlo, filtrá por "En papelera".`);
     recargar();
   };
 
   const restaurarPerfil = async (id: string) => {
     setAvisoError("");
+    setAvisoExito("");
     const r = await restaurarPerfilEnServidor(id);
     if (!r.ok) setAvisoError(r.error ?? "No se pudo restaurar.");
+    recargar();
+  };
+
+  const borrarPerfilParaSiempre = async (perfil: Perfil) => {
+    setAvisoError("");
+    setAvisoExito("");
+    const r = await borrarDefinitivamente(perfil.id);
+    setAConfirmar(null);
+    if (!r.ok) setAvisoError(r.error ?? "No se pudo borrar el perfil.");
+    else setAvisoExito(r.mensaje ?? `${perfil.nombre} se borró definitivamente.`);
     recargar();
   };
 
@@ -181,7 +207,7 @@ export default function PanelPerfiles() {
         </div>
         <button
           onClick={abrirAlta}
-          className="flex items-center gap-2 bg-[#C548F5] hover:opacity-90 active:scale-95 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-[#C548F5]/20 transition-all self-start"
+          className="flex items-center gap-2 bg-acento hover:opacity-90 active:scale-95 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-acento/20 transition-all self-start"
         >
           <span className="material-symbols-outlined text-xl">person_add</span>
           <span>Nuevo perfil</span>
@@ -205,8 +231,9 @@ export default function PanelPerfiles() {
                 <span className="font-mono text-white">{credenciales.contrasena}</span>
               </p>
               <p className="text-slate-400 text-xs mt-2">
-                Entregáselas a la persona. No se van a poder volver a ver: si se pierden,
-                se usa “olvidé mi contraseña”.
+                Entregáselas a la persona. La primera vez que entre, NEXO le va a ofrecer
+                cambiarla. No se van a poder volver a ver: si se pierden, se usa “olvidé mi
+                contraseña”.
               </p>
             </div>
             <button
@@ -223,6 +250,14 @@ export default function PanelPerfiles() {
       {avisoError && (
         <div className="mb-6 rounded-xl border border-error/30 bg-error/10 p-4 text-sm text-error">
           {avisoError}
+        </div>
+      )}
+      {avisoExito && (
+        <div role="status" className="mb-6 flex items-start justify-between gap-4 rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-300">
+          <span>{avisoExito}</span>
+          <button onClick={() => setAvisoExito("")} className="text-slate-400 hover:text-white transition-colors" title="Cerrar">
+            <span className="material-symbols-outlined text-lg">close</span>
+          </button>
         </div>
       )}
 
@@ -250,22 +285,50 @@ export default function PanelPerfiles() {
             totalPaginas={totalPaginas}
             onCambiarPagina={setPagina}
             onEditar={abrirEdicion}
-            onEliminar={eliminarPerfil}
+            onEliminar={(perfil) => setAConfirmar({ accion: "papelera", perfil })}
             onRestaurar={restaurarPerfil}
+            onBorrarDefinitivo={(perfil) => setAConfirmar({ accion: "definitivo", perfil })}
+            diasPapelera={diasPapelera}
+            perfilesEscuela={perfilesEscuela ?? []}
           />
         </>
       )}
 
-      {/* FAB acceso rápido */}
-      <button
-        onClick={abrirAlta}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-[#C548F5] text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 group"
-      >
-        <span className="material-symbols-outlined text-2xl">add</span>
-        <span className="absolute right-16 bg-surface-container-high px-4 py-2 rounded-xl text-sm font-bold text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 pointer-events-none">
-          Nuevo perfil rápido
-        </span>
-      </button>
+      {aConfirmar?.accion === "papelera" && (
+        <DialogoConfirmar
+          titulo={`¿Seguro que querés eliminar a ${aConfirmar.perfil.nombre}?`}
+          icono="delete"
+          textoConfirmar="Sí, eliminar"
+          onConfirmar={() => eliminarPerfil(aConfirmar.perfil)}
+          onCancelar={() => setAConfirmar(null)}
+        >
+          <p>Va a pasar a la papelera y no va a poder entrar a NEXO.</p>
+          <p>
+            {diasPapelera === null
+              ? "Lo podés restaurar desde la papelera cuando quieras."
+              : `Lo podés restaurar desde la papelera durante ${diasPapelera} ${diasPapelera === 1 ? "día" : "días"}; después se borra para siempre.`}
+          </p>
+        </DialogoConfirmar>
+      )}
+      {aConfirmar?.accion === "definitivo" && (
+        <DialogoConfirmar
+          titulo={`¿Borrar para siempre a ${aConfirmar.perfil.nombre}?`}
+          icono="delete_forever"
+          tono="peligro"
+          textoConfirmar="Sí, borrar para siempre"
+          onConfirmar={() => borrarPerfilParaSiempre(aConfirmar.perfil)}
+          onCancelar={() => setAConfirmar(null)}
+        >
+          <p>
+            <strong className="text-white">Esto no se puede deshacer.</strong> La cuenta se borra
+            y no se puede restaurar.
+          </p>
+          <p>
+            El correo <span className="font-mono text-white">{aConfirmar.perfil.email}</span> queda
+            libre para usarlo en un perfil nuevo.
+          </p>
+        </DialogoConfirmar>
+      )}
 
       {modalAbierto && <ModalPerfil
         key={perfilEnEdicion?.id ?? "nuevo"}

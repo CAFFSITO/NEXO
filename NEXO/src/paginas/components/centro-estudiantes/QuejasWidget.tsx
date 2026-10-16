@@ -13,7 +13,7 @@ export default function QuejasWidget({ categorias, nuevas, onVerTodas }: QuejasW
   const maxCantidad = Math.max(...categorias.map((c) => c.cantidad), 1);
 
   return (
-    <section className="bg-[#2D1B4E] rounded-lg p-6 border border-white/5">
+    <section className="bg-lienzo rounded-lg p-6 border border-white/5">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-headline font-bold text-white">Quejas Recientes</h3>
         {nuevas > 0 && (
@@ -28,7 +28,7 @@ export default function QuejasWidget({ categorias, nuevas, onVerTodas }: QuejasW
             <span className="text-on-surface-variant min-w-[90px]">{c.categoria}</span>
             <div className="flex-1 mx-3 h-1 bg-surface-container rounded-full overflow-hidden">
               <div
-                className="bg-[#C548F5] h-full transition-all"
+                className="bg-acento h-full transition-all"
                 style={{ width: `${(c.cantidad / maxCantidad) * 100}%` }}
               />
             </div>

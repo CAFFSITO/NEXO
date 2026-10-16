@@ -15,7 +15,7 @@ interface PulsoInstitucionProps {
 
 export default function PulsoInstitucion({ metricas }: PulsoInstitucionProps) {
   return (
-    <div className="bg-[#2D1B4E] rounded-[20px] p-6 border border-white/5 shadow-lg">
+    <div className="bg-lienzo rounded-[20px] p-6 border border-white/5 shadow-lg">
       <h3 className="font-headline font-bold text-xl mb-6 flex items-center">
         <span className="material-symbols-outlined mr-3 text-fuchsia-400">insights</span>
         Pulso de la institución

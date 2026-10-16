@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Sidebar from "./components/shared/Sidebar";
 import TopBar from "./components/shared/TopBar";
-import SubNavPortafolio from "./components/portafolio/SubNavPortafolio";
+import { PESTANAS_PORTAFOLIO } from "./components/shared/pestanasModulos";
 import TarjetaTarea from "./components/portafolio/TarjetaTarea";
 import ModalDetalleTarea from "./components/shared/tareas/ModalDetalleTarea";
 import PanelAlumnosProfesor from "./components/portafolio-docente/PanelAlumnosProfesor";
@@ -69,17 +69,15 @@ export default function DetalleMateriaPage() {
   const handleEditarAviso = async (avisoId: string, titulo: string, contenido: string) => { await editarAviso(avisoId, titulo, contenido); recargarAvisos(); };
   const handleEliminarAviso = async (avisoId: string) => { await eliminarAviso(avisoId); recargarAvisos(); };
   return (
-    <div className="flex bg-[#1C1030] min-h-screen text-on-surface">
+    <div className="flex bg-fondo min-h-screen text-on-surface">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
+        {/* Las pestañas del Portafolio son del alumno; el profesor no las tiene. */}
+        <TopBar title="Portafolio de aprendizaje" subtitle="Materia" pestanas={esProfesor ? undefined : PESTANAS_PORTAFOLIO} pestanaActiva="/portafolio/mis-cursos" />
         {avisoError && <p role="alert" className="p-4 text-error">{avisoError}</p>}
-        <TopBar title="Portafolio de aprendizaje" subtitle="Materia" />
 
-        {/* La subnav del Portafolio es del alumno; el profesor no la tiene. */}
-        {!esProfesor && <SubNavPortafolio rutaActiva="/portafolio/mis-cursos" />}
-
-        <div className="flex-1 overflow-y-auto bg-[#190d2d] p-8">
+        <div className="flex-1 overflow-y-auto bg-background p-8">
           <div className="max-w-5xl mx-auto">
             {/* Volver: el alumno a Mis Cursos; el profesor a Gestión de Tareas. */}
             <button
@@ -102,7 +100,7 @@ export default function DetalleMateriaPage() {
                     {detalle.materia}
                   </h1>
                   <div className="flex items-center gap-2 mt-3 text-slate-300">
-                    <div className="w-8 h-8 rounded-full bg-[#2D1B4E] flex items-center justify-center overflow-hidden text-[10px] font-bold text-white/60">
+                    <div className="w-8 h-8 rounded-full bg-lienzo flex items-center justify-center overflow-hidden text-[10px] font-bold text-white/60">
                       {detalle.profesorAvatar ? (
                         <img src={detalle.profesorAvatar} alt={detalle.profesor} className="w-full h-full object-cover" />
                       ) : (
@@ -111,7 +109,7 @@ export default function DetalleMateriaPage() {
                     </div>
                     <span className="text-sm">
                       {detalle.profesor}
-                      {detalle.soyProfesor && <span className="text-[#C548F5] font-semibold"> · vos</span>}
+                      {detalle.soyProfesor && <span className="text-acento font-semibold"> · vos</span>}
                     </span>
                   </div>
                 </header>
@@ -119,17 +117,17 @@ export default function DetalleMateriaPage() {
                 {/* Horarios / días */}
                 <section className="mb-10">
                   <h2 className="text-lg font-bold text-white font-headline mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#C548F5]">schedule</span>
+                    <span className="material-symbols-outlined text-acento">schedule</span>
                     Horarios
                   </h2>
                   {detalle.horarios.length === 0 ? (
-                    <p className="text-slate-400 text-sm bg-[#2D1B4E]/40 border border-white/5 rounded-[14px] p-5">
+                    <p className="text-slate-400 text-sm bg-lienzo/40 border border-white/5 rounded-[14px] p-5">
                       Esta materia todavía no tiene horarios cargados.
                     </p>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {detalle.horarios.map((h, i) => (
-                        <div key={`${h.dia}-${h.horaInicio}-${i}`} className="bg-[#2D1B4E] border border-white/5 rounded-[14px] p-4">
+                        <div key={`${h.dia}-${h.horaInicio}-${i}`} className="bg-lienzo border border-white/5 rounded-[14px] p-4">
                           <p className="text-white font-bold">{DIA_LABEL[h.dia]}</p>
                           <p className="text-slate-300 text-sm mt-1">{h.horaInicio} – {h.horaFin}</p>
                           {h.aula && <p className="text-slate-500 text-xs mt-1">Aula {h.aula}</p>}
@@ -142,7 +140,7 @@ export default function DetalleMateriaPage() {
                 {/* Avisos del profesor */}
                 <section className="mb-10">
                   <h2 className="text-lg font-bold text-white font-headline mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#C548F5]">campaign</span>
+                    <span className="material-symbols-outlined text-acento">campaign</span>
                     Avisos del profesor
                   </h2>
 
@@ -150,7 +148,7 @@ export default function DetalleMateriaPage() {
                   {detalle.soyProfesor && <CompositorAviso onPublicar={handlePublicar} />}
 
                   {avisos.length === 0 ? (
-                    <p className="text-slate-400 text-sm bg-[#2D1B4E]/40 border border-white/5 rounded-[14px] p-5">
+                    <p className="text-slate-400 text-sm bg-lienzo/40 border border-white/5 rounded-[14px] p-5">
                       {detalle.soyProfesor
                         ? "Todavía no publicaste avisos en esta materia."
                         : "El profesor todavía no publicó avisos en esta materia."}
@@ -184,7 +182,7 @@ export default function DetalleMateriaPage() {
                 {!esProfesor && (
                   <section>
                     <h2 className="text-lg font-bold text-white font-headline mb-4 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[#C548F5]">assignment</span>
+                      <span className="material-symbols-outlined text-acento">assignment</span>
                       Tareas de la materia
                     </h2>
                     {detalle.tareas.length === 0 ? (
@@ -249,27 +247,27 @@ function CompositorAviso({
   };
 
   return (
-    <div className="bg-[#2D1B4E] border border-[#C548F5]/20 rounded-[14px] p-5 mb-4">
+    <div className="bg-lienzo border border-acento/20 rounded-[14px] p-5 mb-4">
       {error && <p role="alert" className="mb-3 text-sm text-red-300">{error}</p>}
       <input
         type="text"
         value={titulo}
         onChange={(e) => setTitulo(e.target.value)}
         placeholder="Título (opcional)"
-        className="w-full bg-[#1C1030] text-white text-sm font-bold rounded-lg px-4 py-2 mb-2 border border-white/5 focus:ring-1 focus:ring-[#C548F5] placeholder-white/30"
+        className="w-full bg-fondo text-white text-sm font-bold rounded-lg px-4 py-2 mb-2 border border-white/5 focus:ring-1 focus:ring-acento placeholder-white/30"
       />
       <textarea
         value={contenido}
         onChange={(e) => setContenido(e.target.value)}
         rows={3}
         placeholder="Escribí un aviso para tu curso…"
-        className="w-full bg-[#1C1030] text-white text-sm rounded-lg px-4 py-2 border border-white/5 focus:ring-1 focus:ring-[#C548F5] placeholder-white/30 resize-none"
+        className="w-full bg-fondo text-white text-sm rounded-lg px-4 py-2 border border-white/5 focus:ring-1 focus:ring-acento placeholder-white/30 resize-none"
       />
       <div className="flex justify-end mt-3">
         <button
           onClick={publicar}
           disabled={!contenido.trim() || enviando}
-          className="px-6 py-2 bg-[#C548F5] text-white rounded-full text-sm font-bold hover:bg-[#d15aff] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2 bg-acento text-white rounded-full text-sm font-bold hover:bg-[#d15aff] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {enviando ? "Publicando…" : "Publicar aviso"}
         </button>
@@ -351,11 +349,11 @@ function TarjetaAviso({
   };
 
   return (
-    <div className="bg-[#2D1B4E] border border-white/5 rounded-[14px] p-5">
+    <div className="bg-lienzo border border-white/5 rounded-[14px] p-5">
       {error && <p role="alert" className="mb-3 text-sm text-red-300">{error}</p>}
       {/* Autor + fecha + acciones (si el aviso es mío) */}
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-8 h-8 rounded-full bg-[#1C1030] flex items-center justify-center overflow-hidden text-[10px] font-bold text-white/60 shrink-0">
+        <div className="w-8 h-8 rounded-full bg-fondo flex items-center justify-center overflow-hidden text-[10px] font-bold text-white/60 shrink-0">
           {aviso.autorAvatar ? (
             <img src={aviso.autorAvatar} alt={aviso.autor} className="w-full h-full object-cover" />
           ) : (
@@ -400,13 +398,13 @@ function TarjetaAviso({
             value={editTitulo}
             onChange={(e) => setEditTitulo(e.target.value)}
             placeholder="Título (opcional)"
-            className="w-full bg-[#1C1030] text-white text-sm font-bold rounded-lg px-3 py-2 mb-2 border border-white/5 focus:ring-1 focus:ring-[#C548F5]"
+            className="w-full bg-fondo text-white text-sm font-bold rounded-lg px-3 py-2 mb-2 border border-white/5 focus:ring-1 focus:ring-acento"
           />
           <textarea
             value={editContenido}
             onChange={(e) => setEditContenido(e.target.value)}
             rows={3}
-            className="w-full bg-[#1C1030] text-white text-sm rounded-lg px-3 py-2 border border-white/5 focus:ring-1 focus:ring-[#C548F5] resize-none"
+            className="w-full bg-fondo text-white text-sm rounded-lg px-3 py-2 border border-white/5 focus:ring-1 focus:ring-acento resize-none"
           />
           <div className="flex justify-end gap-2 mt-2">
             <button onClick={() => setEditando(false)} className="px-3 py-1.5 text-sm text-white/60 hover:text-white">
@@ -415,7 +413,7 @@ function TarjetaAviso({
             <button
               onClick={guardarEdicion}
               disabled={!editContenido.trim()}
-              className="px-4 py-1.5 bg-[#C548F5] text-white rounded-full text-sm font-bold hover:bg-[#d15aff] disabled:opacity-40"
+              className="px-4 py-1.5 bg-acento text-white rounded-full text-sm font-bold hover:bg-[#d15aff] disabled:opacity-40"
             >
               Guardar
             </button>
@@ -440,8 +438,8 @@ function TarjetaAviso({
               aria-pressed={mia}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-sm border transition-colors ${
                 mia
-                  ? "bg-[#C548F5]/20 border-[#C548F5]/50 text-white"
-                  : "bg-[#1C1030] border-white/5 text-slate-300 hover:border-white/20"
+                  ? "bg-acento/20 border-acento/50 text-white"
+                  : "bg-fondo border-white/5 text-slate-300 hover:border-white/20"
               }`}
             >
               <span>{emoji}</span>
@@ -456,7 +454,7 @@ function TarjetaAviso({
         <div className="mt-3">
           <button
             onClick={alternarReactores}
-            className="text-xs text-slate-400 hover:text-[#C548F5] font-semibold flex items-center gap-1 transition-colors"
+            className="text-xs text-slate-400 hover:text-acento font-semibold flex items-center gap-1 transition-colors"
           >
             <span className="material-symbols-outlined text-sm">{verReactores ? "expand_less" : "expand_more"}</span>
             {verReactores ? "Ocultar reacciones" : `Ver quién reaccionó (${totalReacciones})`}
@@ -464,8 +462,8 @@ function TarjetaAviso({
           {verReactores && reactores && (
             <div className="mt-2 flex flex-wrap gap-2">
               {reactores.map((r, i) => (
-                <span key={i} className="flex items-center gap-1 bg-[#1C1030] rounded-full pl-1 pr-3 py-1">
-                  <span className="w-5 h-5 rounded-full bg-[#2D1B4E] flex items-center justify-center overflow-hidden text-[8px] font-bold text-white/50">
+                <span key={i} className="flex items-center gap-1 bg-fondo rounded-full pl-1 pr-3 py-1">
+                  <span className="w-5 h-5 rounded-full bg-lienzo flex items-center justify-center overflow-hidden text-[8px] font-bold text-white/50">
                     {r.avatar ? <img src={r.avatar} alt={r.nombre} className="w-full h-full object-cover" /> : r.nombre.slice(0, 1)}
                   </span>
                   <span className="text-xs text-slate-300">{r.nombre}</span>
@@ -502,12 +500,12 @@ function TarjetaAviso({
             if (e.key === "Enter") enviar();
           }}
           placeholder="Escribí una respuesta…"
-          className="flex-1 bg-[#1C1030] text-white text-sm rounded-full px-4 py-2 border border-white/5 focus:ring-1 focus:ring-[#C548F5] placeholder-white/30"
+          className="flex-1 bg-fondo text-white text-sm rounded-full px-4 py-2 border border-white/5 focus:ring-1 focus:ring-acento placeholder-white/30"
         />
         <button
           onClick={enviar}
           disabled={!respuesta.trim() || enviando}
-          className="px-4 py-2 bg-[#C548F5] text-white rounded-full text-sm font-bold hover:bg-[#d15aff] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 bg-acento text-white rounded-full text-sm font-bold hover:bg-[#d15aff] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Responder
         </button>
@@ -543,7 +541,7 @@ function Respuesta({
 
   return (
     <div className="flex items-start gap-2 group">
-      <div className="w-6 h-6 rounded-full bg-[#1C1030] flex items-center justify-center overflow-hidden text-[9px] font-bold text-white/50 shrink-0">
+      <div className="w-6 h-6 rounded-full bg-fondo flex items-center justify-center overflow-hidden text-[9px] font-bold text-white/50 shrink-0">
         {respuesta.autorAvatar ? (
           <img src={respuesta.autorAvatar} alt={respuesta.autor} className="w-full h-full object-cover" />
         ) : (
@@ -565,13 +563,13 @@ function Respuesta({
               onKeyDown={(e) => {
                 if (e.key === "Enter") guardar();
               }}
-              className="w-full bg-[#1C1030] text-white text-sm rounded-lg px-3 py-1.5 border border-white/5 focus:ring-1 focus:ring-[#C548F5]"
+              className="w-full bg-fondo text-white text-sm rounded-lg px-3 py-1.5 border border-white/5 focus:ring-1 focus:ring-acento"
             />
             <div className="flex gap-2 mt-1">
               <button onClick={() => setEditando(false)} className="text-xs text-white/50 hover:text-white">
                 Cancelar
               </button>
-              <button onClick={guardar} disabled={!texto.trim() || guardando} className="text-xs text-[#C548F5] font-bold hover:underline disabled:opacity-40">
+              <button onClick={guardar} disabled={!texto.trim() || guardando} className="text-xs text-acento font-bold hover:underline disabled:opacity-40">
                 Guardar
               </button>
             </div>

@@ -27,7 +27,7 @@ export default function TarjetaMeta({ meta, onAbrir }: TarjetaMetaProps) {
       className={`w-full text-left bg-surface-container rounded-lg p-6 border transition-all ${
         vencida
           ? "border-red-500/40 hover:border-red-500"
-          : "border-white/5 hover:border-[#C548F5]/30"
+          : "border-white/5 hover:border-acento/30"
       }`}
     >
       <div className="flex justify-between items-start mb-4">
@@ -56,11 +56,11 @@ export default function TarjetaMeta({ meta, onAbrir }: TarjetaMetaProps) {
       <div className="space-y-3">
         <div className="flex justify-between text-xs mb-1">
           <span className="text-slate-400">Progreso actual</span>
-          <span className="font-bold text-[#C548F5]">{progreso}%</span>
+          <span className="font-bold text-acento">{progreso}%</span>
         </div>
         <div className="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
           <div
-            className="bg-[#C548F5] h-full rounded-full shadow-[0_0_8px_rgba(197,72,245,0.5)] transition-all"
+            className="bg-acento h-full rounded-full shadow-[0_0_8px_rgba(197,72,245,0.5)] transition-all"
             style={{ width: `${progreso}%` }}
           />
         </div>

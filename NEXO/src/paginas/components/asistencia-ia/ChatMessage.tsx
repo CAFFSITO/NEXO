@@ -14,15 +14,15 @@ export default function ChatMessage({ role, content }: ChatMessageProps) {
           : "bg-primary shadow-lg shadow-primary/20"
       }`}>
         <span className={`material-symbols-outlined text-xl ${
-          isUser ? "text-primary" : "text-[#1C1030]"
+          isUser ? "text-primary" : "text-fondo"
         }`} style={isUser ? undefined : { fontVariationSettings: "'FILL' 1" }}>
           {isUser ? "person" : "smart_toy"}
         </span>
       </div>
       <div className={`p-4 rounded-2xl shadow-sm ${
         isUser
-          ? "bg-[#C548F5] text-white rounded-tr-none shadow-lg shadow-primary/10"
-          : "bg-[#2D1B4E] text-on-surface rounded-tl-none border border-purple-800/30"
+          ? "bg-acento text-white rounded-tr-none shadow-lg shadow-primary/10"
+          : "bg-lienzo text-on-surface rounded-tl-none border border-purple-800/30"
       }`}>
         <p className="font-body leading-relaxed" dangerouslySetInnerHTML={{ __html: content }} />
       </div>

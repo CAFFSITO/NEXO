@@ -11,7 +11,7 @@ interface TarjetaMetricaProps {
 
 export default function TarjetaMetrica({ icono, iconoColor, valor, etiqueta, delta }: TarjetaMetricaProps) {
   return (
-    <div className="bg-[#2D1B4E] p-6 rounded-[20px] border border-white/5 shadow-xl shadow-black/20">
+    <div className="bg-lienzo p-6 rounded-[20px] border border-white/5 shadow-xl shadow-black/20">
       <div className="flex justify-between items-start mb-4">
         <span className={`material-symbols-outlined ${iconoColor}`}>{icono}</span>
         {delta && (

@@ -141,7 +141,7 @@ export default function PanelInstitucionalPage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen text-on-background">
+    <div className="flex bg-fondo min-h-screen text-on-background">
       <Sidebar
         usuario={usuario}
         onNavegar={navegar}
@@ -168,7 +168,7 @@ export default function PanelInstitucionalPage() {
                 la Etapa 3; hasta entonces, un aviso honesto en vez de cifras
                 inventadas de una escuela que no le corresponde (sección 1.1). */}
             {!cargando && !error && datos?.sinInstitucion && (
-              <div className="bg-[#2D1B4E]/40 border border-white/5 rounded-[20px] p-12 text-center text-slate-400">
+              <div className="bg-lienzo/40 border border-white/5 rounded-[20px] p-12 text-center text-slate-400">
                 Este panel es de la dirección de un colegio. Como administrador de
                 plataforma, no ves los datos internos de las escuelas.
               </div>
@@ -199,7 +199,7 @@ export default function PanelInstitucionalPage() {
                 {/* Comunicados emitidos: acá la dirección fija/desfija (Prompt 13).
                     El pin sale de fijado_en real y es el mismo que ven las
                     familias en su portal. El servidor revalida el permiso. */}
-                <div className="mt-6 bg-[#2D1B4E]/40 border border-white/5 rounded-[20px] p-6">
+                <div className="mt-6 bg-lienzo/40 border border-white/5 rounded-[20px] p-6">
                   <h3 className="text-lg font-headline font-bold text-white mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-fuchsia-400">campaign</span>
                     Comunicados enviados
@@ -222,13 +222,13 @@ export default function PanelInstitucionalPage() {
                       <div
                         key={c.id}
                         className={`flex items-center justify-between gap-4 rounded-xl px-4 py-3 border ${
-                          c.fijado ? "border-[#C548F5]/50 bg-fuchsia-500/5" : "border-white/5 bg-black/20"
+                          c.fijado ? "border-acento/50 bg-fuchsia-500/5" : "border-white/5 bg-black/20"
                         }`}
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             {c.fijado && (
-                              <span className="material-symbols-outlined text-[#C548F5] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                              <span className="material-symbols-outlined text-acento text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                                 keep
                               </span>
                             )}
@@ -246,7 +246,7 @@ export default function PanelInstitucionalPage() {
                           onClick={() => alternarFijado(c.id, !c.fijado)}
                           className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
                             c.fijado
-                              ? "bg-fuchsia-500/15 text-[#C548F5] hover:bg-fuchsia-500/25"
+                              ? "bg-fuchsia-500/15 text-acento hover:bg-fuchsia-500/25"
                               : "bg-white/5 text-slate-300 hover:bg-white/10"
                           }`}
                         >

@@ -7,7 +7,7 @@ export interface EventoPreceptor {
     cursos?: string[];    // pills de cursos involucrados
     fecha: string;        // "25 de Mayo, 08:30hs"
     icono: string;        // material symbol para la fecha
-    destacado?: boolean;  // borde tertiary vs slate
+    destacado?: boolean;  // resalta el fondo
 }
 
 interface PanelProximosEventosProps {
@@ -17,7 +17,7 @@ interface PanelProximosEventosProps {
 
 export default function PanelProximosEventos({ eventos, onVerCalendario }: PanelProximosEventosProps) {
     return (
-        <div className="bg-[#2D1B4E] rounded-lg p-6 border border-white/5">
+        <div className="bg-lienzo rounded-lg p-6 border border-white/5">
             <h4 className="text-sm font-black font-headline text-white uppercase tracking-widest mb-6">
                 Próximos Eventos
             </h4>
@@ -26,8 +26,8 @@ export default function PanelProximosEventos({ eventos, onVerCalendario }: Panel
                 {eventos.map((evento) => (
                     <div
                         key={evento.id}
-                        className={`p-4 bg-[#1C1030]/50 rounded-lg border-l-4 ${
-                            evento.destacado ? "border-tertiary" : "border-slate-500"
+                        className={`p-4 rounded-lg ${
+                            evento.destacado ? "bg-tertiary/10" : "bg-fondo/50"
                         }`}
                     >
                         <p className="text-xs font-bold text-white mb-2">{evento.titulo}</p>
@@ -36,7 +36,7 @@ export default function PanelProximosEventos({ eventos, onVerCalendario }: Panel
                                 {evento.cursos.map((curso) => (
                                     <span
                                         key={curso}
-                                        className="px-2 py-0.5 bg-[#C548F5]/10 text-[#C548F5] text-[10px] font-bold rounded"
+                                        className="px-2 py-0.5 bg-acento/10 text-acento text-[10px] font-bold rounded"
                                     >
                                         {curso}
                                     </span>

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
+import { PESTANAS_OBJETIVOS } from "./components/shared/pestanasModulos";
 import TarjetaMetaGestion from "./components/objetivos/TarjetaMetaGestion";
 import ModalNuevaMeta from "./components/objetivos/ModalNuevaMeta";
 import ModalDetalleMeta from "./components/objetivos/ModalDetalleMeta";
@@ -22,15 +23,6 @@ import { Cargando, Fallo } from "./components/shared/EstadoCarga";
 // El calculador de fechas único (`servicios/fechas`) hace que una meta vencida
 // se vea vencida, y el resumen semanal deja de ser un promedio simple: lo
 // calcula el servidor comparando la semana con la anterior (Error 2.D.10).
-
-const SUBNAV = [
-  { label: "Dashboard", ruta: "/objetivos" },
-  { label: "Mis Metas", ruta: "/objetivos/metas" },
-  { label: "Hábitos", ruta: "/objetivos/habitos" },
-  { label: "Competencias", ruta: "/objetivos/competencias" },
-];
-
-const RUTA_ACTIVA = "/objetivos/metas";
 
 type FiltroEstado = "todas" | "en-curso" | "completada";
 
@@ -137,32 +129,13 @@ export default function MisMetasPage() {
   const offsetSemanal = CIRC * (1 - progresoSemanal / 100);
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen text-on-surface overflow-hidden">
+    <div className="flex bg-fondo min-h-screen text-on-surface overflow-x-clip">
       <Sidebar usuario={usuario} onNavegar={handleNavegar} onCerrarSesion={handleCerrarSesion} />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen relative">
-        <TopBar title="Objetivos Personales" subtitle="Mis Metas" />
+        <TopBar title="Objetivos Personales" pestanas={PESTANAS_OBJETIVOS} />
 
-        <div className="flex gap-6 items-center px-8 h-12 border-b border-purple-900/20 bg-[#1C1030]/60">
-          {SUBNAV.map((tab) => {
-            const activa = tab.ruta === RUTA_ACTIVA;
-            return (
-              <button
-                key={tab.ruta}
-                onClick={() => handleNavegar(tab.ruta)}
-                className={`pb-1 font-headline text-sm font-medium transition-all ${
-                  activa
-                    ? "text-[#C548F5] border-b-2 border-[#C548F5] font-bold"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex-1 overflow-y-auto bg-[#190d2d] p-8">
+        <div className="flex-1 overflow-y-auto bg-background p-8">
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <div>
@@ -175,7 +148,7 @@ export default function MisMetasPage() {
               </div>
               <button
                 onClick={() => setModalNueva(true)}
-                className="bg-[#C548F5] text-white px-6 py-2.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg shadow-purple-500/30 hover:scale-105 active:scale-95 transition-all"
+                className="bg-acento text-white px-6 py-2.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg shadow-purple-500/30 hover:scale-105 active:scale-95 transition-all"
               >
                 <span className="material-symbols-outlined text-lg">add</span>
                 Nueva Meta
@@ -201,8 +174,8 @@ export default function MisMetasPage() {
                     onClick={() => setFiltro(f.valor)}
                     className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
                       activo
-                        ? "bg-[#C548F5] text-white shadow-lg shadow-purple-500/20"
-                        : "bg-[#2D1B4E] text-slate-400 hover:text-white"
+                        ? "bg-acento text-white shadow-lg shadow-purple-500/20"
+                        : "bg-lienzo text-slate-400 hover:text-white"
                     }`}
                   >
                     {f.label} ({cuenta})
@@ -228,7 +201,7 @@ export default function MisMetasPage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-[#2D1B4E]/40 border border-white/5 rounded-[20px] p-12 text-center">
+              <div className="bg-lienzo/40 border border-white/5 rounded-[20px] p-12 text-center">
                 <span className="material-symbols-outlined text-4xl text-slate-500 mb-2">flag</span>
                 <p className="text-slate-400 text-sm">No tenés metas en esta categoría todavía.</p>
               </div>
@@ -236,9 +209,9 @@ export default function MisMetasPage() {
 
             {/* Analytics: resumen semanal (algoritmo del servidor) + próximo hito */}
             <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-[#2D1B4E]/40 border border-white/5 rounded-[20px] p-8">
+              <div className="bg-lienzo/40 border border-white/5 rounded-[20px] p-8">
                 <h3 className="text-white font-bold font-headline mb-6 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#C548F5]">insights</span>
+                  <span className="material-symbols-outlined text-acento">insights</span>
                   Resumen Semanal
                 </h3>
                 <div className="flex items-center gap-8">
@@ -246,7 +219,7 @@ export default function MisMetasPage() {
                     <svg className="w-full h-full transform -rotate-90">
                       <circle className="text-background" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" strokeWidth="8" />
                       <circle
-                        className="text-[#C548F5] transition-all duration-500"
+                        className="text-acento transition-all duration-500"
                         cx="48" cy="48" fill="transparent" r="40" stroke="currentColor"
                         strokeDasharray={CIRC} strokeDashoffset={offsetSemanal} strokeWidth="8"
                       />
@@ -261,7 +234,7 @@ export default function MisMetasPage() {
                     </p>
                     <button
                       onClick={() => setVerReporte((v) => !v)}
-                      className="text-[#C548F5] text-xs font-bold hover:underline"
+                      className="text-acento text-xs font-bold hover:underline"
                     >
                       {verReporte ? "Ocultar reporte" : "Ver reporte detallado"}
                     </button>
@@ -278,9 +251,9 @@ export default function MisMetasPage() {
               </div>
 
               {/* Próximo hito */}
-              <div className="bg-gradient-to-br from-[#4900a6]/20 to-transparent border border-[#C548F5]/10 rounded-[20px] p-8 flex flex-col justify-center">
+              <div className="bg-gradient-to-br from-[#4900a6]/20 to-transparent border border-acento/10 rounded-[20px] p-8 flex flex-col justify-center">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-[#C548F5] rounded-xl shadow-lg shadow-purple-500/40">
+                  <div className="p-3 bg-acento rounded-xl shadow-lg shadow-purple-500/40">
                     <span className="material-symbols-outlined text-white" style={{ fontVariationSettings: "'FILL' 1" }}>
                       emoji_events
                     </span>
@@ -308,7 +281,7 @@ export default function MisMetasPage() {
                     </div>
                     <div className="h-1 w-full bg-background/50 rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all ${proximoHito.dias < 3 ? "bg-red-400" : "bg-[#C548F5]"}`}
+                        className={`h-full rounded-full transition-all ${proximoHito.dias < 3 ? "bg-red-400" : "bg-acento"}`}
                         style={{ width: `${Math.min(100, Math.max(10, 100 - (proximoHito.dias / 14) * 100))}%` }}
                       />
                     </div>
@@ -357,7 +330,7 @@ export default function MisMetasPage() {
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: number }) {
   return (
-    <div className="bg-[#1C1030] rounded-lg px-3 py-2">
+    <div className="bg-fondo rounded-lg px-3 py-2">
       <p className="text-white font-bold text-lg">{valor}</p>
       <p className="text-slate-400">{etiqueta}</p>
     </div>

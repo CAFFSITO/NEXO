@@ -120,7 +120,7 @@ export default function AsistenciaIAPage() {
       : messages;
 
   return (
-    <div className="flex bg-[#1C1030] h-screen">
+    <div className="flex bg-fondo h-screen">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col h-full relative">
@@ -133,7 +133,7 @@ export default function AsistenciaIAPage() {
 
         {/* Menú de tres puntos — ahora hace algo real (Error 2.G.2) */}
         {menuAbierto && (
-          <div className="absolute right-6 top-16 z-50 bg-[#2D1B4E] border border-purple-800/40 rounded-xl shadow-xl py-1 w-56">
+          <div className="absolute right-6 top-16 z-50 bg-lienzo border border-purple-800/40 rounded-xl shadow-xl py-1 w-56">
             <button
               onClick={handleBorrar}
               className="w-full text-left px-4 py-2.5 text-sm text-red-300 hover:bg-white/5 flex items-center gap-2"
@@ -174,7 +174,7 @@ export default function AsistenciaIAPage() {
             onClick={() => setFaqAbierto(false)}
           >
             <div
-              className="bg-[#2D1B4E] border border-purple-800/40 rounded-2xl p-6 max-w-lg w-full space-y-4"
+              className="bg-lienzo border border-purple-800/40 rounded-2xl p-6 max-w-lg w-full space-y-4"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between">

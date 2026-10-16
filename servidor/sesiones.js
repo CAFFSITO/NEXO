@@ -65,6 +65,9 @@ function describirUsuario(db, fila) {
     rol: fila.rol,
     avatarUrl: fila.avatar_url ?? undefined,
   };
+  // Cuenta que todavía no entró nunca: la pantalla la recibe con la
+  // configuración de su cuenta antes que con su inicio.
+  if (fila.primer_ingreso === 1) usuario.primerIngreso = true;
 
   if (fila.rol === "estudiante") {
     const curso = db
@@ -101,12 +104,12 @@ function describirUsuario(db, fila) {
 
 export function registrarSesiones(app, db) {
   const buscarPorEmail = db.prepare(
-    `SELECT id, nombre, rol, avatar_url, hash_contrasena, estado
+    `SELECT id, nombre, rol, avatar_url, hash_contrasena, estado, primer_ingreso
        FROM usuarios
       WHERE email = ?`
   );
   const buscarPorToken = db.prepare(
-    `SELECT u.id, u.nombre, u.rol, u.avatar_url, u.estado
+    `SELECT u.id, u.nombre, u.rol, u.avatar_url, u.estado, u.primer_ingreso
        FROM sesiones s
        JOIN usuarios u ON u.id = s.usuario_id
       WHERE s.token = ?
@@ -187,7 +190,7 @@ export function usuarioDeLaSesion(db, req) {
 
   const fila = db
     .prepare(
-      `SELECT u.id, u.nombre, u.rol, u.avatar_url, u.estado, u.institucion_id
+      `SELECT u.id, u.nombre, u.rol, u.avatar_url, u.estado, u.institucion_id, u.perfil_clave, u.primer_ingreso
          FROM sesiones s
          JOIN usuarios u ON u.id = s.usuario_id
         WHERE s.token = ?
@@ -196,5 +199,7 @@ export function usuarioDeLaSesion(db, req) {
     .get(token);
 
   if (!fila || fila.estado !== "activo") return null;
-  return { ...describirUsuario(db, fila), institucionId: fila.institucion_id };
+  // perfilClave: el perfil que el Maestro diseñó para esta persona (o null =
+  // el predeterminado de su rol). Lo usa el genoma para decidir qué ve.
+  return { ...describirUsuario(db, fila), institucionId: fila.institucion_id, perfilClave: fila.perfil_clave ?? null };
 }

@@ -30,7 +30,7 @@ interface FalloProps {
 
 export function Fallo({ error, onReintentar }: FalloProps) {
   return (
-    <div role="alert" className="bg-[#2D1B4E]/40 border border-red-500/20 rounded-[14px] p-10 text-center flex flex-col items-center gap-3">
+    <div role="alert" className="bg-lienzo/40 border border-red-500/20 rounded-[14px] p-10 text-center flex flex-col items-center gap-3">
       <span className="material-symbols-outlined text-4xl text-red-400">cloud_off</span>
       {/* El texto del servidor tal cual: "no tenés permiso" y "la cocina está
           apagada" son problemas distintos y quien lee tiene que poder
@@ -39,7 +39,7 @@ export function Fallo({ error, onReintentar }: FalloProps) {
       {onReintentar && (
         <button
           onClick={onReintentar}
-          className="mt-2 px-5 py-2 rounded-full border border-[#C548F5] text-[#C548F5] text-sm font-bold hover:bg-[#C548F5]/10 transition-colors"
+          className="mt-2 px-5 py-2 rounded-full border border-acento text-acento text-sm font-bold hover:bg-acento/10 transition-colors"
         >
           Reintentar
         </button>
@@ -56,7 +56,7 @@ interface VacioProps {
 /** No hay nada que mostrar, y no es un error: la lista está vacía de verdad. */
 export function Vacio({ icono, mensaje }: VacioProps) {
   return (
-    <div className="bg-[#2D1B4E]/40 border border-white/5 rounded-[14px] p-12 text-center">
+    <div className="bg-lienzo/40 border border-white/5 rounded-[14px] p-12 text-center">
       <span className="material-symbols-outlined text-4xl text-slate-500 mb-2 block">
         {icono}
       </span>

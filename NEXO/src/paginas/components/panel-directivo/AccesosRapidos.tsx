@@ -15,7 +15,7 @@ interface AccesosRapidosProps {
 
 export default function AccesosRapidos({ accesos, onAccion }: AccesosRapidosProps) {
   return (
-    <div className="bg-[#2D1B4E] rounded-[20px] p-6 border border-white/5 shadow-lg">
+    <div className="bg-lienzo rounded-[20px] p-6 border border-white/5 shadow-lg">
       <h3 className="font-headline font-bold text-xl mb-6">Accesos rápidos</h3>
       <div className="grid grid-cols-1 gap-3">
         {accesos.map((acceso) => (

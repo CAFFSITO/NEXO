@@ -41,7 +41,7 @@ INSERT INTO usuarios (id, institucion_id, email, hash_contrasena, nombre, rol, a
   (15, 1, 'familia.lopez@sanmartin.nexo.edu', 'scrypt$16384$8$1$acb5ad7d7a804cbae3855fc32c5bbb7f$65fc306031360c9d1f1595b9daae94ec8c5a107669b065cb46da158858e9fa05', 'Familia López',           'familia',           NULL),
   (16, 1, 'biblioteca@sanmartin.nexo.edu','scrypt$16384$8$1$d56f1dd5551c677c9b26907b7e15ce28$23ccfcfe66a61071bd19ed47f11ee7ecd85067d0335bfff484a78a95aadc3ca8', 'Bruno Ledesma',               'bibliotecario',     NULL),
   (17, 1, 'centro@sanmartin.nexo.edu',    'scrypt$16384$8$1$bdca1987167225ab2d3ed3d92c0105eb$cae4a21d69e9659c16ac7977bd27b84d7922d516b4b1f413a6ff8f8c3505b863', 'Centro de Estudiantes',       'centro-estudiantes',NULL),
-  (18, NULL, 'sistema@nexo.edu',          'scrypt$16384$8$1$0a89513c81e99b07fefcf612ba574ce2$37baf3f972fb6dca7747f51e2bcbacdf409cf0c1f08934a8e56bd26c48a8a1b8', 'Administrador de Plataforma', 'administrador',     NULL);
+  (18, NULL, 'sistema@nexo.edu',          'scrypt$16384$8$1$0a89513c81e99b07fefcf612ba574ce2$37baf3f972fb6dca7747f51e2bcbacdf409cf0c1f08934a8e56bd26c48a8a1b8', 'Maestro NEXO',                'administrador',     NULL);
 
 -- ── Cursos (UNA sola verdad de preceptores: Error 13.4) ────────────────────
 INSERT INTO cursos (id, institucion_id, anio, division, preceptor_id) VALUES
@@ -230,8 +230,97 @@ INSERT INTO comentarios (usuario_id, objeto_tipo, objeto_id, contenido, creado_e
   (9,  'debate',      1, 'Si la usás para todo, no aprendés nada.',                      '2026-06-29T11:40:00'),
   (2,  'debate',      1, 'Interesante. ¿Y como herramienta de corrección entre pares?',  '2026-06-30T08:50:00');
 
+-- ── Actividad RECIENTE (relativa al día en que se crea la base) ─────────────
+-- Para que Tendencias tenga algo real que mostrar en una base nueva: una
+-- publicación que se movió en las últimas horas (muchas personas distintas) y
+-- el debate del uniforme, que sumó posturas y comentarios esta semana. Con esto
+-- el algoritmo propone la publicación a la dirección para salir a lo nacional.
+INSERT INTO publicaciones (id, institucion_id, autor_id, contenido, creado_en) VALUES
+  (6, 1, 10, '¿Armamos un club de robótica los viernes? Tengo un kit de Arduino para empezar y cualquiera puede sumarse.',
+      datetime('now', '-30 hours'));
+
+INSERT INTO votos (usuario_id, objeto_tipo, objeto_id, valor, creado_en) VALUES
+  (8,  'publicacion', 6,  1, datetime('now', '-26 hours')),
+  (9,  'publicacion', 6,  1, datetime('now', '-20 hours')),
+  (11, 'publicacion', 6,  1, datetime('now', '-9 hours')),
+  (12, 'publicacion', 6,  1, datetime('now', '-6 hours')),
+  (13, 'publicacion', 6, -1, datetime('now', '-5 hours')),
+  (2,  'publicacion', 6,  1, datetime('now', '-3 hours')),
+  (9,  'debate',      2,  1, datetime('now', '-3 days')),
+  (12, 'debate',      2,  1, datetime('now', '-2 days'));
+
+INSERT INTO comentarios (usuario_id, objeto_tipo, objeto_id, contenido, creado_en) VALUES
+  (8,  'publicacion', 6, '¡Me sumo! ¿Hace falta saber programar?',            datetime('now', '-25 hours')),
+  (10, 'publicacion', 6, 'Para nada, arrancamos de cero.',                     datetime('now', '-24 hours')),
+  (11, 'publicacion', 6, 'Podríamos usar el laboratorio después de 6ª hora.',  datetime('now', '-8 hours')),
+  (2,  'publicacion', 6, 'Cuenten conmigo para conseguir el aula.',            datetime('now', '-3 hours')),
+  (9,  'debate',      2, 'El buzo actual no abriga nada en invierno.',          datetime('now', '-3 days')),
+  (12, 'debate',      2, 'Que se pueda elegir entre dos modelos.',              datetime('now', '-2 days'));
+
+INSERT INTO debate_participantes (debate_id, usuario_id, postura, unido_en) VALUES
+  (2, 9,  'a-favor',   datetime('now', '-3 days')),
+  (2, 12, 'a-favor',   datetime('now', '-2 days')),
+  (2, 13, 'en-contra', datetime('now', '-1 days'));
+
 INSERT INTO denuncias (denunciante_id, objeto_tipo, objeto_id, motivo, creado_en) VALUES
   (11, 'publicacion', 3, 'Me parece publicidad y no una publicación de la comunidad.', '2026-07-02T14:00:00');
+
+-- ── Comunidad estilo X / Reddit ────────────────────────────────────────────
+-- Respuestas anidadas (sub-hilos): en el club de robótica, "Para nada,
+-- arrancamos de cero" le responde a "¿Hace falta saber programar?" y la
+-- profe le responde a la idea del laboratorio. En los apuntes de Biología,
+-- una conversación de tres niveles.
+UPDATE comentarios SET padre_id = 5 WHERE id = 6;
+UPDATE comentarios SET padre_id = 7 WHERE id = 8;
+INSERT INTO comentarios (id, usuario_id, objeto_tipo, objeto_id, contenido, padre_id, creado_en) VALUES
+  (11, 9, 'publicacion', 1, '¡Gracias! ¿Me los pasás también en PDF?', 1, '2026-07-01T16:30:00'),
+  (12, 10, 'publicacion', 1, 'Sí, a la noche los subo 📚', 11, '2026-07-01T17:05:00'),
+  (13, 8, 'publicacion', 1, 'Yo también los necesito 🙏', 11, '2026-07-01T18:00:00');
+
+-- Un #tema del momento (publicado hace unas horas, sin votos todavía).
+INSERT INTO publicaciones (id, institucion_id, autor_id, contenido, creado_en) VALUES
+  (7, 1, 17, 'Este viernes: muestra de proyectos del #ClubDeCiencias en el SUM. ¡Traigan preguntas! 🔬 @garcia ¿se suma tu curso?',
+      datetime('now', '-5 hours'));
+INSERT INTO menciones (objeto_tipo, objeto_id, usuario_id) VALUES ('publicacion', 7, 2);
+
+-- Reacciones con emoji (no son votos: los votos son las flechas).
+INSERT INTO reacciones (usuario_id, objeto_tipo, objeto_id, emoji) VALUES
+  (8, 'publicacion', 6, '🔥'), (9, 'publicacion', 6, '🔥'), (11, 'publicacion', 6, '🤖'),
+  (10, 'comentario', 12, '🙌');
+
+-- Quién sigue a quién (pestaña "Siguiendo").
+INSERT INTO seguimientos (seguidor_id, seguido_id) VALUES (8, 10), (8, 17), (9, 8), (10, 8), (11, 2);
+
+-- Un debate armado con bloques combinables (encuesta de varias opciones,
+-- escala, propuestas y mapa de argumentos), con resultados al participar.
+INSERT INTO debates (id, institucion_id, autor_id, titulo, descripcion, cierra_en, resultados, creado_en) VALUES
+  (3, 1, 2, '¿Cómo organizamos la Semana de las Ciencias?',
+      'Queremos armarla entre todos: qué actividades, cuánto interés hay y si conviene hacerla en horario de clase.',
+      NULL, 'al-participar', datetime('now', '-12 days'));
+INSERT INTO debate_bloques (id, debate_id, tipo, orden, titulo, config) VALUES
+  (1, 3, 'opciones', 0, '¿Qué actividades querés?', '{"opciones":[{"id":"o1","texto":"Feria de proyectos"},{"id":"o2","texto":"Charlas con científicos"},{"id":"o3","texto":"Visita al planetario"},{"id":"o4","texto":"Olimpíada de preguntas"}],"multiple":true,"maximo":2}'),
+  (2, 3, 'escala', 1, '¿Cuánto te interesa participar?', '{"minimo":1,"maximo":5,"etiquetaMin":"Nada","etiquetaMax":"Muchísimo"}'),
+  (3, 3, 'propuestas', 2, 'Propuestas para el cierre', '{"maximoPorPersona":2}'),
+  (4, 3, 'argumentos', 3, '¿La hacemos en horario de clase?', '{}');
+INSERT INTO debate_respuestas (bloque_id, usuario_id, valor, actualizado_en) VALUES
+  (1, 8, '["o1","o3"]', datetime('now', '-11 days')),
+  (1, 9, '["o1"]', datetime('now', '-11 days')),
+  (1, 10, '["o2","o3"]', datetime('now', '-10 days')),
+  (2, 8, '5', datetime('now', '-11 days')),
+  (2, 9, '3', datetime('now', '-11 days')),
+  (2, 10, '4', datetime('now', '-10 days'));
+INSERT INTO debate_aportes (id, debate_id, bloque_id, usuario_id, lado, texto, creado_en) VALUES
+  (1, 3, 3, 10, NULL, 'Una muestra de robots del club de robótica para cerrar la semana.', datetime('now', '-10 days')),
+  (2, 3, 4, 8, 'a-favor', 'En horario de clase participa todo el curso, no solo quien puede quedarse.', datetime('now', '-11 days')),
+  (3, 3, 4, 11, 'en-contra', 'Se pierden horas de materias que tienen examen esa semana.', datetime('now', '-10 days'));
+INSERT INTO debate_convencidos (aporte_id, usuario_id, creado_en) VALUES (2, 9, datetime('now', '-10 days'));
+INSERT INTO votos (usuario_id, objeto_tipo, objeto_id, valor, creado_en) VALUES
+  (9, 'aporte', 2, 1, datetime('now', '-10 days')),
+  (10, 'aporte', 1, 1, datetime('now', '-10 days')),
+  (8, 'aporte', 1, 1, datetime('now', '-10 days'));
+INSERT INTO debate_participantes (debate_id, usuario_id, postura, unido_en) VALUES
+  (3, 8, NULL, datetime('now', '-11 days')), (3, 9, NULL, datetime('now', '-11 days')),
+  (3, 10, NULL, datetime('now', '-10 days')), (3, 11, NULL, datetime('now', '-10 days'));
 
 INSERT INTO intereses_feed (usuario_id, tema) VALUES
   (8, 'historia'), (8, 'tecnología'), (8, 'deportes');
@@ -298,12 +387,21 @@ INSERT INTO eventos (id, institucion_id, creador_id, titulo, tipo, descripcion, 
   (4, 1, 17, 'Asamblea estudiantil',                 'asamblea',             'Asamblea abierta organizada por el Centro de Estudiantes.', 'SUM',     '2026-07-17', '13:30', '15:00'),
   (5, 1, 1,  'Acto por el Día de la Independencia',  'acto',                 'Acto conmemorativo del 9 de Julio.',              'Patio central',      '2026-07-07', '10:00', '11:00');
 
-INSERT INTO evento_visibilidad (evento_id, alcance, curso_id, estudiante_id) VALUES
-  (1, 'todos',                 NULL, NULL),
-  (2, 'familias-curso',        2,    NULL),   -- solo familias de 4°B; los alumnos no lo ven
-  (3, 'familia-de-estudiante', NULL, 8),      -- solo la familia de Julieta
-  (4, 'todos',                 NULL, NULL),
-  (5, 'todos',                 NULL, NULL);
+INSERT INTO evento_destinos (evento_id, tipo, valor, curso_id, rol, usuario_id) VALUES
+  (1, 'todos',      NULL, NULL, NULL,      NULL),
+  (2, 'curso',      NULL, 2,    'familia', NULL),   -- solo familias de 4°B; los alumnos no lo ven
+  (3, 'familia-de', NULL, NULL, NULL,      8),      -- solo la familia de Julieta
+  (4, 'todos',      NULL, NULL, NULL,      NULL),
+  (5, 'todos',      NULL, NULL, NULL,      NULL);
+
+-- Un evento que se repite: el taller de Matemática de 4°B, los martes, para
+-- sus alumnos y su preceptor (lo creó el Prof. García, nivel "equipo").
+INSERT INTO eventos (id, institucion_id, creador_id, titulo, tipo, descripcion, lugar, fecha, hora_inicio, hora_fin, recurrencia, recordatorios) VALUES
+  (6, 1, 2, 'Taller de repaso de Matemática', 'clase', 'Consultas abiertas antes de cada evaluación.', 'Aula 12', '2026-09-01', '15:00', '16:00',
+   '{"frecuencia":"semanal","intervalo":1,"dias":[2],"hasta":"2026-12-15","saltarFeriados":true}', '[60]');
+INSERT INTO evento_destinos (evento_id, tipo, valor, curso_id, rol, usuario_id) VALUES
+  (6, 'curso', NULL, 2, 'estudiante', NULL),
+  (6, 'curso', NULL, 2, 'preceptor',  NULL);
 
 INSERT INTO feriados (fecha, nombre) VALUES
   ('2026-06-20', 'Paso a la Inmortalidad del Gral. Manuel Belgrano'),
@@ -435,3 +533,44 @@ INSERT INTO votos (usuario_id, objeto_tipo, objeto_id, valor, creado_en) VALUES
   (8,  'recurso', 5, 1, '2026-07-14T16:00:00'),
   (10, 'recurso', 5, 1, '2026-07-15T10:30:00');
 
+
+-- ── Anuncios obligatorios (dirección ↔ preceptoría) ────────────────────────
+-- Tres grupos de difusión, uno de cada tipo, y algunos avisos: al entrar, la
+-- directora (1) y los preceptores (6 y 7) encuentran tarjetas sin leer.
+INSERT INTO anuncio_grupos (id, institucion_id, nombre, descripcion, tipo, color, creado_por, creado_en) VALUES
+  (1, 1, 'Dirección a Preceptoría', 'Lo que la dirección necesita que toda la preceptoría sepa.', 'uno-a-muchos',    '#2563eb', 1, datetime('now', '-20 days')),
+  (2, 1, 'Consultas a la Dirección', 'Un solo lugar para escribirle a la directora.',             'muchos-a-uno',    '#059669', 1, datetime('now', '-20 days')),
+  (3, 1, 'Equipo de conducción',     'Dirección y preceptores, todos con todos.',                  'muchos-a-muchos', '#d97706', 1, datetime('now', '-20 days'));
+
+INSERT INTO anuncio_grupo_miembros (grupo_id, usuario_id, papel) VALUES
+  (1, 1, 'emisor'),  (1, 6, 'receptor'), (1, 7, 'receptor'),
+  (2, 6, 'emisor'),  (2, 7, 'emisor'),   (2, 1, 'receptor'),
+  (3, 1, 'miembro'), (3, 6, 'miembro'),  (3, 7, 'miembro');
+
+INSERT INTO anuncios (id, institucion_id, autor_id, grupo_id, cuerpo, creado_en) VALUES
+  (1, 1, 1, 1, 'Mañana a las 7:30 hay reunión de preceptoría en la sala de profesores. Traigan las planillas de asistencia de septiembre completas.', datetime('now', '-1 day')),
+  (2, 1, 1, 1, 'Protocolo de retiro anticipado de estudiantes (vigente desde hoy)
+
+1. Solo pueden retirar a un estudiante las personas que figuran en su ficha como autorizadas. Pidan siempre el DNI y compárenlo con la ficha, aunque conozcan a la persona.
+
+2. Cada retiro se anota en el libro de preceptoría con hora, nombre de quien retira, vínculo y firma. Sin firma no hay retiro.
+
+3. Si quien viene a buscar al estudiante no está autorizado, no se entrega al estudiante: se llama a la familia desde el teléfono de la escuela (no desde un celular personal) y se avisa a la dirección.
+
+4. Si el retiro es por un malestar o un golpe, primero pasa por la enfermería y queda registrado en el parte del día, aunque la familia ya esté en la puerta.
+
+5. Los estudiantes de 1° y 2° año no pueden retirarse solos bajo ninguna circunstancia, aunque traigan una nota firmada.
+
+6. Al final de cada turno, mándenme por este mismo canal la cantidad de retiros del día y si hubo alguna situación fuera de lo común.
+
+Gracias por sostener esto todos los días. Es la forma de cuidar a los chicos y de cuidarnos entre nosotros.', datetime('now', '-3 hours')),
+  (3, 1, 6, 2, 'Ana: hoy 4°B tiene 9 ausentes por el corte del colectivo 152. Ya avisé a las familias por comunicado. ¿Tomamos la evaluación de Matemática igual o la pasamos al viernes?', datetime('now', '-40 minutes')),
+  (4, 1, 7, NULL, 'Carlos, ¿me cubrís el recreo largo del jueves? Tengo que acompañar a 3°A a la salida al museo y volvemos 11:30.', datetime('now', '-15 minutes'));
+
+INSERT INTO anuncio_destinatarios (anuncio_id, usuario_id, leido_en, reaccion, reaccion_en) VALUES
+  (1, 6, datetime('now', '-20 hours'), '👍', datetime('now', '-20 hours')),
+  (1, 7, NULL, NULL, NULL),
+  (2, 6, NULL, NULL, NULL),
+  (2, 7, NULL, NULL, NULL),
+  (3, 1, NULL, NULL, NULL),
+  (4, 6, NULL, NULL, NULL);

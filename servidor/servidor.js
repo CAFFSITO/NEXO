@@ -25,6 +25,8 @@
 //   /api/calendario   → eventos y feriados             (calendario.js)
 //   /api/comunicados  → comunicados a familias         (calendario.js)
 //   /api/panel/*      → el panel de la dirección       (panel.js)
+//   /api/anuncios/*   → avisos obligatorios y grupos   (anuncios.js)
+//   /api/push/*       → suscripciones a notificaciones push (push.js)
 //
 // Ventanillas de ESCRITURA de la Etapa 4 (el primer circuito completo):
 //   /api/archivos     → subir y bajar archivos con permiso (archivos.js, 14.19)
@@ -68,6 +70,13 @@ import { crearMensajero, conectarMensajero } from "./tiempo-real.js";
 import { crearNotificaciones, registrarNotificaciones } from "./notificaciones.js";
 import { registrarGestionAcademica } from "./gestion-academica.js";
 import { migrarBase } from "./migraciones.js";
+import { crearGuardiaInstancia, registrarInstancia } from "./instancia.js";
+import { registrarMaestro } from "./maestro.js";
+import { crearMotorFlujos } from "./flujos.js";
+import { crearMotorTendencias, registrarTendencias } from "./tendencias.js";
+import { registrarEdicion } from "./edicion.js";
+import { crearPush, registrarPush } from "./push.js";
+import { registrarAnuncios } from "./anuncios.js";
 
 const carpeta = dirname(fileURLToPath(import.meta.url));
 const rutaBase = process.env.NEXO_DB_PATH || join(carpeta, "..", "base-de-datos", "nexo.db");
@@ -108,6 +117,10 @@ app.use("/api", (_req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
   next();
 });
+// El estudio del Maestro manda genomas completos (con todos sus grafos de
+// nodos): su propio tope, más amplio. Va antes que el general para que el cuerpo
+// ya llegue leído y el tope de 100 KB del resto de la API no cambie.
+app.use("/api/maestro", express.json({ limit: "2mb" }));
 app.use(express.json()); // entender pedidos con cuerpo en formato JSON
 
 // El mensajero (Etapa 6): el "tubo" en vivo para chat y notificaciones. Se crea
@@ -115,6 +128,13 @@ app.use(express.json()); // entender pedidos con cuerpo en formato JSON
 // notificaciones, para empujar avisos). Se engancha al servidor HTTP más abajo.
 const mensajero = crearMensajero();
 const notificaciones = crearNotificaciones(db, mensajero);
+
+// El genoma de cada escuela (perfil Maestro). La guardia va ANTES de todas las
+// ventanillas: frena los pedidos a módulos ocultos o funciones apagadas en la
+// escuela de quien pide, y le avisa al motor de flujos de nodos cuando una
+// escritura terminó bien (para que reaccionen los flujos que la esperan).
+const motorFlujos = crearMotorFlujos(db, notificaciones);
+app.use(crearGuardiaInstancia(db, motorFlujos));
 
 // ── 3. Primera ventanilla de prueba: ¿está viva la cocina? ──────────────────
 app.get("/api/salud", (_req, res) => {
@@ -163,7 +183,14 @@ registrarObjetivos(app, db);
 // Diario reflexivo del docente (Errores 3.C.3 y 3.C.6): crear/editar/borrar y que
 // los registros sobrevivan a la recarga, contra diario_registros. Permiso por fila.
 registrarDiario(app, db);
-registrarComunidad(app, db);
+// Comunidad estilo X / Reddit y debates por bloques. Recibe las notificaciones
+// para avisar respuestas, menciones, reposts, citas, seguidores y debates.
+registrarComunidad(app, db, notificaciones);
+// Tendencias de la escuela (algoritmo del genoma) y nacionales (algoritmo de
+// plataforma, solo con lo que aprobó cada dirección). El motor también propone
+// a cada dirección lo mejor de su escuela para salir a lo nacional.
+const motorTendencias = crearMotorTendencias(db, notificaciones);
+registrarTendencias(app, db, motorTendencias, notificaciones);
 // Biblioteca (Etapa 7): además de leer, ahora presenta recursos, arma la cola de
 // revisión y aprueba/rechaza avisando al que presentó (14.11). Por eso recibe el
 // servicio de notificaciones.
@@ -181,11 +208,19 @@ registrarNotificaciones(app, db);
 // permisos por rol y capas de visibilidad, y los comunicados se pueden emitir,
 // marcar leídos y responder por chat privado (14.12 y 14.13). Recibe el servicio
 // de notificaciones para avisar a las familias.
-registrarCalendario(app, db, notificaciones);
+const motorRecordatorios = registrarCalendario(app, db, notificaciones);
 registrarPanel(app, db);
 // Panel del administrador de plataforma: separado del de la dirección (Etapa 3,
 // sección 5). Solo instituciones, salud y logs_sistema.
 registrarPlataforma(app, db);
+// Perfil MAESTRO: el estudio donde se forjan y diseñan las instancias (genoma,
+// nodos, simulación y aprobación por probabilidad), y la vista de la instancia
+// desde adentro (lo que dibuja la vidriera y lo que la dirección desoculta).
+registrarMaestro(app, db);
+registrarInstancia(app, db);
+// Modo edición de la dirección: jerarquía del menú, módulos, sus funciones y sus
+// algoritmos (con vista previa sobre los datos reales de la escuela).
+registrarEdicion(app, db, motorTendencias);
 // Reportes y expedientes de la dirección (Etapa 8, 14.18): casillas → archivo
 // descargable de verdad. Recibe `carpeta` para guardar el archivo generado en el
 // mismo almacén que las subidas (reutiliza archivos.js).
@@ -201,6 +236,15 @@ registrarAsistenciaIA(app, db);
 // Recibe el mensajero (para empujar trazos, pulso, etapas y la alerta) y las
 // notificaciones.
 registrarAula(app, db, mensajero, notificaciones);
+// Notificaciones push propias (Web Push cifrado, sin librerías): para que un
+// aviso suene en el celular o la computadora aunque NEXO esté cerrado.
+const push = crearPush(db);
+registrarPush(app, db, push);
+// Anuncios obligatorios entre la dirección y la preceptoría: tarjetas que hay
+// que leer para seguir usando NEXO, por grupos de difusión o a una persona.
+// Recibe el mensajero (la tarjeta aparece en vivo) y el push (suena aunque NEXO
+// esté cerrado, e insiste mientras no se lea).
+const motorAnuncios = registrarAnuncios(app, db, mensajero, push);
 
 app.use("/api", (_req, res) => {
   res.status(404).json({ error: "Ese servicio no existe en NEXO." });
@@ -265,12 +309,23 @@ const sockets = conectarMensajero(servidor, db, mensajero);
 // Mantenimiento del calendario (Error 6.E.7): borra los eventos pasados con más
 // de un año al arrancar y una vez por día. El temporizador no impide el apagado.
 programarLimpiezaEventos(db);
+// Recordatorios del calendario: cada minuto avisa lo que está por empezar.
+motorRecordatorios.programar();
 
 // Mantenimiento de la papelera de perfiles (Error 6.B.5, sección 14.17): purga
 // los perfiles con más de 7 días en la papelera al arrancar y cada seis horas,
 // dejando el rastro 'purgado' en papelera_movimientos. Ya no depende de que la
 // dirección abra la lista. El temporizador tampoco impide el apagado.
 programarPurgaPapelera(db);
+
+// El reloj de los flujos de nodos con disparador «Todos los días a…».
+motorFlujos.iniciarReloj();
+
+// Propuestas a lo nacional: una pasada al arrancar y otra cada 20 minutos.
+motorTendencias.programarPropuestas();
+
+// Anuncios sin leer: cada minuto revisa a quién hay que volver a avisarle por push.
+motorAnuncios.programar();
 
 const esquema = usaTls ? "https" : "http";
 const esquemaWs = usaTls ? "wss" : "ws";

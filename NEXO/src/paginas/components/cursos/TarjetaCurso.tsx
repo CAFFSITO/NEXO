@@ -8,19 +8,22 @@
 
 export type { Curso } from "../../../servicios/perfiles";
 import type { Curso } from "../../../servicios/perfiles";
+import { iconoTurno } from "../../../servicios/gestionAcademica";
 
 interface TarjetaCursoProps {
   curso: Curso;
   onVerDetalle: (id: string) => void;
+  /** false = la escuela no usa alumnos ni materias en los cursos. */
+  conAlumnos?: boolean;
 }
 
-export default function TarjetaCurso({ curso, onVerDetalle }: TarjetaCursoProps) {
+export default function TarjetaCurso({ curso, onVerDetalle, conAlumnos = true }: TarjetaCursoProps) {
   const sinPreceptor = curso.preceptor === null;
   const etiqueta = `${curso.anio}°${curso.division}`;
 
   return (
     <div
-      className={`bg-[#2D1B4E] p-6 rounded-[14px] transition-all group flex flex-col justify-between relative overflow-hidden ${
+      className={`bg-lienzo p-6 rounded-[14px] transition-all group flex flex-col justify-between relative overflow-hidden ${
         sinPreceptor
           ? "border-2 border-error/50 hover:border-error"
           : "border border-surface-variant hover:border-primary/40"
@@ -47,6 +50,25 @@ export default function TarjetaCurso({ curso, onVerDetalle }: TarjetaCursoProps)
           )}
         </div>
 
+        {(curso.turno || curso.especialidad) && (
+          <div className="flex flex-wrap gap-2 -mt-1 mb-4">
+            {curso.turno && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-on-surface-variant">
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">
+                  {iconoTurno(curso.turno.nombre)}
+                </span>
+                Turno {curso.turno.nombre.toLowerCase()}
+              </span>
+            )}
+            {curso.especialidad && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-on-surface-variant">
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">engineering</span>
+                {curso.especialidad.nombre}
+              </span>
+            )}
+          </div>
+        )}
+
         {sinPreceptor && (
           <div className="bg-error/10 text-error p-3 rounded-lg text-xs font-bold mb-4 flex items-center gap-2">
             <span className="material-symbols-outlined text-xs">error</span>
@@ -61,14 +83,18 @@ export default function TarjetaCurso({ curso, onVerDetalle }: TarjetaCursoProps)
               <span className="text-sm">{curso.preceptor}</span>
             </div>
           )}
-          <div className="flex items-center gap-2 text-on-surface-variant">
-            <span className="material-symbols-outlined text-sm">groups</span>
-            <span className="text-sm">{curso.estudiantes} estudiantes</span>
-          </div>
-          <div className="flex items-center gap-2 text-on-surface-variant">
-            <span className="material-symbols-outlined text-sm">book</span>
-            <span className="text-sm">{curso.materias} materias</span>
-          </div>
+          {conAlumnos && (
+            <>
+              <div className="flex items-center gap-2 text-on-surface-variant">
+                <span className="material-symbols-outlined text-sm">groups</span>
+                <span className="text-sm">{curso.estudiantes} estudiantes</span>
+              </div>
+              <div className="flex items-center gap-2 text-on-surface-variant">
+                <span className="material-symbols-outlined text-sm">book</span>
+                <span className="text-sm">{curso.materias} materias</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

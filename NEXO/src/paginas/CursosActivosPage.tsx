@@ -17,7 +17,7 @@ export default function CursosActivosPage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#190d2d] min-h-screen text-on-background">
+    <div className="flex bg-background min-h-screen text-on-background">
       <Sidebar
         usuario={usuario}
         onNavegar={navegar}

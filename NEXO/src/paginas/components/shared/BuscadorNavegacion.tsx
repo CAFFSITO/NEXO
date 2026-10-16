@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { accesosDeRol } from "./navegacionItems";
+import { useInstancia } from "../../../servicios/instancia";
 import type { Rol } from "./roles";
 
 export default function BuscadorNavegacion({ rol, onCerrar, onNavegar }: {
   rol: Rol; onCerrar: () => void; onNavegar: (ruta: string) => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const { instancia } = useInstancia();
   const [busqueda, setBusqueda] = useState("");
   useEffect(() => { dialog.current?.showModal(); }, []);
   const normalizar = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  const items = accesosDeRol(rol).filter(i => normalizar(i.label).includes(normalizar(busqueda)));
+  const items = accesosDeRol(rol, instancia).filter(i => normalizar(i.label).includes(normalizar(busqueda)));
   return <dialog ref={dialog} className="nexo-search-dialog" onCancel={onCerrar} onClose={onCerrar}
     onClick={e => { if (e.target === e.currentTarget) onCerrar(); }} aria-labelledby="buscar-titulo">
     <div className="p-5">

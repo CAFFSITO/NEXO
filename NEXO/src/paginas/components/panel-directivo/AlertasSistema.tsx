@@ -19,7 +19,7 @@ interface AlertasSistemaProps {
 
 export default function AlertasSistema({ alertas, onIr }: AlertasSistemaProps) {
   return (
-    <div className="bg-[#2D1B4E] rounded-[20px] p-6 border border-white/5 shadow-lg">
+    <div className="bg-lienzo rounded-[20px] p-6 border border-white/5 shadow-lg">
       <h3 className="font-headline font-bold text-xl mb-4 flex items-center">
         <span className="material-symbols-outlined mr-3 text-[#FACC15]">warning</span>
         Alertas del sistema
@@ -32,7 +32,7 @@ export default function AlertasSistema({ alertas, onIr }: AlertasSistemaProps) {
           {alertas.map((alerta) => (
             <div
               key={alerta.id}
-              className="flex items-center p-4 bg-slate-900/30 rounded-xl border-l-4 border-[#FACC15]"
+              className="flex items-center p-4 bg-slate-900/30 rounded-xl"
             >
               <span className="material-symbols-outlined text-[#FACC15] mr-4">{alerta.icono}</span>
               <p className="text-sm font-medium text-slate-200">{alerta.mensaje}</p>

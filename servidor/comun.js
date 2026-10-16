@@ -14,6 +14,7 @@
 
 import { usuarioDeLaSesion } from "./sesiones.js";
 import { puedeVer } from "./permisos.js";
+import { paginaVisible } from "./genoma.js";
 
 /**
  * Portero de las ventanillas de datos.
@@ -37,6 +38,13 @@ export function exigirAcceso(db, req, res, pagina) {
 
   if (!puedeVer(usuario.rol, pagina)) {
     res.status(403).json({ error: "No tenés permiso para ver esta sección." });
+    return null;
+  }
+
+  // Segunda capa: el genoma de la escuela. El rol puede ver la pantalla, pero
+  // el Maestro pudo haber ocultado su módulo (para todos o para este perfil).
+  if (!paginaVisible(db, usuario, pagina)) {
+    res.status(403).json({ error: "Esta sección está oculta en tu institución.", codigo: "modulo-oculto" });
     return null;
   }
 
@@ -110,6 +118,22 @@ export function estaInscripto(db, estudianteId, cursoId) {
     )
     .get(estudianteId, cursoId);
   return fila !== undefined;
+}
+
+/**
+ * Cuántas horas pasaron desde una fecha de la base. SQLite guarda
+ * "YYYY-MM-DD HH:MM:SS" en UTC (sin la 'T' ni la 'Z'); también acepta ISO o
+ * una fecha sola. Lo usan los algoritmos del genoma (orden del feed y del
+ * catálogo). Nunca devuelve negativo: lo programado a futuro cuenta como recién.
+ */
+export function antiguedadEnHoras(valor, ahora = Date.now()) {
+  if (!valor) return 0;
+  const texto = String(valor);
+  const ms = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(texto)
+    ? Date.parse(texto.replace(" ", "T") + "Z")
+    : Date.parse(texto);
+  if (Number.isNaN(ms)) return 0;
+  return Math.max(0, (ahora - ms) / 3_600_000);
 }
 
 /** Fecha de hoy en el mismo formato que guarda la base ("2026-07-16"). */

@@ -3,7 +3,7 @@ import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
 import TarjetaCurso, { type Curso, type TemaCurso } from "./components/portafolio/TarjetaCurso";
-import SubNavPortafolio from "./components/portafolio/SubNavPortafolio";
+import { PESTANAS_PORTAFOLIO } from "./components/shared/pestanasModulos";
 import { useMisClases, type ClaseEstudiante } from "../servicios/aula";
 import { usePortafolio, type TareaAcademica } from "../servicios/portafolio";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
@@ -76,7 +76,7 @@ export default function MisCursosEstudiantePage() {
         handleNavegar(`/portafolio/materia?catedra=${catedraId}`);
 
     return (
-        <div className="flex bg-[#1C1030] min-h-screen">
+        <div className="flex bg-fondo min-h-screen">
             <Sidebar
                 usuario={usuario}
                 onNavegar={handleNavegar}
@@ -84,13 +84,10 @@ export default function MisCursosEstudiantePage() {
             />
 
             <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-                <TopBar title="Mis Cursos & Aula Virtual" />
+                {/* Mismas pestañas que Mis Tareas y Calificaciones, para poder ir y volver. */}
+                <TopBar title="Portafolio de aprendizaje" pestanas={PESTANAS_PORTAFOLIO} />
 
-                {/* Sub-navegación del módulo: la misma barra que Mis Tareas y
-                    Calificaciones, para poder ir y volver (antes faltaba acá). */}
-                <SubNavPortafolio rutaActiva="/portafolio/mis-cursos" />
-
-                <div className="flex-1 overflow-y-auto bg-[#190d2d]">
+                <div className="flex-1 overflow-y-auto bg-background">
                     <div className="p-8 max-w-7xl mx-auto w-full space-y-16">
                         {/* ── SECCIÓN 1: MIS CURSOS ── */}
                         <section className="space-y-8" id="mis-cursos">

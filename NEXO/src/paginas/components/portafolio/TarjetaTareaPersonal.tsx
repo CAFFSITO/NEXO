@@ -15,7 +15,7 @@ export default function TarjetaTareaPersonal({
   onEliminar,
 }: TarjetaTareaPersonalProps) {
   return (
-    <div className="bg-[#2D1B4E] rounded-[14px] p-6 hover:shadow-xl transition-all border border-transparent hover:border-[#4900a6]/50">
+    <div className="bg-lienzo rounded-[14px] p-6 hover:shadow-xl transition-all border border-transparent hover:border-[#4900a6]/50">
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <div className="flex items-center gap-4 min-w-0">
           {/* Checkbox */}
@@ -25,8 +25,8 @@ export default function TarjetaTareaPersonal({
             aria-label={tarea.completada ? "Marcar como pendiente" : "Marcar como completada"}
             className={`w-6 h-6 shrink-0 border-2 rounded flex items-center justify-center transition-colors ${
               tarea.completada
-                ? "bg-[#C548F5] border-[#C548F5]"
-                : "border-slate-500 hover:border-[#C548F5]"
+                ? "bg-acento border-acento"
+                : "border-slate-500 hover:border-acento"
             }`}
           >
             {tarea.completada && (
@@ -55,7 +55,7 @@ export default function TarjetaTareaPersonal({
           <button
             onClick={() => onEditar(tarea)}
             aria-label="Editar tarea personal"
-            className="text-slate-500 hover:text-[#C548F5] transition-colors p-2"
+            className="text-slate-500 hover:text-acento transition-colors p-2"
           >
             <span className="material-symbols-outlined">edit</span>
           </button>

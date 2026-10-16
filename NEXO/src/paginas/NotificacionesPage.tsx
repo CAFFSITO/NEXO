@@ -28,6 +28,12 @@ const RUTA_POR_OBJETO: Record<string, string> = {
   comunicado: "/comunicados",
   recurso: "/biblioteca/cola-revision",
   evento: "/comunidad/calendario",
+  // Propuestas y aprobaciones de tendencias nacionales.
+  tendencia: "/comunidad/tendencias",
+  // Comunidad estilo X / Reddit: la publicación, el perfil o el debate se abren solos.
+  publicacion: "/comunidad",
+  usuario: "/comunidad",
+  debate: "/comunidad/debates",
 };
 
 const ICONO_POR_TIPO: Record<string, string> = {
@@ -36,7 +42,18 @@ const ICONO_POR_TIPO: Record<string, string> = {
   comunicado: "announcement",
   recurso: "menu_book",
   evento: "event",
+  // Recordatorios del calendario (minutos antes de cada evento).
+  recordatorio: "alarm",
+  respuesta: "reply",
+  mencion: "alternate_email",
+  repost: "repeat",
+  cita: "format_quote",
+  seguidor: "person_add",
+  debate: "forum",
   denuncia: "flag",
+  // Avisos de los flujos de nodos que diseñó el Maestro para la escuela.
+  flujo: "account_tree",
+  tendencia: "local_fire_department",
 };
 
 export default function NotificacionesPage() {
@@ -89,7 +106,7 @@ export default function NotificacionesPage() {
   };
 
   return (
-    <div className="flex bg-[#190d2d] min-h-screen text-on-background">
+    <div className="flex bg-background min-h-screen text-on-background">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
@@ -135,7 +152,7 @@ export default function NotificacionesPage() {
                   onClick={() => abrir(n)}
                   className={`w-full text-left flex items-start gap-4 p-4 rounded-lg border transition ${
                     n.leida
-                      ? "bg-[#1C1030] border-[#3b2f50] hover:bg-[#2D1B4E]/40"
+                      ? "bg-fondo border-[#3b2f50] hover:bg-lienzo/40"
                       : "bg-primary/10 border-primary/40 hover:bg-primary/20"
                   }`}
                 >

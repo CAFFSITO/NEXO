@@ -15,7 +15,7 @@ export default function SearchAndFilter({ onSearch, onFilter }: SearchAndFilterP
   };
 
   return (
-    <div className="bg-[#2D1B4E]/30 p-2 rounded-full mb-8 flex items-center gap-4 border border-[#2D1B4E]">
+    <div className="bg-lienzo/30 p-2 rounded-full mb-8 flex items-center gap-4 border border-lienzo">
       <div className="flex-1 flex items-center gap-3 px-4">
         <span className="material-symbols-outlined text-gray-400">search</span>
         <input
@@ -26,10 +26,10 @@ export default function SearchAndFilter({ onSearch, onFilter }: SearchAndFilterP
           onChange={handleSearch}
         />
       </div>
-      <div className="h-6 w-px bg-[#2D1B4E]"></div>
+      <div className="h-6 w-px bg-lienzo"></div>
       <button
         onClick={onFilter}
-        className="flex items-center gap-2 px-4 py-2 bg-[#2D1B4E] rounded-full text-xs font-bold text-on-surface hover:bg-[#4900a6] transition-colors"
+        className="flex items-center gap-2 px-4 py-2 bg-lienzo rounded-full text-xs font-bold text-on-surface hover:bg-[#4900a6] transition-colors"
       >
         <span className="material-symbols-outlined text-sm">filter_list</span>
         <span>Filtrar</span>

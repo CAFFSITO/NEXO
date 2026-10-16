@@ -27,11 +27,11 @@ export default function AulaVirtualEstudiantePage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen">
+    <div className="flex bg-fondo min-h-screen">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <TopBar title="Aula Virtual" subtitle={claseActiva ? "En vivo" : undefined} />
-        <div className="flex-1 overflow-y-auto bg-[#190d2d] p-6">
+        <div className="flex-1 overflow-y-auto bg-background p-6">
           {claseActiva ? (
             <SalaClase key={claseActiva} claseId={claseActiva} onSalir={() => navegar("/aula-virtual")} />
           ) : (

@@ -6,7 +6,7 @@ import TarjetaTarea from "./components/portafolio/TarjetaTarea";
 import TarjetaTareaPersonal from "./components/portafolio/TarjetaTareaPersonal";
 import ModalNuevaTareaPersonal from "./components/portafolio/ModalNuevaTareaPersonal";
 import ModalDetalleTarea from "./components/shared/tareas/ModalDetalleTarea";
-import SubNavPortafolio from "./components/portafolio/SubNavPortafolio";
+import { PESTANAS_PORTAFOLIO } from "./components/shared/pestanasModulos";
 import {
   estadoEfectivo,
   FILTROS,
@@ -172,7 +172,7 @@ export default function MisTareasEstudiantePage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen text-on-surface overflow-hidden">
+    <div className="flex bg-fondo min-h-screen text-on-surface overflow-x-clip">
       <Sidebar
         usuario={usuario}
         onNavegar={handleNavegar}
@@ -180,12 +180,9 @@ export default function MisTareasEstudiantePage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen relative">
-        <TopBar title="Portafolio de aprendizaje" subtitle="Mis Tareas" />
+        <TopBar title="Portafolio de aprendizaje" pestanas={PESTANAS_PORTAFOLIO} />
 
-        {/* Sub-navegación del módulo */}
-        <SubNavPortafolio rutaActiva="/portafolio/mis-tareas" />
-
-        <div className="flex-1 overflow-y-auto bg-[#190d2d] p-8">
+        <div className="flex-1 overflow-y-auto bg-background p-8">
           <div className="max-w-6xl mx-auto">
             {errorPersonal && <p role="alert" className="mb-4 rounded-xl bg-red-500/10 p-4 text-sm text-red-300">{errorPersonal}</p>}
             {objetivoNoDisponible && (
@@ -219,7 +216,7 @@ export default function MisTareasEstudiantePage() {
                   setPersonalEditando(null);
                   setModalAbierto(true);
                 }}
-                className="px-6 py-2.5 border-2 border-[#C548F5] text-[#C548F5] font-bold rounded-full hover:bg-[#C548F5]/10 transition-colors flex items-center gap-2"
+                className="px-6 py-2.5 border-2 border-acento text-acento font-bold rounded-full hover:bg-acento/10 transition-colors flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-sm">add</span>
                 Nueva tarea personal
@@ -238,7 +235,7 @@ export default function MisTareasEstudiantePage() {
                     value={busqueda}
                     onChange={(e) => setBusqueda(e.target.value)}
                     placeholder="Buscar tareas..."
-                    className="w-full bg-[#2D1B4E] border-none rounded-[10px] py-3 pl-12 pr-4 text-white placeholder-slate-400 focus:ring-2 focus:ring-[#C548F5] transition-all"
+                    className="w-full bg-lienzo border-none rounded-[10px] py-3 pl-12 pr-4 text-white placeholder-slate-400 focus:ring-2 focus:ring-acento transition-all"
                   />
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -250,8 +247,8 @@ export default function MisTareasEstudiantePage() {
                         onClick={() => setFiltro(f.valor)}
                         className={`px-5 py-2 rounded-full text-sm transition-colors ${
                           activo
-                            ? "bg-[#C548F5] text-white font-bold"
-                            : "bg-[#2D1B4E] text-slate-300 font-medium hover:bg-[#3d2568]"
+                            ? "bg-acento text-white font-bold"
+                            : "bg-lienzo text-slate-300 font-medium hover:bg-[#3d2568]"
                         }`}
                       >
                         {f.label} ({conteos[f.valor]})
@@ -262,7 +259,7 @@ export default function MisTareasEstudiantePage() {
               </div>
               <button
                 onClick={() => setOrden((o) => (o === "fecha" ? "materia" : "fecha"))}
-                className="flex items-center gap-2 text-slate-300 hover:text-white bg-[#2D1B4E] px-4 py-2 rounded-full transition-colors"
+                className="flex items-center gap-2 text-slate-300 hover:text-white bg-lienzo px-4 py-2 rounded-full transition-colors"
               >
                 <span className="text-sm font-medium">
                   Ordenar por {orden === "fecha" ? "fecha" : "materia"}
@@ -277,7 +274,7 @@ export default function MisTareasEstudiantePage() {
             ) : error ? (
               <Fallo error={error} onReintentar={recargar} />
             ) : sinResultados ? (
-              <div className="bg-[#2D1B4E]/40 border border-white/5 rounded-[14px] p-12 text-center">
+              <div className="bg-lienzo/40 border border-white/5 rounded-[14px] p-12 text-center">
                 <span className="material-symbols-outlined text-4xl text-slate-500 mb-2">
                   task_alt
                 </span>
@@ -315,7 +312,7 @@ export default function MisTareasEstudiantePage() {
 
       {/* Fondo decorativo */}
       <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute -top-[20%] -right-[10%] w-[600px] h-[600px] bg-[#C548F5] rounded-full blur-[150px] opacity-[0.03]" />
+        <div className="absolute -top-[20%] -right-[10%] w-[600px] h-[600px] bg-acento rounded-full blur-[150px] opacity-[0.03]" />
         <div className="absolute -bottom-[20%] -left-[10%] w-[500px] h-[500px] bg-[#4900a6] rounded-full blur-[120px] opacity-[0.05]" />
       </div>
 

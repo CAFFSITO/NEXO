@@ -16,7 +16,7 @@
 // sin invalidar las contraseñas ya guardadas.
 // ============================================================================
 
-import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
+import { randomBytes, randomInt, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
 const scryptAsync = promisify(scrypt);
@@ -54,6 +54,32 @@ export function validarContrasena(contrasenaPlana) {
     return "La contraseña no puede ser solamente espacios.";
   }
   return null;
+}
+
+// Títulos que no son el nombre: "Dra. Vera Rubin" entra como "vera", no "dra".
+const TITULOS = new Set(["dr", "dra", "prof", "profe", "lic", "ing", "sr", "sra", "srta"]);
+
+/**
+ * La contraseña con la que una cuenta nueva entra por primera vez: el primer
+ * nombre de la persona, en minúsculas y sin tildes, y unos números al azar
+ * ("vera4821"). Es sencilla A PROPÓSITO: quien la recibe (muchas veces un adulto
+ * que no se lleva bien con la informática) tiene que poder tipearla sin errores.
+ * La primera vez que entra, NEXO le ofrece cambiarla (usuarios.primer_ingreso).
+ * Siempre llega al largo mínimo, así que también sirve si no la cambia.
+ */
+export function generarContrasenaInicial(nombre) {
+  const palabras = String(nombre ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter((p) => p.length > 0);
+  // Una inicial suelta ("J. Pérez") tampoco es un nombre que se recuerde.
+  const base = (palabras.find((p) => p.length > 1 && !TITULOS.has(p)) ?? "nexo").slice(0, 12);
+  const cifras = Math.max(4, LARGO_MINIMO - base.length);
+  let numeros = "";
+  for (let i = 0; i < cifras; i++) numeros += randomInt(0, 10);
+  return base + numeros;
 }
 
 /**

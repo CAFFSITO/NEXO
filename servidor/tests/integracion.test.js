@@ -87,8 +87,8 @@ test('Contratos de lectura del frontend',async t => {
 });
 test('Cursos: crear, evitar duplicado, asignar docente y conservar identidad', async () => {
   const opciones = await ok('/api/gestion-academica/opciones','admin-academico');
-  const curso = await ok('/api/cursos','admin-academico','POST',{anio:7,division:'TEST',preceptorId:opciones.preceptores[0].id},201);
-  await ok('/api/cursos','admin-academico','POST',{anio:7,division:'TEST'},409);
+  const curso = await ok('/api/cursos','admin-academico','POST',{anio:7,division:'TEST',turnoId:opciones.turnos[0].id,preceptorId:opciones.preceptores[0].id},201);
+  await ok('/api/cursos','admin-academico','POST',{anio:7,division:'TEST',turnoId:opciones.turnos[1].id},409);
   await ok('/api/cursos','estudiante','POST',{anio:7,division:'OTRO'},403);
   await ok(`/api/cursos/${curso.id}/catedras`,'admin-academico','POST',{materiaId:opciones.materias[0].id,profesorId:opciones.profesores[0].id},201);
   const detalle = await ok(`/api/cursos/${curso.id}/detalle`,'admin-academico');

@@ -8,6 +8,8 @@
 //
 //   GET  /api/cuenta                 → mis datos, leídos de `usuarios`
 //   PUT  /api/cuenta/contrasena      → cambiarla sabiendo la actual (con sesión)
+//   POST /api/cuenta/primer-ingreso  → "seguir con la contraseña que me dieron"
+//   PUT  /api/cuenta/nombre          → cambiar mi nombre (solo el nombre)
 //   POST /api/recuperacion           → pedir un código de un solo uso (sin sesión)
 //   POST /api/recuperacion/confirmar → canjear el código por una contraseña nueva
 //
@@ -63,7 +65,10 @@ export function registrarCuenta(app, db) {
       WHERE u.id = ?`
   );
   const hashDeUsuario = db.prepare(
-    "SELECT hash_contrasena FROM usuarios WHERE id = ?"
+    "SELECT hash_contrasena, primer_ingreso FROM usuarios WHERE id = ?"
+  );
+  const terminarPrimerIngreso = db.prepare(
+    "UPDATE usuarios SET primer_ingreso = 0 WHERE id = ?"
   );
   const buscarActivoPorEmail = db.prepare(
     `SELECT id, nombre, email, hash_contrasena
@@ -138,17 +143,21 @@ export function registrarCuenta(app, db) {
     const actual = String(req.body?.actual ?? "");
     const nueva = String(req.body?.nueva ?? "");
 
-    if (!actual) {
-      return res.status(400).json({ error: "Escribí tu contraseña actual." });
-    }
-
     const fila = hashDeUsuario.get(usuario.id);
 
     // Pedir la contraseña actual no es burocracia: sin esto, cualquiera que
     // agarre una sesión abierta (una pestaña sin cerrar) se apropia de la cuenta
-    // cambiándole la clave a su dueño.
-    if (!(await verificarContrasena(actual, fila.hash_contrasena))) {
-      return res.status(403).json({ error: "La contraseña actual no es correcta." });
+    // cambiándole la clave a su dueño. La única excepción es la bienvenida del
+    // primer ingreso: la persona acaba de tipear la contraseña que le dieron para
+    // entrar, y pedírsela otra vez es justo la clase de vuelta que la confunde.
+    const esBienvenida = fila.primer_ingreso === 1 && !actual;
+    if (!esBienvenida) {
+      if (!actual) {
+        return res.status(400).json({ error: "Escribí tu contraseña actual." });
+      }
+      if (!(await verificarContrasena(actual, fila.hash_contrasena))) {
+        return res.status(403).json({ error: "La contraseña actual no es correcta." });
+      }
     }
 
     const problema = validarContrasena(nueva);
@@ -161,6 +170,7 @@ export function registrarCuenta(app, db) {
     }
 
     guardarHash.run(await hashearContrasena(nueva), usuario.id);
+    terminarPrimerIngreso.run(usuario.id);
 
     // Quien cambia su contraseña suele estar echando a alguien: se cierran las
     // demás sesiones y se anula cualquier código de recuperación pendiente, que
@@ -173,6 +183,37 @@ export function registrarCuenta(app, db) {
       mensaje:
         "Listo: tu contraseña cambió. Las sesiones abiertas en otros dispositivos se cerraron.",
     });
+  });
+
+  // ── Cambiar mi nombre ─────────────────────────────────────────────────────
+  // Cada uno corrige cómo se llama (un apodo, un segundo nombre, una tilde que
+  // faltaba). SOLO el nombre: el correo es con lo que entra y lo administra la
+  // escuela, así que acá ni se mira aunque venga en el pedido.
+  const guardarNombre = db.prepare("UPDATE usuarios SET nombre = ? WHERE id = ?");
+  app.put("/api/cuenta/nombre", (req, res) => {
+    const usuario = usuarioDeLaSesion(db, req);
+    if (!usuario) return res.status(401).json({ error: "No hay sesión abierta." });
+
+    const nombre = String(req.body?.nombre ?? "")
+      .replace(/[\u0000-\u001f\u007f]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!nombre) return res.status(400).json({ error: "Escribí tu nombre." });
+    if (nombre.length > 80) return res.status(400).json({ error: "El nombre puede tener hasta 80 letras." });
+
+    guardarNombre.run(nombre, usuario.id);
+    res.json({ ok: true, nombre, mensaje: "Listo, tu nombre quedó cambiado." });
+  });
+
+  // ── Primer ingreso: seguir con la contraseña que me dieron ────────────────
+  // Cambiar la contraseña en la bienvenida es opcional. Esto es el otro botón:
+  // la persona la deja como está y, desde ahora, entra directo a su inicio.
+  app.post("/api/cuenta/primer-ingreso", (req, res) => {
+    const usuario = usuarioDeLaSesion(db, req);
+    if (!usuario) return res.status(401).json({ error: "No hay sesión abierta." });
+
+    terminarPrimerIngreso.run(usuario.id);
+    res.json({ ok: true });
   });
 
   // ── Pedir un código de recuperación ───────────────────────────────────────
@@ -239,6 +280,8 @@ export function registrarCuenta(app, db) {
     }
 
     guardarHash.run(await hashearContrasena(nueva), usuario.id);
+    // Ya eligió su contraseña: la bienvenida no tiene nada más que ofrecerle.
+    terminarPrimerIngreso.run(usuario.id);
     quemarCodigo.run(fila.id); // de un solo uso: no se puede canjear dos veces
 
     // Todas las sesiones abajo, incluidas las de quien haya entrado con la

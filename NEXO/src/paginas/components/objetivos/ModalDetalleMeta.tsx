@@ -53,7 +53,7 @@ export default function ModalDetalleMeta({ meta, onCambio, onCerrar, onEditar, o
       onClick={onCerrar}
     >
       <div
-        className="w-full max-w-lg bg-[#2D1B4E] rounded-[20px] border border-purple-900/30 shadow-2xl max-h-[88vh] flex flex-col"
+        className="w-full max-w-lg bg-lienzo rounded-[20px] border border-purple-900/30 shadow-2xl max-h-[88vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Encabezado */}
@@ -96,11 +96,11 @@ export default function ModalDetalleMeta({ meta, onCambio, onCerrar, onEditar, o
               <span className="text-slate-400">
                 {meta.subtareasHechas}/{meta.subtareasTotal} subtareas
               </span>
-              <span className="text-[#C548F5] font-bold">{progreso}%</span>
+              <span className="text-acento font-bold">{progreso}%</span>
             </div>
             <div className="w-full bg-background rounded-full h-2 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[#C548F5] transition-all"
+                className="h-full rounded-full bg-acento transition-all"
                 style={{ width: `${progreso}%` }}
               />
             </div>
@@ -120,7 +120,7 @@ export default function ModalDetalleMeta({ meta, onCambio, onCerrar, onEditar, o
                 className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
                   s.completada
                     ? "bg-emerald-500 border-emerald-500"
-                    : "border-slate-500 hover:border-[#C548F5]"
+                    : "border-slate-500 hover:border-acento"
                 }`}
               >
                 {s.completada && (
@@ -134,7 +134,7 @@ export default function ModalDetalleMeta({ meta, onCambio, onCerrar, onEditar, o
                   onChange={(e) => setTextoEdit(e.target.value)}
                   onBlur={() => guardarEdicion(s.id)}
                   onKeyDown={(e) => e.key === "Enter" && guardarEdicion(s.id)}
-                  className="flex-1 bg-[#1C1030] text-white text-sm rounded px-2 py-1 border border-[#C548F5]/50 outline-none"
+                  className="flex-1 bg-fondo text-white text-sm rounded px-2 py-1 border border-acento/50 outline-none"
                 />
               ) : (
                 <button
@@ -167,7 +167,7 @@ export default function ModalDetalleMeta({ meta, onCambio, onCerrar, onEditar, o
               onChange={(e) => setNueva(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && agregar()}
               placeholder="Agregar subtarea…"
-              className="flex-1 bg-transparent text-white text-sm border-b border-white/10 focus:border-[#C548F5] outline-none py-1 placeholder-slate-500"
+              className="flex-1 bg-transparent text-white text-sm border-b border-white/10 focus:border-acento outline-none py-1 placeholder-slate-500"
             />
           </div>
         </div>

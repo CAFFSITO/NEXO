@@ -24,9 +24,9 @@ export default function ArticuloCard({
   onLeerMas,
 }: ArticuloCardProps) {
   return (
-    <article className="bg-[#2D1B4E] rounded-lg border border-white/5 overflow-hidden hover:border-[#C548F5]/30 transition-all group">
+    <article className="bg-lienzo rounded-lg border border-white/5 overflow-hidden hover:border-acento/30 transition-all group">
       <div className="flex min-h-48">
-        <div className="w-1/3 overflow-hidden bg-[#1C1030]">
+        <div className="w-1/3 overflow-hidden bg-fondo">
           {imagenUrl ? (
             <img
               src={imagenUrl}
@@ -34,7 +34,7 @@ export default function ArticuloCard({
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-[#C548F5]/40">
+            <div className="w-full h-full flex items-center justify-center text-acento/40">
               <span className="material-symbols-outlined text-5xl">image</span>
             </div>
           )}
@@ -64,7 +64,7 @@ export default function ArticuloCard({
               {autorAvatarUrl ? (
                 <img src={autorAvatarUrl} alt={autor} className="w-6 h-6 rounded-full" />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#C548F5] to-[#F97316] flex items-center justify-center text-[10px] font-bold text-white">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-acento to-[#F97316] flex items-center justify-center text-[10px] font-bold text-white">
                   {autor.charAt(0)}
                 </div>
               )}
@@ -87,7 +87,7 @@ export default function ArticuloCard({
               </button>
               <button
                 onClick={onLeerMas}
-                className="text-[#C548F5] text-xs font-bold uppercase tracking-wider hover:underline"
+                className="text-acento text-xs font-bold uppercase tracking-wider hover:underline"
               >
                 Leer más
               </button>

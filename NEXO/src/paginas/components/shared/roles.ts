@@ -28,7 +28,9 @@ export const ROL_LABELS: Record<Rol, string> = {
     preceptor: "Preceptor",
     "centro-estudiantes": "Centro de Estudiantes",
     bibliotecario: "Bibliotecario",
-    administrador: "Administrador",
+    // El administrador de plataforma es el perfil MAESTRO: crea y diseña las
+    // instancias (escuelas) de NEXO.
+    administrador: "Maestro",
     // Decía "Familia · Ciclo 2025", con el año escrito a mano (Error 13.7). El
     // ciclo lectivo real vive en `instituciones.ciclo_lectivo` y cambia todos
     // los años; un año fijo iba a estar mintiendo desde el 1 de enero. Se saca

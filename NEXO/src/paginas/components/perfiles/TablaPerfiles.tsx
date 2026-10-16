@@ -4,6 +4,7 @@
 
 import BadgePerfilRol from "./BadgePerfilRol";
 import type { EstadoPerfil, Perfil } from "./tipos";
+import type { PerfilDeLaEscuela } from "../../../servicios/instancia";
 
 interface TablaPerfilesProps {
   perfiles: Perfil[]; // slice de la página actual
@@ -13,9 +14,18 @@ interface TablaPerfilesProps {
   totalPaginas: number;
   onCambiarPagina: (pagina: number) => void;
   onEditar: (perfil: Perfil) => void;
-  onEliminar: (id: string) => void;
+  onEliminar: (perfil: Perfil) => void;
   onRestaurar: (id: string) => void;
+  /** Solo para los que están en la papelera: borrar para siempre. */
+  onBorrarDefinitivo: (perfil: Perfil) => void;
+  /** Plazo de la papelera de esta escuela (genoma); null = no se purga sola. */
+  diasPapelera: number | null;
+  /** Los perfiles de la escuela, para mostrar el nombre del perfil diseñado. */
+  perfilesEscuela: PerfilDeLaEscuela[];
 }
+
+const BOTON_FILA =
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-2 text-sm font-semibold transition-colors";
 
 const PUNTO_ESTADO: Record<EstadoPerfil, { color: string; label: string }> = {
   activo: { color: "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]", label: "Activo" },
@@ -23,20 +33,19 @@ const PUNTO_ESTADO: Record<EstadoPerfil, { color: string; label: string }> = {
   papelera: { color: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]", label: "En papelera" },
 };
 
-const DIAS_EN_PAPELERA = 7;
-
 // Cuántos días le quedan a un perfil en la papelera antes del borrado definitivo
-// (sección 14.17). El mismo plazo que aplica el servidor, mostrado a la persona.
-function diasRestantes(eliminadoEn?: string | null): number | null {
-  if (!eliminadoEn) return null;
+// (sección 14.17). El plazo lo dice el servidor: es el del genoma de la escuela.
+function diasRestantes(eliminadoEn: string | null | undefined, plazo: number | null): number | null {
+  if (!eliminadoEn || plazo === null) return null;
   const borrado = new Date(eliminadoEn).getTime();
   if (Number.isNaN(borrado)) return null;
   const transcurridos = (Date.now() - borrado) / (1000 * 60 * 60 * 24);
-  return Math.max(0, Math.ceil(DIAS_EN_PAPELERA - transcurridos));
+  return Math.max(0, Math.ceil(plazo - transcurridos));
 }
 
-function textoPapelera(eliminadoEn?: string | null): string {
-  const dias = diasRestantes(eliminadoEn);
+function textoPapelera(eliminadoEn: string | null | undefined, plazo: number | null): string {
+  if (plazo === null) return "En papelera · sin purga automática";
+  const dias = diasRestantes(eliminadoEn, plazo);
   if (dias === null) return "En papelera";
   if (dias === 0) return "En papelera · se borra hoy";
   return `En papelera · ${dias} ${dias === 1 ? "día" : "días"}`;
@@ -52,6 +61,9 @@ export default function TablaPerfiles({
   onEditar,
   onEliminar,
   onRestaurar,
+  onBorrarDefinitivo,
+  diasPapelera,
+  perfilesEscuela,
 }: TablaPerfilesProps) {
   return (
     <div className="bg-surface-container-lowest rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl">
@@ -83,7 +95,7 @@ export default function TablaPerfiles({
                 return (
                   <tr
                     key={perfil.id}
-                    className={`${i % 2 === 0 ? "bg-[#2D1B4E]" : "bg-[#1C1030]"} hover:bg-surface-bright/20 transition-colors group ${enPapelera ? "opacity-60" : ""}`}
+                    className={`${i % 2 === 0 ? "bg-lienzo" : "bg-fondo"} hover:bg-surface-bright/20 transition-colors group ${enPapelera ? "opacity-60" : ""}`}
                   >
                     <td className="px-8 py-4">
                       <div className="flex items-center gap-4">
@@ -106,6 +118,7 @@ export default function TablaPerfiles({
                     </td>
                     <td className="px-6 py-4">
                       <BadgePerfilRol rol={perfil.rol} />
+                      <PerfilDisenado clave={perfil.perfilClave} perfiles={perfilesEscuela} />
                     </td>
                     <td className="px-6 py-4 text-slate-300 text-sm font-medium">
                       {perfil.asignacion}
@@ -114,35 +127,51 @@ export default function TablaPerfiles({
                       <div className="flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${estado.color}`} />
                         <span className="text-xs text-white font-medium">
-                          {enPapelera ? textoPapelera(perfil.eliminadoEn) : estado.label}
+                          {enPapelera ? textoPapelera(perfil.eliminadoEn, diasPapelera) : estado.label}
                         </span>
                       </div>
                     </td>
                     <td className="px-8 py-4 text-right">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Siempre a la vista y con su nombre escrito: un ícono suelto
+                          que aparece solo al pasar el mouse no lo encuentra quien no
+                          está acostumbrado a la computadora. */}
+                      <div className="flex flex-wrap justify-end gap-2">
                         {enPapelera ? (
-                          <button
-                            onClick={() => onRestaurar(perfil.id)}
-                            title="Restaurar"
-                            className="p-2 text-slate-400 hover:text-green-400 transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-lg">restore</span>
-                          </button>
+                          <>
+                            <button
+                              onClick={() => onRestaurar(perfil.id)}
+                              title="Restaurar"
+                              className={`${BOTON_FILA} border-green-500/30 text-green-300 hover:bg-green-500/10`}
+                            >
+                              <span className="material-symbols-outlined text-lg" aria-hidden="true">restore</span>
+                              Restaurar
+                            </button>
+                            <button
+                              onClick={() => onBorrarDefinitivo(perfil)}
+                              title="Borrar definitivamente"
+                              className={`${BOTON_FILA} border-red-500/30 text-red-300 hover:bg-red-500/10`}
+                            >
+                              <span className="material-symbols-outlined text-lg" aria-hidden="true">delete_forever</span>
+                              Borrar para siempre
+                            </button>
+                          </>
                         ) : (
                           <>
                             <button
                               onClick={() => onEditar(perfil)}
                               title="Editar"
-                              className="p-2 text-slate-400 hover:text-primary transition-colors"
+                              className={`${BOTON_FILA} border-white/15 text-slate-200 hover:bg-white/5`}
                             >
-                              <span className="material-symbols-outlined text-lg">edit</span>
+                              <span className="material-symbols-outlined text-lg" aria-hidden="true">edit</span>
+                              Editar
                             </button>
                             <button
-                              onClick={() => onEliminar(perfil.id)}
+                              onClick={() => onEliminar(perfil)}
                               title="Enviar a papelera"
-                              className="p-2 text-slate-400 hover:text-error transition-colors"
+                              className={`${BOTON_FILA} border-red-500/30 text-red-300 hover:bg-red-500/10`}
                             >
-                              <span className="material-symbols-outlined text-lg">delete</span>
+                              <span className="material-symbols-outlined text-lg" aria-hidden="true">delete</span>
+                              Eliminar
                             </button>
                           </>
                         )}
@@ -197,5 +226,17 @@ export default function TablaPerfiles({
         </div>
       </div>
     </div>
+  );
+}
+
+/** El perfil diseñado por el Maestro que tiene asignado la persona, si tiene uno. */
+function PerfilDisenado({ clave, perfiles }: { clave?: string | null; perfiles: PerfilDeLaEscuela[] }) {
+  const disenado = clave ? perfiles.find((p) => p.clave === clave) : null;
+  if (!disenado) return null;
+  return (
+    <span className="mt-1.5 flex items-center gap-1.5 text-[11px] text-on-surface-variant/80">
+      <span className="nexo-perfil-punto" style={{ background: disenado.color }} aria-hidden="true" />
+      {disenado.nombre}
+    </span>
   );
 }

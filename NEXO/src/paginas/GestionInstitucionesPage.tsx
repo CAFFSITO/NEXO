@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
+import TopBar from "./components/shared/TopBar";
 import { useNavegacion } from "../navegacion";
 import {
   usePlataforma,
@@ -22,6 +23,7 @@ import {
   type ResultadoAplicar,
 } from "../servicios/plataforma";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
+import Selector from "./components/shared/Selector";
 
 export default function GestionInstitucionesPage() {
   const { navegar, cerrarSesion, usuario } = useNavegacion();
@@ -35,14 +37,11 @@ export default function GestionInstitucionesPage() {
   if (!usuario) return null;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen text-on-background">
+    <div className="flex bg-fondo min-h-screen text-on-background">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        <header className="flex justify-between items-center px-10 h-16 sticky top-0 bg-[#1C1030]/80 backdrop-blur-md border-b border-fuchsia-900/10 z-40">
-          <h1 className="text-fuchsia-500 font-headline font-bold">Instituciones</h1>
-          <span className="text-xs text-slate-400">Administración de Plataforma · NEXO</span>
-        </header>
+        <TopBar title="Instituciones" subtitle="Perfil Maestro" />
 
         <section className="flex-1 px-10 pt-6 pb-12">
           <div className="max-w-7xl mx-auto">
@@ -61,7 +60,7 @@ export default function GestionInstitucionesPage() {
                   setCredenciales(null);
                   setModalAbierto(true);
                 }}
-                className="flex items-center gap-2 bg-[#C548F5] hover:opacity-90 active:scale-95 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-[#C548F5]/20 transition-all self-start"
+                className="flex items-center gap-2 bg-acento hover:opacity-90 active:scale-95 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-acento/20 transition-all self-start"
               >
                 <span className="material-symbols-outlined text-xl">add_business</span>
                 <span>Nueva institución</span>
@@ -82,7 +81,8 @@ export default function GestionInstitucionesPage() {
                   <span className="font-mono text-white">{credenciales.contrasena}</span>
                 </p>
                 <p className="text-slate-400 text-xs mt-2">
-                  Entregáselas a la dirección de la nueva escuela. No se van a poder volver a ver.
+                  Entregáselas a la dirección de la nueva escuela. La primera vez que entre,
+                  NEXO le va a ofrecer cambiarla. No se van a poder volver a ver.
                 </p>
               </div>
             )}
@@ -121,7 +121,7 @@ export default function GestionInstitucionesPage() {
                 </div>
                 <button
                   onClick={() => setModalPlantilla(true)}
-                  className="flex items-center gap-2 border border-[#C548F5]/40 text-[#C548F5] hover:bg-[#C548F5]/10 px-5 py-2.5 rounded-full font-bold transition-all self-start"
+                  className="flex items-center gap-2 border border-acento/40 text-acento hover:bg-acento/10 px-5 py-2.5 rounded-full font-bold transition-all self-start"
                 >
                   <span className="material-symbols-outlined text-xl">dashboard_customize</span>
                   <span>Nueva plantilla</span>
@@ -180,7 +180,7 @@ export default function GestionInstitucionesPage() {
 // ─── Tarjeta de una plantilla ───────────────────────────
 function TarjetaPlantilla({ plantilla }: { plantilla: PlantillaPlataforma }) {
   return (
-    <div className="bg-[#2D1B4E] p-5 rounded-[20px] border border-white/5">
+    <div className="bg-lienzo p-5 rounded-[20px] border border-white/5">
       <div className="flex items-center gap-2 mb-3">
         <span className="material-symbols-outlined text-fuchsia-400">dashboard_customize</span>
         <p className="text-white font-bold font-headline">{plantilla.nombre}</p>
@@ -221,7 +221,7 @@ function TarjetaInstitucion({
   onAplicar: () => void;
 }) {
   return (
-    <div className="bg-[#2D1B4E] p-6 rounded-[20px] border border-white/5 shadow-xl shadow-black/20 flex flex-col">
+    <div className="bg-lienzo p-6 rounded-[20px] border border-white/5 shadow-xl shadow-black/20 flex flex-col">
       <div className="flex items-center gap-3 mb-4">
         <span className="material-symbols-outlined text-fuchsia-400">domain</span>
         <div>
@@ -238,7 +238,7 @@ function TarjetaInstitucion({
         onClick={onAplicar}
         disabled={!hayPlantillas}
         title={hayPlantillas ? "Aplicar una plantilla de estructura" : "Primero creá una plantilla"}
-        className="mt-4 flex items-center justify-center gap-2 text-sm font-bold text-[#C548F5] border border-[#C548F5]/30 rounded-full py-2 hover:bg-[#C548F5]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="mt-4 flex items-center justify-center gap-2 text-sm font-bold text-acento border border-acento/30 rounded-full py-2 hover:bg-acento/10 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <span className="material-symbols-outlined text-lg">library_add</span>
         Aplicar plantilla
@@ -304,7 +304,7 @@ function ModalNuevaInstitucion({
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={enviar}
-        className="w-full max-w-lg bg-[#2D1B4E] border border-surface-variant rounded-2xl p-8 shadow-2xl"
+        className="w-full max-w-lg bg-lienzo border border-surface-variant rounded-2xl p-8 shadow-2xl"
       >
         <div className="flex justify-between items-start mb-6">
           <div>
@@ -345,7 +345,7 @@ function ModalNuevaInstitucion({
           <button type="button" onClick={onCerrar} className="flex-1 py-3 rounded-xl border border-primary/20 text-primary font-medium hover:bg-primary/5 transition-colors active:scale-95">
             Cancelar
           </button>
-          <button type="submit" disabled={guardando} className="flex-1 bg-[#C548F5] hover:bg-[#C548F5]/90 text-white py-3 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-60">
+          <button type="submit" disabled={guardando} className="flex-1 bg-acento hover:bg-acento/90 text-white py-3 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-60">
             {guardando ? "Creando…" : "Crear institución"}
           </button>
         </div>
@@ -399,7 +399,7 @@ function ModalNuevaPlantilla({
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={enviar}
-        className="w-full max-w-lg bg-[#2D1B4E] border border-surface-variant rounded-2xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg bg-lienzo border border-surface-variant rounded-2xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto"
       >
         <div className="flex justify-between items-start mb-6">
           <div>
@@ -421,10 +421,10 @@ function ModalNuevaPlantilla({
         <div className="space-y-2 mb-4">
           {items.map((it, i) => (
             <div key={i} className="flex gap-2 items-center">
-              <select value={it.tipo} onChange={(e) => cambiar(i, "tipo", e.target.value)} className={`${inputPlantilla} w-36`}>
+              <Selector value={it.tipo} onChange={(e) => cambiar(i, "tipo", e.target.value)} className={`${inputPlantilla} w-36`}>
                 <option value="materia">Materia</option>
                 <option value="competencia">Competencia</option>
-              </select>
+              </Selector>
               <input
                 value={it.nombre}
                 onChange={(e) => cambiar(i, "nombre", e.target.value)}
@@ -445,10 +445,10 @@ function ModalNuevaPlantilla({
         </div>
 
         <div className="flex gap-2 mb-4">
-          <button type="button" onClick={() => agregar("materia")} className="text-xs font-bold text-[#C548F5] hover:underline flex items-center gap-1">
+          <button type="button" onClick={() => agregar("materia")} className="text-xs font-bold text-acento hover:underline flex items-center gap-1">
             <span className="material-symbols-outlined text-base">add</span> Materia
           </button>
-          <button type="button" onClick={() => agregar("competencia")} className="text-xs font-bold text-[#C548F5] hover:underline flex items-center gap-1">
+          <button type="button" onClick={() => agregar("competencia")} className="text-xs font-bold text-acento hover:underline flex items-center gap-1">
             <span className="material-symbols-outlined text-base">add</span> Competencia
           </button>
         </div>
@@ -459,7 +459,7 @@ function ModalNuevaPlantilla({
           <button type="button" onClick={onCerrar} className="flex-1 py-3 rounded-xl border border-primary/20 text-primary font-medium hover:bg-primary/5 transition-colors active:scale-95">
             Cancelar
           </button>
-          <button type="submit" disabled={guardando} className="flex-1 bg-[#C548F5] hover:bg-[#C548F5]/90 text-white py-3 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-60">
+          <button type="submit" disabled={guardando} className="flex-1 bg-acento hover:bg-acento/90 text-white py-3 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-60">
             {guardando ? "Creando…" : "Crear plantilla"}
           </button>
         </div>
@@ -502,7 +502,7 @@ function ModalAplicarPlantilla({
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4" onClick={onCerrar}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md bg-[#2D1B4E] border border-surface-variant rounded-2xl p-8 shadow-2xl">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md bg-lienzo border border-surface-variant rounded-2xl p-8 shadow-2xl">
         <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className="text-xl font-bold text-white font-headline">Aplicar plantilla</h3>
@@ -523,7 +523,7 @@ function ModalAplicarPlantilla({
               <p>Materias: {resultado.creado.materias} creadas · {resultado.omitido.materias} ya existían.</p>
               <p>Competencias: {resultado.creado.competencias} creadas · {resultado.omitido.competencias} ya existían.</p>
             </div>
-            <button onClick={onCerrar} className="w-full mt-5 bg-[#C548F5] text-white py-3 rounded-xl font-bold hover:bg-[#C548F5]/90 transition-all">
+            <button onClick={onCerrar} className="w-full mt-5 bg-acento text-white py-3 rounded-xl font-bold hover:bg-acento/90 transition-all">
               Listo
             </button>
           </>
@@ -531,13 +531,13 @@ function ModalAplicarPlantilla({
           <>
             <label className="flex flex-col gap-1 mb-4">
               <span className="text-xs text-on-surface-variant uppercase tracking-wider">Plantilla</span>
-              <select value={elegida} onChange={(e) => setElegida(e.target.value)} className={inputPlantilla}>
+              <Selector value={elegida} onChange={(e) => setElegida(e.target.value)} className={inputPlantilla}>
                 {plantillas.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.nombre} ({p.materias.length} materias · {p.competencias.length} competencias)
                   </option>
                 ))}
-              </select>
+              </Selector>
             </label>
             <p className="text-xs text-slate-400 mb-4">
               Inserta la estructura que falte. Las materias/competencias que ya existan se saltean.
@@ -547,7 +547,7 @@ function ModalAplicarPlantilla({
               <button onClick={onCerrar} className="flex-1 py-3 rounded-xl border border-primary/20 text-primary font-medium hover:bg-primary/5 transition-colors">
                 Cancelar
               </button>
-              <button onClick={aplicar} disabled={aplicando || !elegida} className="flex-1 bg-[#C548F5] text-white py-3 rounded-xl font-bold hover:bg-[#C548F5]/90 transition-all disabled:opacity-60">
+              <button onClick={aplicar} disabled={aplicando || !elegida} className="flex-1 bg-acento text-white py-3 rounded-xl font-bold hover:bg-acento/90 transition-all disabled:opacity-60">
                 {aplicando ? "Aplicando…" : "Aplicar"}
               </button>
             </div>

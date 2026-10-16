@@ -45,7 +45,7 @@ export default function ModalNuevaTareaPersonal({
       <div
         role="dialog" aria-modal="true" aria-labelledby="titulo-modal-personal"
         ref={dialogo}
-        className="w-full max-w-md max-h-[90dvh] overflow-y-auto bg-[#2D1B4E] border border-white/10 rounded-[20px] p-6 sm:p-8 shadow-2xl"
+        className="w-full max-w-md max-h-[90dvh] overflow-y-auto bg-lienzo border border-white/10 rounded-[20px] p-6 sm:p-8 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
@@ -75,7 +75,7 @@ export default function ModalNuevaTareaPersonal({
             value={titulo}
             onChange={(e) => setTitulo(e.target.value)}
             placeholder="Ej: Repasar vocabulario Inglés"
-            className="w-full bg-[#1C1030] border-none rounded-[10px] py-3 px-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-[#C548F5] transition-all mb-6"
+            className="w-full bg-fondo border-none rounded-[10px] py-3 px-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-acento transition-all mb-6"
           />
 
           <label className="block text-sm mb-4">Descripción<textarea value={descripcion} onChange={e => setDescripcion(e.target.value)} maxLength={10000} rows={3} className="block w-full bg-background rounded-xl p-3 mt-2" /></label>
@@ -92,7 +92,7 @@ export default function ModalNuevaTareaPersonal({
             <button
               type="submit"
               disabled={!puedeGuardar || guardando}
-              className="px-6 py-2.5 bg-[#C548F5] text-black font-bold rounded-full hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-6 py-2.5 bg-acento text-black font-bold rounded-full hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {guardando ? "Guardando…" : editando ? "Guardar" : "Agregar"}
             </button>

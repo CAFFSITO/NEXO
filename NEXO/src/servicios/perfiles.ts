@@ -45,10 +45,49 @@ async function mutar(url: string, metodo: string, cuerpo?: unknown): Promise<Res
   };
 }
 
+/**
+ * Un curso asignado en el alta. Para un profesor lleva la materia que da en ese
+ * curso: en la base, un profesor se une a un curso a través de una cátedra.
+ */
+export interface Asignacion {
+  cursoId: string;
+  materiaId?: string;
+}
+
 export interface DatosAlta {
   nombre: string;
   rol: Rol;
   email: string;
+  /** Perfil diseñado por el Maestro (null = el predeterminado del rol). */
+  perfilClave?: string | null;
+  /** Opcional: el curso del estudiante, los del preceptor o los del profesor. */
+  asignaciones?: Asignacion[];
+}
+
+/** Lo que necesita el formulario de alta, tal como lo cuenta el servidor. */
+export interface OpcionesAlta {
+  /** La terminación del correo de la escuela ("sinvueltas.org"); null = no hay. */
+  dominio: string | null;
+  /** Con su preceptor de hoy (un curso tiene uno solo). */
+  /** detalle = "Mañana · Informática" (null si el curso no tiene esos datos). */
+  cursos: {
+    id: string;
+    nombre: string;
+    detalle: string | null;
+    /** Para mostrarlos agrupados por turno, ciclo y especialidad. */
+    anio: number;
+    turno: DatoDeCurso | null;
+    especialidad: DatoDeCurso | null;
+    preceptor: string | null;
+  }[];
+  materias: { id: string; nombre: string }[];
+  /** Quién da hoy cada materia en cada curso. */
+  catedras: { cursoId: string; materiaId: string; profesor: string }[];
+}
+
+export function useOpcionesAlta() {
+  const { datos, cargando } = useDatos<OpcionesAlta>("/api/perfiles/opciones");
+  return { opciones: datos, cargando };
 }
 
 export interface DatosEdicion {
@@ -56,6 +95,7 @@ export interface DatosEdicion {
   rol: Rol;
   email: string;
   estado: "activo" | "inactivo";
+  perfilClave?: string | null;
 }
 
 /** Alta real: crea la cuenta y devuelve la contraseña inicial (Errores 6.B.3, 6.B.4). */
@@ -74,6 +114,11 @@ export function enviarAPapelera(id: string): Promise<ResultadoPerfil> {
 
 export function restaurarPerfilEnServidor(id: string): Promise<ResultadoPerfil> {
   return mutar(`${API_PERFILES}/${id}/restaurar`, "POST");
+}
+
+/** Borra para siempre un perfil que está en la papelera y libera su correo. */
+export function borrarDefinitivamente(id: string): Promise<ResultadoPerfil> {
+  return mutar(`${API_PERFILES}/${id}`, "DELETE");
 }
 
 // ─── Perfiles ───────────────────────────────────────────
@@ -98,20 +143,33 @@ export interface Perfil {
   estado: EstadoPerfil;
   avatarUrl?: string;
   eliminadoEn?: string | null;
+  /** El perfil que el Maestro diseñó y la dirección le asignó (null = el de su rol). */
+  perfilClave?: string | null;
 }
 
 export function usePerfiles() {
   const { datos, cargando, error, recargar } =
-    useDatos<{ perfiles: Perfil[] }>("/api/perfiles");
-  return { perfiles: datos?.perfiles ?? null, cargando, error, recargar };
+    useDatos<{ perfiles: Perfil[]; diasPapelera: number | null }>("/api/perfiles");
+  // diasPapelera: el plazo de la papelera en ESTA escuela (genoma del Maestro);
+  // null = la papelera no se purga sola.
+  return { perfiles: datos?.perfiles ?? null, diasPapelera: datos?.diasPapelera ?? null, cargando, error, recargar };
 }
 
 // ─── Cursos ─────────────────────────────────────────────
+
+/** Turno o especialidad de un curso: su id y su nombre (vienen del servidor). */
+export interface DatoDeCurso {
+  id: string;
+  nombre: string;
+}
 
 export interface Curso {
   id: string;
   anio: number;
   division: string;
+  /** null = curso cargado antes de que existiera el dato. */
+  turno: DatoDeCurso | null;
+  especialidad: DatoDeCurso | null;
   /** null = sin preceptor asignado (la tarjeta lo muestra como alerta). */
   preceptor: string | null;
   estudiantes: number;
@@ -166,7 +224,7 @@ export interface TareaDetalle {
 }
 
 export interface DetalleCurso {
-  curso: { id: string; anio: number; division: string };
+  curso: { id: string; anio: number; division: string; turno: DatoDeCurso | null; especialidad: DatoDeCurso | null };
   /** null = el curso no tiene preceptor asignado. */
   preceptor: string | null;
   catedras: CatedraDetalle[];

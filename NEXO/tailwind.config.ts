@@ -9,54 +9,63 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // === INSTANCIA (perfil Maestro) ===
+        // Cada escuela tiene su propia paleta en el genoma. Los colores de abajo
+        // ya no son hex fijos: son variables CSS que define index.css (con la
+        // paleta original como valor por defecto) y que servicios/tema.ts
+        // reemplaza al entrar a una escuela con otra paleta.
+        acento: "var(--nexo-acento)",
+        fondo: "var(--nexo-fondo-pagina)",
+        lienzo: "var(--nexo-lienzo)",
+
         // === BASES ===
-        background: "#190d2d",
-        surface: "#190d2d",
-        "surface-dim": "#190d2d",
-        "surface-bright": "#403355",
-        "surface-container-lowest": "#130727",
-        "surface-container-low": "#211535",
-        "surface-container": "#25193a",
-        "surface-container-high": "#302445",
-        "surface-container-highest": "#3b2f50",
-        "surface-variant": "#3b2f50",
+        background: "var(--nexo-fondo)",
+        surface: "var(--nexo-fondo)",
+        "surface-dim": "var(--nexo-fondo)",
+        "surface-bright": "var(--nexo-sup-brillante)",
+        "surface-container-lowest": "var(--nexo-sup-0)",
+        "surface-container-low": "var(--nexo-sup-1)",
+        "surface-container": "var(--nexo-sup-2)",
+        "surface-container-high": "var(--nexo-sup-3)",
+        "surface-container-highest": "var(--nexo-sup-4)",
+        "surface-variant": "var(--nexo-sup-4)",
 
         // === MARCA ===
-        primary: "#edb1ff",
-        "primary-container": "#d15aff",
-        "primary-fixed": "#f9d8ff",
-        "primary-fixed-dim": "#edb1ff",
-        "on-primary": "#53006f",
-        "on-primary-container": "#480062",
+        primary: "var(--nexo-primario)",
+        "primary-container": "var(--nexo-acento-vivo)",
+        "primary-fixed": "var(--nexo-primario-claro)",
+        "primary-fixed-dim": "var(--nexo-primario)",
+        "on-primary": "var(--nexo-sobre-primario)",
+        "on-primary-container": "var(--nexo-sobre-primario-fuerte)",
         "on-primary-fixed": "#320045",
         "on-primary-fixed-variant": "#76009d",
-        "inverse-primary": "#9a06cb",
+        "inverse-primary": "var(--nexo-acento-oscuro)",
 
         // === SECUNDARIOS ===
-        secondary: "#d2bcfa",
-        "secondary-container": "#4f3d72",
+        secondary: "var(--nexo-secundario)",
+        "secondary-container": "var(--nexo-secundario-contenedor)",
         "secondary-fixed": "#ebddff",
-        "secondary-fixed-dim": "#d2bcfa",
+        "secondary-fixed-dim": "var(--nexo-secundario)",
         "on-secondary": "#38265a",
-        "on-secondary-container": "#c1abe8",
+        "on-secondary-container": "var(--nexo-sobre-secundario)",
         "on-secondary-fixed": "#231043",
         "on-secondary-fixed-variant": "#4f3d72",
 
         // === TERCIARIOS ===
-        tertiary: "#efc04c",
-        "tertiary-container": "#b38b15",
+        tertiary: "var(--nexo-terciario)",
+        "tertiary-container": "var(--nexo-terciario-oscuro)",
         "tertiary-fixed": "#ffdf98",
-        "tertiary-fixed-dim": "#efc04c",
+        "tertiary-fixed-dim": "var(--nexo-terciario)",
         "on-tertiary": "#3f2e00",
         "on-tertiary-container": "#362700",
         "on-tertiary-fixed": "#251a00",
         "on-tertiary-fixed-variant": "#5a4300",
 
         // === SUPERFICIES ===
-        "on-surface": "#ecdcff",
-        "on-surface-variant": "#d4c1d5",
-        "on-background": "#ecdcff",
-        "surface-tint": "#edb1ff",
+        "on-surface": "var(--nexo-texto)",
+        "on-surface-variant": "var(--nexo-texto-suave)",
+        "on-background": "var(--nexo-texto)",
+        "surface-tint": "var(--nexo-primario)",
         "inverse-surface": "#ecdcff",
         "inverse-on-surface": "#372a4c",
 
@@ -67,8 +76,8 @@ const config: Config = {
         "on-error-container": "#ffdad6",
 
         // === BORDES ===
-        outline: "#9c8b9e",
-        "outline-variant": "#504253",
+        outline: "var(--nexo-borde)",
+        "outline-variant": "var(--nexo-borde-suave)",
 
         // === MATERIAS (badges) ===
         "materia-matematica": "#3B82F6",
@@ -89,9 +98,10 @@ const config: Config = {
         "role-admin": "#8B5CF6",
       },
       borderRadius: {
-        DEFAULT: "0.5rem",
-        lg: "0.75rem",
-        xl: "1rem",
+        // El radio también es del genoma (--nexo-radio, 12px por defecto).
+        DEFAULT: "calc(var(--nexo-radio) * 0.6667)",
+        lg: "var(--nexo-radio)",
+        xl: "calc(var(--nexo-radio) * 1.3334)",
         full: "9999px",
       },
       fontFamily: {

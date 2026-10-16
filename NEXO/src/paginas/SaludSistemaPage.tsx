@@ -9,6 +9,7 @@
 // que a este rol no le corresponde ver (Errores 5.A.2, 5.A.4, 5.A.9).
 
 import Sidebar from "./components/shared/Sidebar";
+import TopBar from "./components/shared/TopBar";
 import TarjetaMetrica from "./components/panel-directivo/TarjetaMetrica";
 import { useNavegacion } from "../navegacion";
 import { usePlataforma, type LogSistema } from "../servicios/plataforma";
@@ -31,14 +32,11 @@ export default function SaludSistemaPage() {
   const salud = datos?.salud;
 
   return (
-    <div className="flex bg-[#1C1030] min-h-screen text-on-background">
+    <div className="flex bg-fondo min-h-screen text-on-background">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        <header className="flex justify-between items-center px-10 h-16 sticky top-0 bg-[#1C1030]/80 backdrop-blur-md border-b border-fuchsia-900/10 z-40">
-          <h1 className="text-fuchsia-500 font-headline font-bold">Salud del Sistema</h1>
-          <span className="text-xs text-slate-400">Administración de Plataforma · NEXO</span>
-        </header>
+        <TopBar title="Salud del Sistema" subtitle="Perfil Maestro" />
 
         <section className="flex-1 px-10 pt-6 pb-12">
           <div className="max-w-7xl mx-auto">
@@ -85,7 +83,7 @@ export default function SaludSistemaPage() {
                 </div>
 
                 {/* Logs del sistema — lo ÚNICO que va en "Actividad" (Error 5.A.2) */}
-                <div className="bg-[#2D1B4E] rounded-[20px] border border-white/5 shadow-xl shadow-black/20 overflow-hidden">
+                <div className="bg-lienzo rounded-[20px] border border-white/5 shadow-xl shadow-black/20 overflow-hidden">
                   <div className="px-6 py-4 border-b border-white/5">
                     <h3 className="text-white font-headline font-bold flex items-center gap-2">
                       <span className="material-symbols-outlined text-lg text-fuchsia-400">terminal</span>

@@ -31,7 +31,7 @@ export default function ModalDenuncia({ onEnviar, onCerrar }: ModalDenunciaProps
       onClick={onCerrar}
     >
       <div
-        className="bg-[#2D1B4E] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl"
+        className="bg-lienzo border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -52,7 +52,7 @@ export default function ModalDenuncia({ onEnviar, onCerrar }: ModalDenunciaProps
           autoFocus
           rows={4}
           placeholder="Motivo de la denuncia…"
-          className="w-full bg-[#1C1030] text-white rounded-lg px-4 py-3 text-sm border border-[#3b2f50] focus:ring-1 focus:ring-orange-400 placeholder-white/30 resize-none"
+          className="w-full bg-fondo text-white rounded-lg px-4 py-3 text-sm border border-[#3b2f50] focus:ring-1 focus:ring-orange-400 placeholder-white/30 resize-none"
         />
         {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
         <div className="flex justify-end gap-3 mt-5">

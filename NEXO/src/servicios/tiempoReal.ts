@@ -38,8 +38,14 @@ export interface EventoVivo {
     | "respuesta"           // respuesta SDP dirigida de otro par
     | "candidato-ice"       // candidato ICE dirigido de otro par
     | "video-rechazado"     // el servidor negó la entrada al video (no sos miembro)
-    | "video-lleno";        // la sala llegó al tope de cámaras (malla saturada)
+    | "video-lleno"         // la sala llegó al tope de cámaras (malla saturada)
+    // Anuncios obligatorios (servidor/anuncios.js).
+    | "anuncio"             // me llegó un aviso: aparece la tarjeta encima de todo
+    | "anuncio-leido"       // lo marqué leído en otro navegador (el celular, otra pestaña)
+    | "anuncio-lectura"     // alguien leyó o reaccionó a un aviso que mandé
+    | "anuncio-borrado";    // quien lo mandó lo borró para todos
   conversacionId?: string;
+  anuncioId?: string;
   mensaje?: unknown;
   notificacion?: unknown;
   // Campos de los eventos del aula (todos opcionales; cada pantalla lee el suyo).

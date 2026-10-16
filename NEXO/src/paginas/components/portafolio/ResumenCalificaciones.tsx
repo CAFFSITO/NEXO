@@ -27,7 +27,7 @@ export default function ResumenCalificaciones({
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
       {/* Promedio general */}
-      <div className="bg-[#2D1B4E] rounded-xl p-8 border border-white/5 relative overflow-hidden">
+      <div className="bg-lienzo rounded-xl p-8 border border-white/5 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl -mr-10 -mt-10" />
         <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest">
           Promedio General

@@ -3,6 +3,7 @@
 // vive en la página, acá solo se emiten cambios.
 
 import { META_ROL, ROLES, type EstadoPerfil, type Rol } from "./tipos";
+import Selector from "../shared/Selector";
 
 export type FiltroRol = Rol | "todos";
 export type FiltroEstado = EstadoPerfil | "todos";
@@ -48,7 +49,7 @@ export default function FiltrosPerfiles({
       </div>
 
       {/* Filtro por rol */}
-      <select
+      <Selector
         value={filtroRol}
         onChange={(e) => onFiltrarRol(e.target.value as FiltroRol)}
         className="bg-surface-container border border-white/5 rounded-full px-4 py-2.5 text-sm text-on-surface focus:ring-1 focus:ring-primary outline-none"
@@ -59,10 +60,10 @@ export default function FiltrosPerfiles({
             {META_ROL[rol].label}
           </option>
         ))}
-      </select>
+      </Selector>
 
       {/* Filtro por estado */}
-      <select
+      <Selector
         value={filtroEstado}
         onChange={(e) => onFiltrarEstado(e.target.value as FiltroEstado)}
         className="bg-surface-container border border-white/5 rounded-full px-4 py-2.5 text-sm text-on-surface focus:ring-1 focus:ring-primary outline-none"
@@ -72,7 +73,7 @@ export default function FiltrosPerfiles({
             {e.label}
           </option>
         ))}
-      </select>
+      </Selector>
     </div>
   );
 }
