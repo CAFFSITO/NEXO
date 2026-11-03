@@ -20,6 +20,7 @@
 // ============================================================================
 
 import { leerToken } from "./sesiones.js";
+import { preferenciasDeCuenta } from "./preferencias-cuenta.js";
 import { exigirAcceso, exigirSesion, ventanilla } from "./comun.js";
 import {
   TEMA_BASE,
@@ -105,7 +106,7 @@ export function registrarInstancia(app, db) {
     ventanilla((req, res) => {
       const usuario = exigirSesion(db, req, res);
       if (!usuario) return;
-      if (usuario.institucionId === null) return res.json(INSTANCIA_MAESTRO);
+      if (usuario.institucionId === null) return res.json({ ...INSTANCIA_MAESTRO, personalizacion: preferenciasDeCuenta(db, usuario).efectivas });
 
       const genoma = leerGenoma(db, usuario.institucionId);
       const r = resolucionDe(db, usuario);
@@ -114,6 +115,8 @@ export function registrarInstancia(app, db) {
         institucion: inst ? { id: String(inst.id), nombre: inst.nombre, cicloLectivo: inst.ciclo_lectivo } : null,
         identidad: { nombre: genoma.identidad.nombre, lema: genoma.identidad.lema, icono: genoma.identidad.icono },
         tema: genoma.tema,
+        personalizacion: preferenciasDeCuenta(db, usuario).efectivas,
+        academico: genoma.personalizacion.academico,
         perfil: {
           clave: r.perfil.clave,
           nombre: r.perfil.nombre,

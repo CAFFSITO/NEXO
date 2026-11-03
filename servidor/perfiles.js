@@ -34,6 +34,7 @@ import { algoritmo, leerGenoma } from "./genoma.js";
 // (Error 6.B.4). Un rol fuera de esta lista lo rechaza el servidor, no la
 // pantalla.
 const ROLES_QUE_CREA_LA_DIRECCION = new Set([
+  "secretaria",
   "estudiante",
   "profesor",
   "preceptor",
@@ -208,6 +209,7 @@ export function borrarPerfilEnFirme(db, u, realizadoPorId) {
 // propio cargo no salen de una consulta: no hay nada que buscar, el rol ES la
 // asignación.
 const ASIGNACION_FIJA = {
+  secretaria: "Secretaría institucional",
   "admin-academico": "Dirección Académica",
   bibliotecario: "Biblioteca",
   "centro-estudiantes": "Centro de Estudiantes",

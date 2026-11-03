@@ -173,7 +173,12 @@ test('Recibir: pendientes del más nuevo al más viejo, leer, reaccionar y la ca
   assert.match(anuncios[1].creadoEn, /Z$/);
   assert.ok(emojis.includes('👍'));
 
-  assert.equal((await request('/api/anuncios/4/reaccion', 'pereyra', 'PUT', { emoji: '👍' })).status, 409, 'reaccionar exige leer antes');
+  assert.equal((await request('/api/anuncios/4/reaccion', 'pereyra', 'PUT', { emoji: '👍' })).status, 200, 'se puede reaccionar desde la recepción');
+  const pendiente = (await ok('/api/anuncios/pendientes', 'pereyra')).anuncios.find((a) => a.id === '4');
+  assert.equal(pendiente, undefined, 'reaccionar marca leído y retira el aviso de pendientes');
+  const reaccionLeida = (await ok('/api/anuncios/leidos', 'pereyra')).anuncios.find((a) => a.id === '4');
+  assert.equal(reaccionLeida.reaccion, '👍');
+  assert.ok(reaccionLeida.leidoEn);
   assert.equal((await request('/api/anuncios/4/leer', 'direccion', 'POST')).status, 404, 'no es suyo');
   const leido = await ok('/api/anuncios/4/leer', 'pereyra', 'POST');
   assert.equal(leido.pendientes, 1);
@@ -265,7 +270,9 @@ test('Adjuntos y notas de voz: cualquier tipo de archivo, y solo los bajan quien
   assert.equal(bajada.datos, 'hola');
   assert.equal((await crudo(`/api/archivos/${raro.id}`, 'martinez')).status, 403);
   // Programas, nunca (por la extensión, aunque digan ser genéricos).
-  assert.equal((await crudo('/api/archivos', 'direccion', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream', 'X-Nombre-Archivo': 'virus.exe' }, body: Buffer.from('MZ') })).status, 415);
+  const binario = await crudo('/api/archivos', 'direccion', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream', 'X-Nombre-Archivo': 'programa.exe' }, body: Buffer.from('MZ') });
+  assert.equal(binario.status, 201);
+  assert.match((await crudo(`/api/archivos/${binario.datos.archivo.id}?inline=1`, 'direccion')).cabeceras.get('content-disposition'), /^attachment/);
 });
 
 test('Borrar para todos: solo quien lo mandó; desaparece para quien lo leyó y para quien no', async () => {

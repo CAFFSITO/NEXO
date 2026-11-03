@@ -17,6 +17,7 @@ import {
   type Notificacion,
 } from "../servicios/notificaciones";
 import { marcarEnfoque } from "../servicios/enfoque";
+import { pedir } from "../servicios/api";
 
 // A dónde lleva cada tipo de objeto al tocar la notificación. Lleva a la sección
 // correcta (el chat, las tareas, la cola) Y, con el objetoId real de la
@@ -67,6 +68,14 @@ export default function NotificacionesPage() {
   const sinLeer = (notificaciones ?? []).filter((n) => !n.leida).length;
 
   const abrir = async (n: Notificacion) => {
+    if (n.objetoTipo === "anuncio-respuesta" && n.objetoId != null) {
+      try {
+        const { url } = await pedir<{ url: string }>(`/api/anuncios/respuestas/${n.objetoId}/destino`);
+        await marcarNotificacionLeida(n.id);
+        navegar(url);
+      } catch (e) { setFallo(e instanceof Error ? e.message : "No se pudo abrir la respuesta."); }
+      return;
+    }
     if (!n.leida) {
       try {
         await marcarNotificacionLeida(n.id);
@@ -161,6 +170,7 @@ export default function NotificacionesPage() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-white">{n.titulo}</p>
+                    {n.prioridad === "urgente" && <span className="text-xs font-bold text-rose-300">Urgente{!n.leida ? " · pendiente de lectura" : " · leído"}</span>}
                     {n.cuerpo && <p className="text-sm text-slate-400 truncate">{n.cuerpo}</p>}
                     <p className="text-xs text-slate-500 mt-1">
                       {new Date(n.creadoEn).toLocaleString("es-AR", {

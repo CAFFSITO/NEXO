@@ -50,6 +50,15 @@ export function useBiblioteca(ambito: AmbitoBiblioteca) {
   return { recursos: datos?.recursos ?? null, cargando, error, recargar };
 }
 
+export interface ColeccionBiblioteca { id: string; nombre: string; total: number }
+export interface AnotacionBiblioteca { id: string; ubicacion: string; contenido: string }
+export function useColeccionesBiblioteca() { return useDatos<{ colecciones: ColeccionBiblioteca[] }>("/api/biblioteca/colecciones"); }
+export function crearColeccionBiblioteca(nombre: string) { return enviar<{ id: string; nombre: string }>("/api/biblioteca/colecciones", "POST", { nombre }); }
+export function guardarEnColeccion(coleccionId: string, recursoId: string) { return enviar(`/api/biblioteca/colecciones/${coleccionId}/recursos/${recursoId}`, "PUT"); }
+export function useAnotacionesBiblioteca(recursoId: string | null) { return useDatos<{ anotaciones: AnotacionBiblioteca[] }>(recursoId ? `/api/biblioteca/recursos/${recursoId}/anotaciones` : null); }
+export function crearAnotacionBiblioteca(recursoId: string, ubicacion: string, contenido: string) { return enviar(`/api/biblioteca/recursos/${recursoId}/anotaciones`, "POST", { ubicacion, contenido }); }
+export function quitarAnotacionBiblioteca(id: string) { return enviar(`/api/biblioteca/anotaciones/${id}`, "DELETE"); }
+
 /**
  * Búsqueda tolerante a tildes y mayúsculas (Error 2.E.3). Vive acá y no en cada
  * pantalla para que Biblioteca institucional y nacional busquen igual.

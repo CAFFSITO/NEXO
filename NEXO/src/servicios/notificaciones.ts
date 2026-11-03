@@ -19,6 +19,7 @@ export function avisarCambioNotificaciones() {
 }
 
 export interface Notificacion {
+  prioridad?: "estandar" | "urgente";
   id: string;
   tipo: string;
   titulo: string;
@@ -79,7 +80,7 @@ export function useResumenNotificaciones() {
   useTiempoReal(
     useCallback(
       (evento) => {
-        if (evento.tipo === "mensaje" || evento.tipo === "notificacion") recargar();
+        if (evento.tipo === "mensaje" || evento.tipo === "notificacion" || evento.tipo === "notificaciones-leidas") recargar();
       },
       [recargar]
     )

@@ -22,10 +22,16 @@ import {
   anularEntrega,
   type DetalleTarea,
   type TareaDocente,
+  type VersionEntrega,
 } from "../../../../servicios/tareas";
 import { subirArchivo, urlDescarga, tamanoLegible } from "../../../../servicios/archivos";
 import { ErrorDeApi, useDatos } from "../../../../servicios/api";
 import { textoVencimiento, colorVencimiento, textoRelativo } from "../../../../servicios/fechas";
+import BotonConversacionContextual from "../BotonConversacionContextual";
+import { OpinionesPares } from "../../portafolio/RevisionesPares";
+import EstudioMultimedia from "../../multimedia/EstudioMultimedia";
+import RecursosVinculados from "../../biblioteca/RecursosVinculados";
+import ProyectosVinculados from '../../proyectos/ProyectosVinculados';
 
 interface Props {
   onCerrar: () => void;
@@ -51,11 +57,13 @@ export default function ModalDetalleTarea({
   const esDocente = tareaDocente != null;
 
   const { datos: detalle, cargando, error, recargar: cargar } = useDatos<DetalleTarea>(!esDocente && tareaId ? `/api/tareas/${tareaId}` : null);
+  const { datos: historial, recargar: cargarHistorial } = useDatos<{ versiones: VersionEntrega[] }>(!esDocente && tareaId ? `/api/tareas/${tareaId}/entregas/historial` : null);
 
   // Estado del formulario de entrega (solo se usa en modo estudiante)
   const [comentario, setComentario] = useState("");
   const [seleccionados, setSeleccionados] = useState<File[]>([]);
   const [enviando, setEnviando] = useState(false);
+  const [preparandoRevision, setPreparandoRevision] = useState(false);
   const [avisoEntrega, setAvisoEntrega] = useState<string | null>(null);
 
 
@@ -82,11 +90,13 @@ export default function ModalDetalleTarea({
         const subido = await subirArchivo(f);
         ids.push(subido.id);
       }
-      await entregarTarea(tareaId, comentario.trim(), ids);
+      await entregarTarea(tareaId, comentario.trim(), ids, preparandoRevision);
       setSeleccionados([]);
       setComentario("");
       onCambio?.();
       cargar();
+      cargarHistorial();
+      setPreparandoRevision(false);
     } catch (e: unknown) {
       setAvisoEntrega(
         e instanceof ErrorDeApi ? e.message : "No se pudo completar la entrega."
@@ -139,6 +149,10 @@ export default function ModalDetalleTarea({
         </div>
 
         <div className="p-6 space-y-6">
+          {(tareaDocente || detalle) && <BotonConversacionContextual tipo="tarea" id={tareaDocente?.id ?? tareaId!} etiqueta="Conversación de la tarea" />}
+          {(tareaDocente || detalle) && <RecursosVinculados tipo="tarea" id={tareaDocente?.id ?? tareaId!} />}
+          {(tareaDocente || detalle) && <ProyectosVinculados tipo="tarea" id={tareaDocente?.id ?? tareaId!} />}
+          {detalle?.entrega && <BotonConversacionContextual tipo="entrega" id={detalle.entrega.id} etiqueta="Conversar con el docente sobre mi entrega" />}
           {esDocente ? (
             <DetalleDocente tarea={tareaDocente} acciones={acciones} />
           ) : cargando ? (
@@ -196,6 +210,7 @@ export default function ModalDetalleTarea({
                   </p>
                 </section>
               )}
+              {detalle.tarea.tipoAsignacion === "grupal" && <section className="rounded-xl border border-white/10 bg-fondo p-3 text-sm"><strong>Equipo:</strong> {detalle.equipo ? `${detalle.equipo.nombre} · ${detalle.equipo.miembros.join(", ")}` : "El docente aún no te asignó a un equipo."}<p className="text-xs text-slate-400 mt-1">Una entrega y una devolución compartidas por todo el equipo.</p></section>}
 
               {/* Adjuntos del profesor */}
               {detalle.tarea.adjuntos.length > 0 && (
@@ -215,22 +230,24 @@ export default function ModalDetalleTarea({
 
               {/* Entrega */}
               {detalle.entrega ? (
-                <EntregaHecha
+                <><EntregaHecha
                   entrega={detalle.entrega}
                   onAnular={anular}
                   enviando={enviando}
-                />
-              ) : (
+                /><OpinionesPares entregaId={detalle.entrega.id} />{detalle.entrega.corregida && <div className="space-y-3"><button type="button" onClick={() => setPreparandoRevision(!preparandoRevision)} className="text-acento text-sm font-semibold">{preparandoRevision ? "Cancelar nueva versión" : "Mejorar y volver a entregar"}</button>{preparandoRevision && <FormularioEntrega comentario={comentario} setComentario={setComentario} seleccionados={seleccionados} onAgregar={agregarArchivos} onQuitar={quitarArchivo} onArchivo={archivo => setSeleccionados(prev => [...prev, archivo])} onEntregar={entregar} enviando={enviando} />}</div>}</>
+              ) : detalle.tarea.tipoAsignacion !== "grupal" || detalle.equipo ? (
                 <FormularioEntrega
                   comentario={comentario}
                   setComentario={setComentario}
                   seleccionados={seleccionados}
                   onAgregar={agregarArchivos}
                   onQuitar={quitarArchivo}
+                  onArchivo={archivo => setSeleccionados(prev => [...prev, archivo])}
                   onEntregar={entregar}
                   enviando={enviando}
                 />
-              )}
+              ) : null}
+              {!!historial?.versiones.length && <section className="border-t border-white/10 pt-4 space-y-3"><h4 className="font-bold text-sm">Historial de entregas</h4>{historial.versiones.map((version, i) => <article key={version.id} className="rounded-xl bg-fondo p-3 text-sm"><p className="font-semibold">Versión {historial.versiones.length - i} · {version.estado}</p><p className="whitespace-pre-wrap">{version.comentario}</p>{version.nota !== null && <p>Nota: {version.nota}/10 · {version.devolucion}</p>}{version.archivos.map(a => <ArchivoDescargable key={a.id} archivo={a} />)}</article>)}</section>}
 
               {avisoEntrega && (
                 <p className="text-sm text-rose-400 font-medium">{avisoEntrega}</p>
@@ -380,6 +397,7 @@ function EntregaHecha({
           <p className="text-slate-200 text-sm whitespace-pre-wrap">
             {entrega.devolucion || "El profesor no dejó un comentario escrito."}
           </p>
+          {Object.entries(entrega.criterios ?? {}).map(([criterio, texto]) => <p key={criterio} className="mt-3 text-sm text-slate-200"><strong>{criterio}:</strong> {texto}</p>)}
         </div>
       ) : (
         <div className="flex items-center justify-between gap-4 bg-fondo rounded-[10px] px-4 py-3">
@@ -409,6 +427,7 @@ function FormularioEntrega({
   seleccionados,
   onAgregar,
   onQuitar,
+  onArchivo,
   onEntregar,
   enviando,
 }: {
@@ -417,6 +436,7 @@ function FormularioEntrega({
   seleccionados: File[];
   onAgregar: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onQuitar: (i: number) => void;
+  onArchivo: (archivo: File) => void;
   onEntregar: () => void;
   enviando: boolean;
 }) {
@@ -433,6 +453,7 @@ function FormularioEntrega({
         rows={3}
         className="w-full bg-fondo border-none rounded-[10px] py-3 px-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-acento transition-all resize-none"
       />
+      <details><summary className="cursor-pointer text-sm text-acento">Grabar o analizar audio y video</summary><EstudioMultimedia onArchivo={onArchivo} /></details>
 
       {/* Archivos elegidos, todavía sin subir */}
       {seleccionados.length > 0 && (

@@ -2,7 +2,7 @@
 // NEXO — Anuncios obligatorios (dirección ↔ preceptoría)
 // ----------------------------------------------------------------------------
 // El problema que resuelve: en la escuela los avisos entre la dirección y los
-// preceptores se pierden. Un anuncio NO es un chat ni se responde: es una
+// preceptores se pierden. Un anuncio permite responder en un hilo privado y es una
 // tarjeta que le aparece encima de todo a cada destinatario, que tiene que leer
 // hasta el final y marcar como leída para poder seguir usando NEXO. Además le
 // suena el celular o la computadora (push) y, si no la lee, se le insiste.
@@ -182,7 +182,7 @@ export function armarMiembros(tipo, { emisores, receptores, miembros }, elegible
     ];
   }
   if (lista.length > MAX_MIEMBROS) return `Un grupo puede tener hasta ${MAX_MIEMBROS} personas.`;
-  if (lista.some((m) => !elegibles.has(m.usuarioId))) return "Hay personas que no pueden estar en este grupo (solo preceptores y directivos de la escuela).";
+  if (lista.some((m) => !elegibles.has(m.usuarioId))) return "Hay personas que no pueden estar en este grupo (solo secretaría, preceptores y directivos de la escuela).";
   return lista;
 }
 
@@ -211,7 +211,7 @@ export function registrarAnuncios(app, db, mensajero, push) {
       ORDER BY CASE rol WHEN 'admin-academico' THEN 0 ELSE 1 END, nombre`
   );
   const pendientes = db.prepare(
-    `SELECT ${COLUMNAS_ANUNCIO}
+    `SELECT ${COLUMNAS_ANUNCIO}, d.reaccion
        FROM anuncio_destinatarios d
        JOIN anuncios a ON a.id = d.anuncio_id
        ${UNION_ANUNCIO}
@@ -242,7 +242,8 @@ export function registrarAnuncios(app, db, mensajero, push) {
       LIMIT ?`
   );
   const destinatariosDe = db.prepare(
-    `SELECT d.leido_en, d.reaccion, u.id, u.nombre, u.rol, u.avatar_url AS avatar
+    `SELECT d.leido_en, d.reaccion, u.id, u.nombre, u.rol, u.avatar_url AS avatar,
+            (SELECT COUNT(*) FROM anuncio_respuestas r WHERE r.anuncio_id = d.anuncio_id AND r.destinatario_id = d.usuario_id) AS respuestas
        FROM anuncio_destinatarios d
        JOIN usuarios u ON u.id = d.usuario_id
       WHERE d.anuncio_id = ?
@@ -257,7 +258,7 @@ export function registrarAnuncios(app, db, mensajero, push) {
     "UPDATE anuncio_destinatarios SET leido_en = datetime('now') WHERE anuncio_id = ? AND usuario_id = ? AND leido_en IS NULL"
   );
   const reaccionar = db.prepare(
-    "UPDATE anuncio_destinatarios SET reaccion = ?, reaccion_en = datetime('now') WHERE anuncio_id = ? AND usuario_id = ?"
+    "UPDATE anuncio_destinatarios SET reaccion = ?, reaccion_en = datetime('now'), leido_en = CASE WHEN ? IS NOT NULL THEN COALESCE(leido_en, datetime('now')) ELSE leido_en END WHERE anuncio_id = ? AND usuario_id = ?"
   );
 
   const grupo = db.prepare("SELECT * FROM anuncio_grupos WHERE id = ? AND archivado_en IS NULL");
@@ -373,6 +374,7 @@ export function registrarAnuncios(app, db, mensajero, push) {
       persona: persona(d),
       leidoEn: aISO(d.leido_en),
       reaccion: d.reaccion,
+      respuestas: d.respuestas,
     }));
     return {
       ...vista(fila),
@@ -425,7 +427,7 @@ export function registrarAnuncios(app, db, mensajero, push) {
       const usuario = exigirAcceso(db, req, res, "anuncios");
       if (!usuario) return;
       res.json({
-        anuncios: pendientes.all(usuario.id).map(vista),
+        anuncios: pendientes.all(usuario.id).map((f) => ({ ...vista(f), reaccion: f.reaccion })),
         total: cuantosPendientes.get(usuario.id).n,
         emojis: EMOJIS_ANUNCIO,
       });
@@ -458,12 +460,12 @@ export function registrarAnuncios(app, db, mensajero, push) {
       const id = Number(req.params.id);
       const destino = Number.isInteger(id) ? miDestino.get(id, usuario.id) : undefined;
       if (!destino) return res.status(404).json({ error: "Ese aviso no existe." });
-      if (!destino.leido_en) return res.status(409).json({ error: "Primero marcá el aviso como leído." });
       const emoji = req.body?.emoji ?? null;
       if (emoji !== null && !EMOJIS_ANUNCIO.includes(emoji)) {
         return res.status(400).json({ error: "Esa reacción no está disponible." });
       }
-      reaccionar.run(emoji, id, usuario.id);
+      reaccionar.run(emoji, emoji, id, usuario.id);
+      if (emoji !== null && !destino.leido_en) mensajero.emitirA(usuario.id, { tipo: "anuncio-leido", anuncioId: String(id) });
       if (destino.autor_id) mensajero.emitirA(destino.autor_id, { tipo: "anuncio-lectura", anuncioId: String(id) });
       res.json({ reaccion: emoji });
     })
@@ -525,6 +527,7 @@ export function registrarAnuncios(app, db, mensajero, push) {
         colorDirecto: colorDirectoDe(usuario.institucionId),
         maxCuerpo: MAX_CUERPO,
         maxAdjuntos: MAX_ADJUNTOS,
+        maxPersonas: MAX_PERSONAS_DIRECTO,
       });
     })
   );
@@ -561,7 +564,7 @@ export function registrarAnuncios(app, db, mensajero, push) {
         }
         const validos = idsElegibles(usuario.institucionId);
         if (personas.some((id) => id === usuario.id || !validos.has(id))) {
-          return res.status(400).json({ error: "Solo podés mandar avisos a preceptores y directivos de tu escuela." });
+          return res.status(400).json({ error: "Solo podés mandar avisos a secretaría, preceptores y directivos de tu escuela." });
         }
         llegan = personas;
       }

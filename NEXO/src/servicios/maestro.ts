@@ -5,6 +5,7 @@
 
 import { enviar, pedir, useDatos } from "./api";
 import type { Tema } from "./tema";
+import type { Personalizacion } from "./personalizacion";
 
 // ── Genoma ──────────────────────────────────────────────
 
@@ -97,6 +98,7 @@ export interface SeccionMenu {
 }
 
 export interface Genoma {
+  personalizacion?: Personalizacion;
   version: number;
   identidad: { nombre: string; lema: string; icono: string; dominio: string; semilla: number };
   tema: Tema;

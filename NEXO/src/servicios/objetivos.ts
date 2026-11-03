@@ -18,6 +18,12 @@ export interface Subtarea {
   titulo: string;
   orden: number;
   completada: boolean;
+  padreId: string | null;
+  dependeDeId: string | null;
+  evidencia: string;
+  archivoId: string | null;
+  responsableId: string | null;
+  responsableNombre: string | null;
 }
 
 export interface Meta {
@@ -188,11 +194,11 @@ export function cambiarEstadoMeta(id: string, completada: boolean, forzar = fals
 
 // ─── Subtareas (Errores 2.D.6 y 2.D.7) ──
 
-export function agregarSubtarea(metaId: string, titulo: string) {
-  return enviar<{ id: string }>("/api/objetivos/metas/" + metaId + "/subtareas", "POST", { titulo });
+export function agregarSubtarea(metaId: string, titulo: string, padreId: string | null = null) {
+  return enviar<{ id: string }>("/api/objetivos/metas/" + metaId + "/subtareas", "POST", { titulo, padreId });
 }
 
-export function editarSubtarea(id: string, cambios: { titulo?: string; completada?: boolean }) {
+export function editarSubtarea(id: string, cambios: { titulo?: string; completada?: boolean; dependeDeId?: string | null; evidencia?: string; archivoId?: string | null; responsableId?: string | null }) {
   return enviar("/api/objetivos/subtareas/" + id, "PUT", cambios);
 }
 

@@ -12,10 +12,14 @@ import {
   corregirEntrega,
   type PanelCorreccion,
   type FilaCorreccion,
+  type VersionEntrega,
 } from "../../../servicios/tareas";
 import { urlDescarga, tamanoLegible } from "../../../servicios/archivos";
 import { ErrorDeApi, useDatos } from "../../../servicios/api";
 import { textoRelativo } from "../../../servicios/fechas";
+import BotonConversacionContextual from "../shared/BotonConversacionContextual";
+import { AsignacionRevisionPares } from "../portafolio/RevisionesPares";
+import EquiposTarea from "./EquiposTarea";
 
 const BADGE: Record<FilaCorreccion["estado"], { label: string; clase: string }> = {
   entregado: { label: "A tiempo", clase: "bg-emerald-500/10 text-emerald-400" },
@@ -25,12 +29,13 @@ const BADGE: Record<FilaCorreccion["estado"], { label: string; clase: string }> 
 
 interface Props {
   tareaId: string;
+  entregaIdInicial?: string | null;
   onCerrar: () => void;
   /** Tras corregir, refresca la lista de fondo (cambian los conteos). */
   onCambio: () => void;
 }
 
-export default function ModalPanelCorreccion({ tareaId, onCerrar, onCambio }: Props) {
+export default function ModalPanelCorreccion({ tareaId, entregaIdInicial, onCerrar, onCambio }: Props) {
   const { datos: panel, cargando, error, recargar: cargar } = useDatos<PanelCorreccion>(`/api/tareas/${tareaId}/panel`);
   const [abierto, setAbierto] = useState<string | null>(null); // estudianteId expandido
 
@@ -74,20 +79,23 @@ export default function ModalPanelCorreccion({ tareaId, onCerrar, onCambio }: Pr
           ) : error ? (
             <p className="text-rose-400 text-sm">{error}</p>
           ) : panel ? (
-            panel.alumnos.map((al) => (
+            <>{panel.tarea.tipoAsignacion === "grupal" && <EquiposTarea tareaId={tareaId} alumnos={panel.alumnos.map(a => ({ estudianteId: a.estudianteId, nombre: a.nombre }))} onCambio={() => { cargar(); onCambio(); }} />}{panel.alumnos.map((al) => (
               <FilaAlumno
                 key={al.estudianteId}
                 fila={al}
-                expandido={abierto === al.estudianteId}
+                rubrica={panel.tarea.rubrica ?? []}
+                tareaId={tareaId}
+                candidatos={panel.alumnos.filter(a => a.estudianteId !== al.estudianteId && a.entregaId !== al.entregaId).map(a => ({ estudianteId: a.estudianteId, nombre: a.nombre }))}
+                expandido={abierto === al.estudianteId || (abierto === null && al.entregaId === entregaIdInicial)}
                 onToggle={() =>
-                  setAbierto((prev) => (prev === al.estudianteId ? null : al.estudianteId))
+                  setAbierto((prev) => (prev === al.estudianteId || (prev === null && al.entregaId === entregaIdInicial) ? "" : al.estudianteId))
                 }
                 onCorregido={() => {
                   onCambio();
                   cargar();
                 }}
               />
-            ))
+            ))}</>
           ) : null}
         </div>
       </div>
@@ -97,11 +105,17 @@ export default function ModalPanelCorreccion({ tareaId, onCerrar, onCambio }: Pr
 
 function FilaAlumno({
   fila,
+  rubrica,
+  tareaId,
+  candidatos,
   expandido,
   onToggle,
   onCorregido,
 }: {
   fila: FilaCorreccion;
+  rubrica: string[];
+  tareaId: string;
+  candidatos: { estudianteId: string; nombre: string }[];
   expandido: boolean;
   onToggle: () => void;
   onCorregido: () => void;
@@ -149,6 +163,7 @@ function FilaAlumno({
       {/* Detalle expandible con la entrega y el formulario de corrección */}
       {expandido && tieneEntrega && (
         <div className="px-4 pb-4 space-y-4 border-t border-white/5 pt-4">
+          <BotonConversacionContextual tipo="entrega" id={fila.entregaId!} etiqueta="Conversar sobre esta entrega" />
           {fila.comentario && (
             <p className="text-slate-300 text-sm bg-lienzo rounded-lg p-3">
               {fila.comentario}
@@ -179,24 +194,35 @@ function FilaAlumno({
             </ul>
           )}
 
-          <FormularioCorreccion fila={fila} onCorregido={onCorregido} />
+          <FormularioCorreccion fila={fila} rubrica={rubrica} onCorregido={onCorregido} />
+          <HistorialDocente tareaId={tareaId} estudianteId={fila.estudianteId} />
+          <AsignacionRevisionPares entregaId={fila.entregaId!} candidatos={candidatos} />
         </div>
       )}
     </div>
   );
 }
 
+function HistorialDocente({ tareaId, estudianteId }: { tareaId: string; estudianteId: string }) {
+  const { datos } = useDatos<{ versiones: VersionEntrega[] }>(`/api/tareas/${tareaId}/entregas/historial?estudianteId=${estudianteId}`);
+  if (!datos || datos.versiones.length < 2) return null;
+  return <section className="rounded-lg border border-white/10 bg-lienzo p-4 space-y-2"><h4 className="font-bold text-sm text-white">Historial de versiones</h4>{datos.versiones.map((v, i) => <article key={v.id} className="rounded-lg bg-fondo p-3 text-sm text-slate-300"><p className="font-semibold">Versión {datos.versiones.length - i} · {v.estado}</p><p className="whitespace-pre-wrap">{v.comentario}</p>{v.nota !== null && <p>Nota: {v.nota}/10 · {v.devolucion}</p>}{v.archivos.map(a => <a key={a.id} href={urlDescarga(a.id)} className="block text-acento hover:underline">{a.nombre}</a>)}</article>)}</section>;
+}
+
 function FormularioCorreccion({
   fila,
+  rubrica,
   onCorregido,
 }: {
   fila: FilaCorreccion;
+  rubrica: string[];
   onCorregido: () => void;
 }) {
   const [nota, setNota] = useState<string>(
     fila.correccion ? String(fila.correccion.nota) : ""
   );
   const [devolucion, setDevolucion] = useState<string>(fila.correccion?.devolucion ?? "");
+  const [criterios, setCriterios] = useState<Record<string,string>>(fila.correccion?.criterios ?? {});
   const [guardando, setGuardando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
@@ -209,7 +235,7 @@ function FormularioCorreccion({
     setGuardando(true);
     setAviso(null);
     try {
-      await corregirEntrega(fila.entregaId as string, n, devolucion.trim());
+      await corregirEntrega(fila.entregaId as string, n, devolucion.trim(), criterios);
       onCorregido();
     } catch (e: unknown) {
       setAviso(e instanceof ErrorDeApi ? e.message : "No se pudo guardar la corrección.");
@@ -239,6 +265,7 @@ function FormularioCorreccion({
         placeholder="Devolución para el estudiante…"
         className="w-full bg-fondo border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-acento resize-none"
       />
+      {rubrica.map(criterio => <label key={criterio} className="block text-sm text-slate-300">{criterio}<textarea rows={2} maxLength={1000} value={criterios[criterio] ?? ""} onChange={e => setCriterios(c => ({...c,[criterio]:e.target.value}))} className="block w-full bg-fondo border border-white/10 rounded-lg p-2 text-white" placeholder="Devolución específica y próximo paso" /></label>)}
       {aviso && <p className="text-sm text-rose-400 font-medium">{aviso}</p>}
       <div className="flex justify-end">
         <button

@@ -1,24 +1,17 @@
-// La tarjeta de un aviso: ocupa casi toda la pantalla, con letra grande y el
-// color de su grupo. Arriba, el grupo y el botón de copiar el texto; quién lo
-// mandó y cuándo; el texto y sus archivos (notas de voz, imágenes, documentos:
-// si es largo, se desplaza adentro); y abajo el botón de "Marcar como leído",
-// que recién se habilita al llegar al final Y después de escuchar cada audio
-// hasta el final. Después de marcarla aparece la fila de emojis para reaccionar
-// y, debajo, en el mismo lugar del botón de leído, "Terminar" (o "Ver el
-// siguiente aviso" si hay más).
-
 import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import AdjuntosAviso from "./AdjuntosAviso";
 import {
   copiarTexto,
   estiloAviso,
-  esAudio,
   fechaLarga,
   iconoDestino,
   rolEnAvisos,
+  responderAviso,
   type Aviso,
 } from "../../../servicios/anuncios";
 import Avatar from "./Avatar";
+import FormularioRespuesta from "../chat/FormularioRespuesta";
+import RespuestasAviso from "./RespuestasAviso";
 
 interface Props {
   aviso: Aviso;
@@ -43,6 +36,8 @@ export default function TarjetaAviso({
   // Una vez que llegó al final, queda habilitado aunque vuelva a subir.
   const [alFinal, setAlFinal] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [respuestaOcupada, setRespuestaOcupada] = useState(false);
+  const [respuestasVersion, setRespuestasVersion] = useState(0);
 
   const medir = useCallback(() => {
     const el = caja.current;
@@ -73,13 +68,9 @@ export default function TarjetaAviso({
   };
 
   const adjuntos = aviso.adjuntos ?? [];
-  // Los audios cuentan como leídos recién cuando se escucharon hasta el final.
-  const [escuchados, setEscuchados] = useState<ReadonlySet<string>>(() => new Set());
-  const faltanAudios = adjuntos.filter((a) => esAudio(a) && !escuchados.has(a.id)).length;
-  const habilitado = alFinal && faltanAudios === 0;
 
   return (
-    <article className="av-tarjeta" style={estiloAviso(aviso.color)} aria-label={`Aviso de ${aviso.autor?.nombre ?? "NEXO"}`}>
+    <article className="av-tarjeta av-con-respuesta" data-respuesta-activa={respuestaOcupada} style={estiloAviso(aviso.color)} aria-label={`Aviso de ${aviso.autor?.nombre ?? "NEXO"}`}>
       <div className="av-sup">
         <span className="av-pill">
           <span className="material-symbols-outlined" aria-hidden="true">{iconoDestino(aviso.grupo?.tipo)}</span>
@@ -115,9 +106,8 @@ export default function TarjetaAviso({
             <AdjuntosAviso
               adjuntos={adjuntos}
               variante="tarjeta"
-              exigirEscucha={!leido}
-              onEscuchado={(id) => setEscuchados((antes) => new Set(antes).add(id))}
             />
+            {aviso.autor && <div className="mt-3"><RespuestasAviso anuncioId={aviso.id} soloHistorial actualizacion={respuestasVersion} /></div>}
           </div>
         </div>
         {!alFinal && (
@@ -129,53 +119,23 @@ export default function TarjetaAviso({
       </div>
 
       <div className="av-pie">
-        {!leido ? (
-          <>
-            <button
-              type="button"
-              className={`av-leer ${habilitado ? "is-listo" : ""}`}
-              disabled={!habilitado || marcando}
-              onClick={onLeer}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">{habilitado ? "check_circle" : alFinal ? "headphones" : "south"}</span>
-              {marcando
-                ? "Marcando…"
-                : habilitado
-                  ? "Marcar como leído"
-                  : !alFinal
-                    ? "Leé hasta el final para marcarlo"
-                    : faltanAudios === 1
-                      ? "Escuchá el audio hasta el final para marcarlo"
-                      : `Escuchá los ${faltanAudios} audios hasta el final para marcarlo`}
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="av-leido">
-              <span className="material-symbols-outlined" aria-hidden="true">done_all</span>
-              Leído · podés reaccionar
-            </p>
-            <div className="av-emojis" role="group" aria-label="Reaccionar al aviso">
-              {emojis.map((e, i) => (
-                <button
-                  key={e}
-                  type="button"
-                  className="av-emoji"
-                  style={{ "--i": i } as CSSProperties}
-                  aria-pressed={reaccion === e}
-                  aria-label={`Reaccionar con ${e}`}
-                  onClick={() => onReaccionar?.(reaccion === e ? null : e)}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-            <button type="button" className="av-leer is-listo av-terminar" onClick={onSiguiente}>
-              <span className="material-symbols-outlined" aria-hidden="true">{ultimo ? "done_all" : "arrow_forward"}</span>
-              {ultimo ? "Terminar" : "Ver el siguiente aviso"}
-            </button>
-          </>
-        )}
+        {aviso.autor && <FormularioRespuesta key={aviso.id} onOcupado={setRespuestaOcupada}
+          onEnviar={async (texto, archivoIds) => { await responderAviso(aviso.id, texto, archivoIds); setRespuestasVersion((v) => v + 1); }} />}
+        <div className="av-emojis" role="group" aria-label="Reaccionar al aviso">
+          {emojis.map((e, i) => <button key={e} type="button" className="av-emoji"
+            style={{ "--i": i } as CSSProperties} aria-pressed={reaccion === e}
+            aria-label={`Reaccionar con ${e}`} disabled={respuestaOcupada || marcando}
+            onClick={() => onReaccionar?.(reaccion === e ? null : e)}>{e}</button>)}
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" className="av-leer is-listo" disabled={leido || marcando || respuestaOcupada} onClick={onLeer}>
+            <span className="material-symbols-outlined" aria-hidden="true">{leido ? "done_all" : "check_circle"}</span>
+            {marcando ? "Marcando…" : leido ? "Leído" : "Marcar como leído"}
+          </button>
+          {leido && <button type="button" className="av-leer is-listo" disabled={respuestaOcupada} onClick={onSiguiente}>
+            {ultimo ? "Terminar" : "Siguiente aviso"}
+          </button>}
+        </div>
         {error && <p className="av-error" role="alert">{error}</p>}
       </div>
     </article>

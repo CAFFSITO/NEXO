@@ -43,6 +43,7 @@ export interface PersonaAnuncio {
 }
 
 export interface Aviso {
+  reaccion?: string | null;
   id: string;
   cuerpo: string;
   /** ISO en UTC ("…Z"): se muestra en la hora local de quien mira. */
@@ -63,6 +64,7 @@ export interface AvisoLeido extends Aviso {
 }
 
 export interface Lectura {
+  respuestas: number;
   persona: PersonaAnuncio;
   leidoEn: string | null;
   reaccion: string | null;
@@ -90,6 +92,7 @@ export interface Destinos {
   colorDirecto: string;
   maxCuerpo: number;
   maxAdjuntos: number;
+  maxPersonas: number;
 }
 
 export interface GrupoAnuncios {
@@ -138,6 +141,23 @@ export function marcarAvisoLeido(id: string) {
 
 export function reaccionarAviso(id: string, emoji: string | null) {
   return enviar<{ reaccion: string | null }>(`/api/anuncios/${id}/reaccion`, "PUT", { emoji });
+}
+
+export interface RespuestaAviso {
+  id: string; autor: string; autorId: string; mio: boolean; cuerpo: string; creadoEn: string;
+  adjuntos: AdjuntoAviso[];
+}
+export interface HiloAviso {
+  anuncio: { id: string; cuerpo: string; autor: string | null };
+  destinatario: { id: string; nombre: string };
+  puedeResponder: boolean;
+  respuestas: RespuestaAviso[];
+}
+export function pedirRespuestasAviso(id: string, destinatarioId?: string, signal?: AbortSignal) {
+  return pedir<HiloAviso>(`/api/anuncios/${id}/respuestas${destinatarioId ? `?destinatarioId=${encodeURIComponent(destinatarioId)}` : ""}`, signal);
+}
+export function responderAviso(id: string, cuerpo: string, archivoIds: string[], destinatarioId?: string) {
+  return enviar<{ respuesta: RespuestaAviso }>(`/api/anuncios/${id}/respuestas`, "POST", { cuerpo, archivoIds, destinatarioId });
 }
 
 export function pedirLeidos({ q = "", antes }: { q?: string; antes?: string } = {}, signal?: AbortSignal) {
@@ -296,6 +316,7 @@ export async function copiarTexto(texto: string): Promise<boolean> {
 const ROL_EN_AVISOS: Record<string, string> = {
   "admin-academico": "Dirección",
   preceptor: "Preceptoría",
+  secretaria: "Secretaría",
   profesor: "Docente",
 };
 /** Cómo se nombra el rol de alguien en un aviso ("Dirección", "Preceptoría"). */

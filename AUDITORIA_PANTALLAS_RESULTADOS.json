@@ -1,0 +1,832 @@
+{
+  "fecha": "2026-11-02T18:51:09.157Z",
+  "alcance": "Apertura y errores JS/HTTP 5xx; no valida todas las acciones",
+  "resultados": [
+    {
+      "rol": "admin-academico",
+      "pagina": "configuracion-cuenta",
+      "ruta": "/configuracion",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "comunidad",
+      "ruta": "/comunidad",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "debates",
+      "ruta": "/comunidad/debates",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "tendencias",
+      "ruta": "/comunidad/tendencias",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "calendario-institucional",
+      "ruta": "/comunidad/calendario",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "reportes",
+      "ruta": "/reportes",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "biblioteca",
+      "ruta": "/biblioteca/institucional",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "documentos",
+      "ruta": "/documentos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "metodos-estudio",
+      "ruta": "/estudio/metodos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "biblioteca-nacional",
+      "ruta": "/biblioteca/nacional",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "anuncios",
+      "ruta": "/anuncios",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "chat",
+      "ruta": "/chat",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "perfiles-academicos",
+      "ruta": "/admin/perfiles",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "cursos-activos",
+      "ruta": "/admin/cursos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "panel-institucional",
+      "ruta": "/admin/panel",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "modulos-institucion",
+      "ruta": "/admin/modulos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "gestion-quejas",
+      "ruta": "/centro-estudiantes/quejas",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "admin-academico",
+      "pagina": "notificaciones",
+      "ruta": "/notificaciones",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "configuracion-cuenta",
+      "ruta": "/configuracion",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "comunidad",
+      "ruta": "/comunidad",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "debates",
+      "ruta": "/comunidad/debates",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "tendencias",
+      "ruta": "/comunidad/tendencias",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "calendario-institucional",
+      "ruta": "/comunidad/calendario",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "detalle-materia-estudiante",
+      "ruta": "/portafolio/materia",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "profesor-dashboard",
+      "ruta": "/portafolio-docente",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "diario-reflexivo-profesor",
+      "ruta": "/portafolio-docente/diario",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "aula-virtual-profesor",
+      "ruta": "/portafolio-docente/aula-virtual",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "gestion-tareas-profesor",
+      "ruta": "/portafolio/gestion",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "biblioteca",
+      "ruta": "/biblioteca/institucional",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "documentos",
+      "ruta": "/documentos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "metodos-estudio",
+      "ruta": "/estudio/metodos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "biblioteca-nacional",
+      "ruta": "/biblioteca/nacional",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "chat",
+      "ruta": "/chat",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "profesor",
+      "pagina": "notificaciones",
+      "ruta": "/notificaciones",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "preceptor",
+      "pagina": "configuracion-cuenta",
+      "ruta": "/configuracion",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "preceptor",
+      "pagina": "comunidad",
+      "ruta": "/comunidad",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "preceptor",
+      "pagina": "debates",
+      "ruta": "/comunidad/debates",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "preceptor",
+      "pagina": "tendencias",
+      "ruta": "/comunidad/tendencias",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "preceptor",
+      "pagina": "calendario-institucional",
+      "ruta": "/comunidad/calendario",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "preceptor",
+      "pagina": "mis-cursos-preceptor",
+      "ruta": "/comunidad/curso",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "preceptor",
+      "pagina": "documentos",
+      "ruta": "/documentos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "preceptor",
+      "pagina": "metodos-estudio",
+      "ruta": "/estudio/metodos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "preceptor",
+      "pagina": "anuncios",
+      "ruta": "/anuncios",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "preceptor",
+      "pagina": "chat",
+      "ruta": "/chat",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "preceptor",
+      "pagina": "notificaciones",
+      "ruta": "/notificaciones",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "configuracion-cuenta",
+      "ruta": "/configuracion",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "comunidad",
+      "ruta": "/comunidad",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "debates",
+      "ruta": "/comunidad/debates",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "tendencias",
+      "ruta": "/comunidad/tendencias",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "calendario-institucional",
+      "ruta": "/comunidad/calendario",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "mis-cursos-estudiante",
+      "ruta": "/portafolio/cursos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "mis-tareas-estudiante",
+      "ruta": "/portafolio/mis-tareas",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "calificaciones",
+      "ruta": "/portafolio/calificaciones",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "detalle-materia-estudiante",
+      "ruta": "/portafolio/materia",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "aula-virtual-estudiante",
+      "ruta": "/aula-virtual",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "objetivos-dashboard",
+      "ruta": "/objetivos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "objetivos-metas",
+      "ruta": "/objetivos/metas",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "objetivos-habitos",
+      "ruta": "/objetivos/habitos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "competencias",
+      "ruta": "/objetivos/competencias",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "biblioteca",
+      "ruta": "/biblioteca/institucional",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "documentos",
+      "ruta": "/documentos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "metodos-estudio",
+      "ruta": "/estudio/metodos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "biblioteca-nacional",
+      "ruta": "/biblioteca/nacional",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "chat",
+      "ruta": "/chat",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "asistencia-ia",
+      "ruta": "/asistencia-academica",
+      "errores": [],
+      "dependencias": [
+        "Motor de modelos privados no disponible (HTTP 503)"
+      ],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "enviar-queja",
+      "ruta": "/quejas/enviar",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "estudiante",
+      "pagina": "notificaciones",
+      "ruta": "/notificaciones",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "familia",
+      "pagina": "configuracion-cuenta",
+      "ruta": "/configuracion",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "familia",
+      "pagina": "calendario-institucional",
+      "ruta": "/comunidad/calendario",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "familia",
+      "pagina": "documentos",
+      "ruta": "/documentos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "familia",
+      "pagina": "metodos-estudio",
+      "ruta": "/estudio/metodos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "familia",
+      "pagina": "chat",
+      "ruta": "/chat",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "familia",
+      "pagina": "familia-comunicados",
+      "ruta": "/comunicados",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "familia",
+      "pagina": "familia-calendario",
+      "ruta": "/familia/calendario",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "familia",
+      "pagina": "notificaciones",
+      "ruta": "/notificaciones",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "bibliotecario",
+      "pagina": "configuracion-cuenta",
+      "ruta": "/configuracion",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "bibliotecario",
+      "pagina": "comunidad",
+      "ruta": "/comunidad",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "bibliotecario",
+      "pagina": "debates",
+      "ruta": "/comunidad/debates",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "bibliotecario",
+      "pagina": "tendencias",
+      "ruta": "/comunidad/tendencias",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "bibliotecario",
+      "pagina": "calendario-institucional",
+      "ruta": "/comunidad/calendario",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "bibliotecario",
+      "pagina": "biblioteca",
+      "ruta": "/biblioteca/institucional",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "bibliotecario",
+      "pagina": "documentos",
+      "ruta": "/documentos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "bibliotecario",
+      "pagina": "metodos-estudio",
+      "ruta": "/estudio/metodos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "bibliotecario",
+      "pagina": "biblioteca-nacional",
+      "ruta": "/biblioteca/nacional",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "bibliotecario",
+      "pagina": "panel-bibliotecario",
+      "ruta": "/biblioteca/cola-revision",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "bibliotecario",
+      "pagina": "chat",
+      "ruta": "/chat",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "bibliotecario",
+      "pagina": "notificaciones",
+      "ruta": "/notificaciones",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "centro-estudiantes",
+      "pagina": "configuracion-cuenta",
+      "ruta": "/configuracion",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "centro-estudiantes",
+      "pagina": "comunidad",
+      "ruta": "/comunidad",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "centro-estudiantes",
+      "pagina": "debates",
+      "ruta": "/comunidad/debates",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "centro-estudiantes",
+      "pagina": "tendencias",
+      "ruta": "/comunidad/tendencias",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "centro-estudiantes",
+      "pagina": "calendario-institucional",
+      "ruta": "/comunidad/calendario",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "centro-estudiantes",
+      "pagina": "documentos",
+      "ruta": "/documentos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "centro-estudiantes",
+      "pagina": "metodos-estudio",
+      "ruta": "/estudio/metodos",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "centro-estudiantes",
+      "pagina": "portal-centro",
+      "ruta": "/centro-estudiantes",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "centro-estudiantes",
+      "pagina": "gestion-quejas",
+      "ruta": "/centro-estudiantes/quejas",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "centro-estudiantes",
+      "pagina": "notificaciones",
+      "ruta": "/notificaciones",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "administrador",
+      "pagina": "configuracion-cuenta",
+      "ruta": "/configuracion",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "administrador",
+      "pagina": "gestion-instituciones",
+      "ruta": "/admin/instituciones",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "administrador",
+      "pagina": "salud-sistema",
+      "ruta": "/admin/salud",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "administrador",
+      "pagina": "maestro-estudio",
+      "ruta": "/maestro/forja",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "administrador",
+      "pagina": "anuncios-maestro",
+      "ruta": "/maestro/anuncios",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    },
+    {
+      "rol": "administrador",
+      "pagina": "notificaciones",
+      "ruta": "/notificaciones",
+      "errores": [],
+      "dependencias": [],
+      "fallo": ""
+    }
+  ]
+}

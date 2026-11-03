@@ -17,6 +17,7 @@ import CasillaLeidos from "./components/anuncios/CasillaLeidos";
 import ListaEnviados from "./components/anuncios/ListaEnviados";
 import GestorGrupos from "./components/anuncios/GestorGrupos";
 import EstadoAlertas from "./components/anuncios/EstadoAlertas";
+import RespuestasAviso from "./components/anuncios/RespuestasAviso";
 import "./components/anuncios/anuncios.css";
 
 type Vista = "nuevo" | "leidos" | "enviados" | "grupos";
@@ -52,11 +53,12 @@ export default function AnunciosPage() {
               <h1 className="text-4xl font-black font-headline text-white tracking-tight">Anuncios</h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-on-surface-variant">
                 Avisos que no se pierden: le llegan a cada persona como una tarjeta encima de todo, y no puede seguir
-                usando NEXO hasta marcarlos como leídos. No se responden.
+                usando NEXO hasta marcarlos como leídos. Respondé con opciones rápidas, texto, archivos o audio.
               </p>
             </div>
 
             <EstadoAlertas />
+            {params.get("respuesta") && <RespuestasAviso key={`${params.get("respuesta")}-${params.get("destinatarioId")}`} anuncioId={params.get("respuesta")!} destinatarioId={params.get("destinatarioId") ?? undefined} />}
 
             <div className="av-pestanas" role="tablist" aria-label="Secciones de Anuncios">
               {vistas.map((v) => (

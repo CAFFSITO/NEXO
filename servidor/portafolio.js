@@ -52,7 +52,9 @@ export function registrarPortafolio(app, db) {
        JOIN usuarios p  ON p.id = ca.profesor_id
        LEFT JOIN entregas e
               ON e.tarea_id = t.id
-             AND e.estudiante_id = i.estudiante_id
+             AND (e.estudiante_id = i.estudiante_id OR e.equipo_id IN
+                  (SELECT em.equipo_id FROM tarea_equipo_miembros em
+                   WHERE em.tarea_id=t.id AND em.estudiante_id=i.estudiante_id))
              AND e.anulada_en IS NULL
        LEFT JOIN correcciones co ON co.entrega_id = e.id
       WHERE i.estudiante_id = ?
@@ -60,7 +62,7 @@ export function registrarPortafolio(app, db) {
   );
 
   const personalesDe = db.prepare(
-    `SELECT id, titulo, descripcion, fecha_limite, completada_en
+    `SELECT id, titulo, descripcion, fecha_limite, completada_en, recurrencia, restantes
        FROM tareas_personales
       WHERE estudiante_id = ?
       ORDER BY completada_en IS NOT NULL, fecha_limite`
@@ -119,6 +121,8 @@ export function registrarPortafolio(app, db) {
         descripcion: fila.descripcion,
         fechaLimite: fila.fecha_limite ?? null,
         completada: fila.completada_en !== null,
+        recurrencia: fila.recurrencia ? JSON.parse(fila.recurrencia) : null,
+        repeticionesRestantes: fila.restantes,
       }));
 
       res.json({ tareas, personales });

@@ -34,12 +34,16 @@ export interface TareaAcademica {
   corregidoEn: string | null;
 }
 
+export interface RecurrenciaPersonal { frecuencia: "diaria"|"semanal"|"mensual"|"anual"; intervalo:number; dias?:number[]; modoMensual?:"dia"|"posicion"|"ultimo"; hasta?:string; veces?:number; soloHabiles?:boolean; saltarFeriados?:boolean }
+
 export interface TareaPersonal {
   id: string;
   titulo: string;
   descripcion: string;
   fechaLimite: string | null;
   completada: boolean;
+  recurrencia: RecurrenciaPersonal | null;
+  repeticionesRestantes: number | null;
 }
 
 export interface DatosPortafolio {

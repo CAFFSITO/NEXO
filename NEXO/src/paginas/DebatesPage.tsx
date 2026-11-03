@@ -11,7 +11,8 @@ import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import { useDebates } from "../servicios/comunidad";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
-import { useCapacidad, useFuncion } from "../servicios/instancia";
+import { useCapacidad, useFuncion, useInstancia } from "../servicios/instancia";
+import { rutaVisible } from "./components/shared/navegacionItems";
 import { limpiarEnfoque, verEnfoque } from "../servicios/enfoque";
 import { usePestanasComunidad } from "./components/comunidad/pestanas";
 import TarjetaDebate from "./components/comunidad/TarjetaDebate";
@@ -30,6 +31,7 @@ const sinTildes = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLo
 
 export default function DebatesPage() {
   const { navegar, cerrarSesion, usuario } = useNavegacion();
+  const { instancia } = useInstancia();
   const { debates, cargando, error, recargar } = useDebates();
   const pestanas = usePestanasComunidad();
   const crearHabilitado = useFuncion("debates.crear");
@@ -66,6 +68,7 @@ export default function DebatesPage() {
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <TopBar title="Debates" pestanas={pestanas} />
+        {rutaVisible(instancia, "/chat") && <button type="button" className="self-start mx-4 my-2 text-sm text-primary font-bold" onClick={() => navegar("/chat?espacios=1")}>Explorar canales y foros</button>}
 
         <div className="mx-auto w-full max-w-[980px] flex-1 px-3 py-6 sm:px-8">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-4">

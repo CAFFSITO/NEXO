@@ -18,6 +18,7 @@ import {
 } from "../servicios/objetivos";
 import { diasHasta } from "../servicios/fechas";
 import { Cargando, Fallo } from "./components/shared/EstadoCarga";
+import { useDetalleEnRuta } from "../servicios/detalleEnRuta";
 
 // La creación, el completado y las subtareas ahora viajan a la base (Etapa 5).
 // El calculador de fechas único (`servicios/fechas`) hace que una meta vencida
@@ -37,7 +38,7 @@ export default function MisMetasPage() {
   const { resumen, recargar: recargarResumen } = useResumen();
   const [filtro, setFiltro] = useState<FiltroEstado>("todas");
   const [modalNueva, setModalNueva] = useState(false);
-  const [detalleId, setDetalleId] = useState<string | null>(null);
+  const [detalleId, setDetalleId] = useDetalleEnRuta("meta");
   const [editarId, setEditarId] = useState<string | null>(null);
   const [verReporte, setVerReporte] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -134,6 +135,7 @@ export default function MisMetasPage() {
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen relative">
         <TopBar title="Objetivos Personales" pestanas={PESTANAS_OBJETIVOS} />
+        {detalleId && !cargando && !error && !metaDetalle && <p role="status" className="p-4 text-amber-200">Esta meta ya no está disponible. <button type="button" className="underline" onClick={() => setDetalleId(null)}>Cerrar enlace</button></p>}
 
         <div className="flex-1 overflow-y-auto bg-background p-8">
           <div className="max-w-6xl mx-auto">

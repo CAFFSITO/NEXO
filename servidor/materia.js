@@ -191,6 +191,7 @@ export function registrarMateria(app, db) {
         // El rol con que entra: la vidriera decide si mostrar el compositor de
         // avisos (el servidor igual revalida cada publicación).
         soyProfesor: usuario.id === catedra.profesor_id,
+        materiaId: String(catedra.materia_id),
         materia: catedra.materia,
         profesor: catedra.profesor,
         profesorAvatar: catedra.profesor_avatar ?? null,

@@ -8,6 +8,7 @@
 import { enviar, useDatos } from "./api";
 import type { AlgoritmoCatalogo, ModuloCatalogo, SeccionMenu } from "./maestro";
 import type { Tema } from "./tema";
+import type { Personalizacion } from "./personalizacion";
 
 export type { SeccionMenu };
 
@@ -65,6 +66,7 @@ export interface Jerarquia {
 }
 
 export interface Edicion {
+  personalizacion?: Personalizacion;
   version: number;
   escuela: { nombre: string; lema: string; icono: string };
   tema: Tema;
@@ -80,7 +82,7 @@ export interface Edicion {
 }
 
 /** Lo que la dirección puede cambiar: el borrador sobre el que trabaja la pantalla. */
-export type Borrador = Pick<Edicion, "secciones" | "modulos" | "perfiles" | "algoritmos" | "jerarquia" | "capacidades">;
+export type Borrador = Pick<Edicion, "secciones" | "modulos" | "perfiles" | "algoritmos" | "jerarquia" | "capacidades" | "personalizacion">;
 
 /** Lo que solo algunos perfiles pueden hacer; la dirección elige cuáles. */
 export interface CapacidadCatalogo { id: string; modulo: string; nombre: string; descripcion: string; arquetipos: string[]; porDefecto: string[] }
@@ -99,6 +101,7 @@ function cuerpoDe(borrador: Borrador) {
     algoritmos: Object.fromEntries(Object.entries(borrador.algoritmos).map(([id, a]) => [id, { activo: a.activo, variante: a.variante, parametros: a.parametros }])),
     jerarquia: borrador.jerarquia,
     capacidades: borrador.capacidades,
+    personalizacion: borrador.personalizacion,
   };
 }
 

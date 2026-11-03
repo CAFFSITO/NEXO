@@ -55,6 +55,12 @@ interface MetaRol {
 }
 
 export const META_ROL: Record<Rol, MetaRol> = {
+  secretaria: {
+    label: ROL_LABELS.secretaria,
+    badge: "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30",
+    labelAsignacion: "Área",
+    placeholderAsignacion: "Secretaría institucional",
+  },
   estudiante: {
     label: ROL_LABELS.estudiante,
     badge: "bg-green-500/10 text-green-400 border border-green-500/20",
@@ -110,6 +116,7 @@ export const META_ROL: Record<Rol, MetaRol> = {
 // dirección quien lo da de alta (sección 1.1). Por eso esta lista y `Rol` no
 // son la misma cosa, aunque se parezcan.
 export const ROLES: Rol[] = [
+  "secretaria",
   "estudiante",
   "profesor",
   "preceptor",

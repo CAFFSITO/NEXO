@@ -1,19 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { useNavegacion } from "../navegacion";
 import TopBar from "./components/shared/TopBar";
 import ChatContainer from "./components/asistencia-ia/ChatContainer";
 import MessageInput from "./components/asistencia-ia/MessageInput";
+import Selector from "./components/shared/Selector";
+import { modelosEnDispositivo, responderEnDispositivo } from "../servicios/asistenciaDispositivo";
 import {
   traerHistorialIa,
   enviarMensajeIa,
   borrarHistorialIa,
+  cancelarMensajeIa,
+  buscarFuentesIa,
+  traerModelosIa,
   useEstadoIa,
+  type FuenteIa,
 } from "../servicios/asistenciaIa";
 
-// Asistencia IA real (sección 14.16, Errores 2.G.1 y 2.G.2). Ya no hay respuesta
-// fija: el servidor arma el pedido con el system prompt de config_ia + la
-// conversación y llama al proveedor gratuito. La clave vive en el servidor.
+// El tutor usa solo un servicio local o institucional privado.
 
 interface Message {
   id: string;
@@ -40,13 +44,24 @@ export default function AsistenciaIAPage() {
   const [errorEnvio, setErrorEnvio] = useState("");
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [faqAbierto, setFaqAbierto] = useState(false);
+  const [fuentesDisponibles, setFuentesDisponibles] = useState<FuenteIa[]>([]);
+  const [fuentes, setFuentes] = useState<FuenteIa[]>([]);
+  const [modelos, setModelos] = useState<string[]>([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [modoConsulta,setModoConsulta] = useState<"institucional"|"dispositivo">("institucional");
+  const [modelosDispositivo,setModelosDispositivo] = useState<string[]>([]);
+  const [modeloDispositivo,setModeloDispositivo] = useState("");
+  const [estadoDispositivo,setEstadoDispositivo] = useState("Comprobá si Ollama está iniciado en este equipo.");
+  const controladorLocal=useRef<AbortController|null>(null);
+  const historialLocal=useRef<{role:"user"|"assistant";content:string}[]>([]);
+  const modoActual=useRef<"institucional"|"dispositivo">("institucional");
 
   // Cargar el historial real al entrar.
   useEffect(() => {
     let vigente = true;
     traerHistorialIa()
       .then((hist) => {
-        if (!vigente) return;
+        if (!vigente || modoActual.current!=="institucional") return;
         setMessages(
           hist.map((m) => ({
             id: m.id,
@@ -63,6 +78,27 @@ export default function AsistenciaIAPage() {
     };
   }, []);
 
+  useEffect(() => {
+    buscarFuentesIa(busqueda).then(setFuentesDisponibles).catch(() => setFuentesDisponibles([]));
+  }, [busqueda]);
+  useEffect(() => {
+    traerModelosIa().then(x => setModelos(x.modelos.map(m => m.nombre))).catch(() => setModelos([]));
+  }, []);
+
+  const cambiarModo=(modo:"institucional"|"dispositivo")=>{
+    if(pensando)return;
+    modoActual.current=modo;setModoConsulta(modo);setMessages([]);setErrorEnvio("");
+    if(modo==="dispositivo"){
+      historialLocal.current=[];
+      setEstadoDispositivo("Buscando Ollama en este equipo…");
+      void modelosEnDispositivo().then(lista=>{setModelosDispositivo(lista);setModeloDispositivo(lista[0]??"");
+        setEstadoDispositivo(lista.length?"Modelo local disponible. La conversación queda sólo en esta pestaña.":"No hay modelos locales instalados.");
+      }).catch(()=>{setModelosDispositivo([]);setModeloDispositivo("");setEstadoDispositivo("No se pudo conectar con Ollama local. Revisá el servicio y OLLAMA_ORIGINS.");});
+    } else {
+      void traerHistorialIa().then(hist=>{if(modoActual.current==="institucional")setMessages(hist.map(m=>({id:m.id,role:m.rol,content:aHtmlSeguro(m.contenido)})));}).catch(()=>setErrorEnvio("No se pudo cargar el historial institucional."));
+    }
+  };
+
   const handleSendMessage = async (content: string) => {
     if (pensando) return false;
     setErrorEnvio("");
@@ -73,7 +109,13 @@ export default function AsistenciaIAPage() {
     };
     setPensando(true);
     try {
-      const respuesta = await enviarMensajeIa(content);
+      let respuesta:string;
+      if(modoConsulta==="dispositivo"){
+        const controller=new AbortController();controladorLocal.current=controller;
+        respuesta=await responderEnDispositivo(content,modeloDispositivo,fuentes,historialLocal.current,controller.signal);
+        if(controller.signal.aborted)return false;
+        historialLocal.current=[...historialLocal.current,{role:"user" as const,content},{role:"assistant" as const,content:respuesta}].slice(-20);
+      } else respuesta=await enviarMensajeIa(content, fuentes);
       setMessages((prev) => [
         ...prev,
         propio,
@@ -82,16 +124,23 @@ export default function AsistenciaIAPage() {
       return true;
     } catch (fallo) {
       setErrorEnvio(
-        fallo instanceof Error ? fallo.message : "No se pudo obtener la respuesta."
+        fallo instanceof Error && fallo.name==="AbortError" ? "Consulta cancelada." : fallo instanceof Error ? fallo.message : "No se pudo obtener la respuesta."
       );
       return false;
     } finally {
+      controladorLocal.current=null;
       setPensando(false);
     }
   };
 
+  const handleCancelar = async () => {
+    if(modoConsulta==="dispositivo"){controladorLocal.current?.abort();return;}
+    try { await cancelarMensajeIa(); } catch { setErrorEnvio("No se pudo cancelar la consulta."); }
+  };
+
   const handleBorrar = async () => {
     setMenuAbierto(false);
+    if(modoConsulta==="dispositivo"){historialLocal.current=[];setMessages([]);return;}
     try {
       await borrarHistorialIa();
       setMessages([]);
@@ -102,7 +151,7 @@ export default function AsistenciaIAPage() {
 
   if (!usuario) return null;
 
-  const claveFalta = estado && (!estado.configurada || !estado.clavePresente);
+  const noConfigurada = estado && !estado.configurada;
 
   const mensajesVista: Message[] =
     messages.length === 0
@@ -126,7 +175,7 @@ export default function AsistenciaIAPage() {
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col h-full relative">
         <TopBar
           title="Asistencia Académica"
-          subtitle={estado?.proveedor ? `Tutor NEXO · ${estado.proveedor}` : "Tutor NEXO"}
+          subtitle={modoConsulta==="dispositivo"?`Tutor NEXO · este dispositivo · ${modeloDispositivo||"sin modelo"}`:estado ? `Tutor NEXO · ${estado.modo === "institucional" ? "red institucional" : "servidor local"} · ${estado.modelo}` : "Tutor NEXO"}
           onHelpClick={() => setFaqAbierto(true)}
           onMenuClick={() => setMenuAbierto((v) => !v)}
         />
@@ -144,28 +193,50 @@ export default function AsistenciaIAPage() {
           </div>
         )}
 
-        {claveFalta && (
+        {modoConsulta === "institucional" && noConfigurada && (
           <div className="mx-6 mt-4 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-sm text-amber-200 flex items-start gap-2">
             <span className="material-symbols-outlined text-base">info</span>
             <span>
-              La asistencia todavía no está lista para responder: falta cargar la clave
-              del proveedor de IA en el servidor (variable de entorno{" "}
-              <code>NEXO_IA_CLAVE</code>). Avisale a quien administra NEXO.
+              La asistencia todavía no está configurada para esta institución.
             </span>
           </div>
         )}
 
         <ChatContainer messages={mensajesVista} />
 
+        <div className="px-6 pb-2 text-xs text-slate-300 space-y-2">
+          <label className="flex items-center gap-2">Dónde ejecutar la IA
+            <Selector value={modoConsulta} disabled={pensando} onChange={e=>cambiarModo(e.target.value as "institucional"|"dispositivo")} className="rounded bg-slate-800 p-1"><option value="institucional">Servidor privado institucional</option><option value="dispositivo">Este dispositivo</option></Selector>
+          </label>
+          {modoConsulta==="dispositivo"?<><p role="status">{estadoDispositivo}</p>{modelosDispositivo.length>0&&<label>Modelo local <Selector value={modeloDispositivo} onChange={e=>setModeloDispositivo(e.target.value)} className="rounded bg-slate-800 p-1">{modelosDispositivo.map(m=><option key={m} value={m}>{m}</option>)}</Selector></label>}<p>En este modo NEXO sólo entrega las fuentes elegidas; pregunta, respuesta e historial no se guardan en el servidor. Al cerrar esta pestaña se pierde la conversación.</p></>:<p>Modelo seleccionado: {estado?.modelo ?? "—"}. {modelos.length ? `Instalados: ${modelos.join(", ")}` : "Servicio de modelos no disponible."}</p>}
+          <details>
+            <summary className="cursor-pointer">Fuentes para esta consulta ({fuentes.length})</summary>
+            <input aria-label="Buscar fuentes" value={busqueda} onChange={e => setBusqueda(e.target.value)}
+              placeholder="Buscar tareas, biblioteca, documentos, lecciones o proyectos" className="w-full rounded bg-slate-800 p-2 mt-2" />
+            <div className="max-h-28 overflow-auto">
+              {fuentesDisponibles.map(f => {
+                const elegido = fuentes.some(x => x.tipo === f.tipo && x.id === f.id);
+                return <label key={`${f.tipo}-${f.id}`} className="flex gap-2 p-1">
+                  <input type="checkbox" checked={elegido} disabled={!elegido && fuentes.length >= 8}
+                    onChange={() => setFuentes(prev => elegido
+                      ? prev.filter(x => x.tipo !== f.tipo || x.id !== f.id) : [...prev,f])} />
+                  {{tarea:'Tarea',biblioteca:'Biblioteca',documento:'Documento',leccion:'Lección',proyecto:'Proyecto'}[f.tipo]}: {f.titulo}
+                </label>;
+              })}
+            </div>
+          </details>
+        </div>
+
         {pensando && (
           <p className="px-8 pb-2 text-xs text-slate-400 flex items-center gap-2">
             <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-            El tutor está pensando…
+            El tutor está generando una respuesta…
+            <button type="button" onClick={handleCancelar} className="underline ml-2">Cancelar</button>
           </p>
         )}
         {errorEnvio && <p className="px-8 pb-2 text-xs text-error">{errorEnvio}</p>}
 
-        <MessageInput onSendMessage={handleSendMessage} pensando={pensando} disabled={!estado || !!claveFalta} />
+        <MessageInput onSendMessage={handleSendMessage} pensando={pensando} disabled={modoConsulta === "dispositivo" ? !modeloDispositivo : !estado || !!noConfigurada} />
 
         {/* FAQ / ayuda — ahora abre contenido real (Error 2.G.2) */}
         {faqAbierto && (
@@ -186,8 +257,8 @@ export default function AsistenciaIAPage() {
               <div className="space-y-3 text-sm text-slate-300">
                 <p><strong className="text-white">¿Qué puede hacer?</strong> Explicarte conceptos, darte ejercicios y ayudarte a organizar el estudio.</p>
                 <p><strong className="text-white">¿Hace la tarea por mí?</strong> No. Está pensada para guiarte a que la resuelvas vos; si le pedís que la haga entera, te propone un plan.</p>
-                <p><strong className="text-white">¿Guarda lo que escribo?</strong> Sí, tu conversación queda en tu cuenta. Podés borrarla desde el menú de los tres puntos.</p>
-                <p><strong className="text-white">¿De dónde salen las respuestas?</strong> De un proveedor de IA; la clave de acceso vive en el servidor, nunca en tu navegador.</p>
+                <p><strong className="text-white">¿Guarda lo que escribo?</strong> El modo institucional guarda la conversación en tu cuenta. El modo de este dispositivo la conserva sólo en la memoria de esta pestaña.</p>
+                <p><strong className="text-white">¿De dónde salen las respuestas?</strong> De un modelo en el servidor privado o de Ollama instalado en tu equipo. Podés elegir fuentes autorizadas para dar contexto.</p>
               </div>
             </div>
           </div>

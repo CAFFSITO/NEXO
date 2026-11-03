@@ -27,9 +27,11 @@ import VistaPreviaEscuela from "./components/edicion/VistaPreviaEscuela";
 import TarjetaAlgoritmoEscuela from "./components/edicion/TarjetaAlgoritmoEscuela";
 import DialogoGuardar from "./components/edicion/DialogoGuardar";
 import PanelJerarquia from "./components/edicion/PanelJerarquia";
+import PanelPersonalizacion from "./components/shared/personalizacion/PanelPersonalizacion";
+import PanelAppsPublicas from "./components/edicion/PanelAppsPublicas";
 import "./components/edicion/edicion.css";
 
-type Pestana = "jerarquia" | "perfiles" | "algoritmos" | "historial";
+type Pestana = "jerarquia" | "perfiles" | "algoritmos" | "historial" | "personalizacion" | "apps";
 
 interface Trabajo {
   version: number;
@@ -45,6 +47,8 @@ const PESTANAS: { id: Pestana; nombre: string; icono: string }[] = [
   { id: "perfiles", nombre: "Jerarquía de perfiles", icono: "account_tree" },
   { id: "algoritmos", nombre: "Algoritmos", icono: "function" },
   { id: "historial", nombre: "Historial", icono: "history" },
+  { id: "personalizacion", nombre: "Personalización", icono: "tune" },
+  { id: "apps", nombre: "Apps públicas", icono: "apps" },
 ];
 
 const fecha = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -160,8 +164,7 @@ export default function ModoEdicionPage() {
                       <h1 className="font-headline text-3xl sm:text-4xl font-bold text-white mt-4 tracking-tight">Diseñá cómo funciona {edicion.escuela.nombre}</h1>
                       <p className="text-on-surface-variant/70 text-sm mt-2 leading-relaxed">
                         Armá el menú, ordená los perfiles en la jerarquía de la escuela, mostrá u ocultá módulos, encendé o apagá sus
-                        funciones y calibrá sus algoritmos mirando cómo quedan con los datos reales. Nada se borra: lo oculto siempre se
-                        puede volver a mostrar.
+                        funciones y calibrá sus algoritmos mirando cómo quedan con los datos reales. Los módulos ocultos pueden volver a mostrarse.
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-3">
@@ -251,6 +254,8 @@ export default function ModoEdicionPage() {
                     </div>
                   )}
 
+                  {pestana === "personalizacion" && <div id="e-panel-personalizacion" role="tabpanel" aria-labelledby="e-tab-personalizacion" className="mt-6"><PanelPersonalizacion valor={borrador.personalizacion} perfiles={borrador.perfiles} algoritmos={catalogo.algoritmos} onCambiar={p => cambiar(b => { b.personalizacion = p; })} /></div>}
+                  {pestana === "apps" && <div id="e-panel-apps" role="tabpanel" aria-labelledby="e-tab-apps" className="mt-6"><PanelAppsPublicas /></div>}
                   {pestana === "historial" && (
                     <div id="e-panel-historial" role="tabpanel" aria-labelledby="e-tab-historial" className="mt-6 max-w-3xl">
                       {edicion.historial.length === 0 ? (

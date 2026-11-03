@@ -68,6 +68,9 @@ export default function TarjetaTareaPersonal({
           </button>
         </div>
       </div>
+      {(tarea.fechaLimite||tarea.recurrencia)&&<p className="mt-2 pl-10 text-xs text-slate-400">{tarea.fechaLimite?`Fecha límite: ${tarea.fechaLimite}`:''}{tarea.recurrencia?` · Se repite cada ${tarea.recurrencia.intervalo} ${
+        {diaria:'día(s)',semanal:'semana(s)',mensual:'mes(es)',anual:'año(s)'}[tarea.recurrencia.frecuencia]
+      }${tarea.repeticionesRestantes!==null?` · ${tarea.repeticionesRestantes} ocurrencia(s) restante(s)`:''}`:''}</p>}
     </div>
   );
 }

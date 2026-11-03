@@ -27,7 +27,7 @@ export const ROLES_POR_PAGINA = {
   // Aviso de "sección en construcción" (Error 12.8). No muestra ningún dato,
   // así que la puede ver cualquiera: negarla sería decirle a alguien "no tenés
   // permiso" para ver un cartel que dice que la pantalla todavía no existe.
-  "en-construccion": [
+  "en-construccion": ["secretaria",
     "estudiante", "profesor", "admin-academico", "preceptor",
     "centro-estudiantes", "bibliotecario", "familia", "administrador",
   ],
@@ -37,7 +37,7 @@ export const ROLES_POR_PAGINA = {
   // configurar y una contraseña que cambiar. La ventanilla igual solo devuelve
   // y toca los datos de QUIEN pregunta (ver cuenta.js): "puede ver la pantalla"
   // no es lo mismo que "puede ver la cuenta de otro".
-  "configuracion-cuenta": [
+  "configuracion-cuenta": ["secretaria",
     "estudiante", "profesor", "admin-academico", "preceptor",
     "centro-estudiantes", "bibliotecario", "familia", "administrador",
   ],
@@ -58,7 +58,7 @@ export const ROLES_POR_PAGINA = {
   // modo lectura para quien no puede editar. Por eso lo ven los ocho perfiles
   // educativos. Quién puede EDITARLO es otra pantalla ("calendario-editar") y
   // otra validación fina en calendario.js (regla de oro 4).
-  "calendario-institucional": [
+  "calendario-institucional": ["secretaria",
     "estudiante", "profesor", "admin-academico", "preceptor",
     "centro-estudiantes", "bibliotecario", "familia",
   ],
@@ -79,7 +79,7 @@ export const ROLES_POR_PAGINA = {
   // NEXO. Esta lista es también QUIÉNES PARTICIPAN: los que pueden recibir,
   // mandar a personas puntuales y estar en grupos. Sumar a los profesores es
   // agregar "profesor" acá.
-  anuncios: ["preceptor", "admin-academico"],
+  anuncios: ["preceptor", "admin-academico", "secretaria"],
   // Armar los grupos de difusión de la escuela: la dirección. El Maestro también
   // puede, desde su pantalla propia ("anuncios-maestro"), para cualquier escuela.
   "anuncios-grupos": ["admin-academico"],
@@ -107,15 +107,18 @@ export const ROLES_POR_PAGINA = {
 
   // Biblioteca (lectura para varios perfiles)
   biblioteca: ["estudiante", "profesor", "admin-academico", "bibliotecario"],
+  documentos: ["estudiante", "profesor", "admin-academico", "bibliotecario", "preceptor", "familia", "centro-estudiantes", "secretaria"],
+  proyectos: ["estudiante", "profesor", "admin-academico", "bibliotecario", "preceptor", "familia", "centro-estudiantes", "secretaria"],
+  "metodos-estudio": ["estudiante", "profesor", "admin-academico", "bibliotecario", "preceptor", "familia", "centro-estudiantes", "secretaria"],
   "biblioteca-nacional": ["estudiante", "profesor", "admin-academico", "bibliotecario"],
 
   // Chat
-  chat: ["estudiante", "profesor", "preceptor", "bibliotecario", "familia", "admin-academico"],
+  chat: ["estudiante", "profesor", "preceptor", "bibliotecario", "familia", "admin-academico", "secretaria"],
 
   // Notificaciones (Etapa 6, servicio transversal 14.15, Error 9.D.1). La campana
   // y su lista las tienen los ocho roles: cualquiera que use NEXO recibe avisos.
   // La ventanilla igual solo devuelve las notificaciones de QUIEN pregunta.
-  notificaciones: [
+  notificaciones: ["secretaria",
     "estudiante", "profesor", "admin-academico", "preceptor",
     "centro-estudiantes", "bibliotecario", "familia", "administrador",
   ],

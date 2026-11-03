@@ -11,7 +11,7 @@ import { spawn } from 'node:child_process';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 
-export async function crearEntorno(prefijo, prepararBase = () => {}) {
+export async function crearEntorno(prefijo, prepararBase = () => {}, extraEnv = {}) {
   const tempRoot = realpathSync(tmpdir());
   const temp = mkdtempSync(join(tempRoot, prefijo));
   const dbPath = join(temp, 'prueba.db');
@@ -26,15 +26,15 @@ export async function crearEntorno(prefijo, prepararBase = () => {}) {
   let base;
   const server = spawn(process.execPath, ['servidor.js'], {
     cwd: join(root, 'servidor'), windowsHide: true,
-    env: { ...process.env, NEXO_DB_PATH: dbPath, NEXO_STORAGE_DIR: temp, NEXO_HOST: '127.0.0.1', NEXO_PORT: '0', NEXO_TLS_CERT: '', NEXO_TLS_KEY: '' },
+    env: { ...process.env, NEXO_DB_PATH: dbPath, NEXO_STORAGE_DIR: temp, NEXO_HOST: '127.0.0.1', NEXO_PORT: '0', NEXO_TLS_CERT: '', NEXO_TLS_KEY: '', ...extraEnv },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  await new Promise((listo, fallo) => {
-    const timer = setTimeout(() => fallo(new Error('Servidor no inició: ' + logs)), 15000);
+  try { await new Promise((listo, fallo) => {
+    const timer = setTimeout(() => fallo(new Error('Servidor no inició: ' + logs)), 30000);
     server.stdout.on('data', (chunk) => { logs += chunk; const m = logs.match(/encendida en http:\/\/localhost:(\d+)/); if (m) { base = `http://127.0.0.1:${m[1]}`; clearTimeout(timer); listo(); } });
     server.stderr.on('data', (chunk) => { logs += chunk; });
     server.once('exit', (code) => { clearTimeout(timer); fallo(new Error(`Servidor salió ${code}: ${logs}`)); });
-  });
+  }); } catch (error) { await cerrar(); throw error; }
 
   const cookies = {};
   async function request(path, quien, method = 'GET', body) {

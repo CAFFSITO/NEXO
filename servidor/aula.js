@@ -52,6 +52,7 @@
 import { exigirSesion, ventanilla } from "./comun.js";
 import { asegurarConversacionClase } from "./chat.js";
 import { algoritmo } from "./genoma.js";
+import { registrarAulaTransmision } from './aula-transmision.js';
 
 // Cada cuánto el servidor revisa el ritmo de las clases en vivo (14.3, paso 6).
 const INTERVALO_ALERTA_MS = 30_000; // medio minuto
@@ -70,6 +71,16 @@ export function registrarAula(app, db, mensajero, notificaciones) {
   if (!tiene("umbral_alerta_min")) {
     db.exec("ALTER TABLE clases_planificadas ADD COLUMN umbral_alerta_min INTEGER NOT NULL DEFAULT 3");
   }
+  db.exec(`CREATE TABLE IF NOT EXISTS clase_manos (
+    clase_id INTEGER NOT NULL REFERENCES clases_planificadas(id),
+    estudiante_id INTEGER NOT NULL REFERENCES usuarios(id),
+    solicitada_en TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (clase_id, estudiante_id)
+  )`);
+  db.exec(`CREATE TABLE IF NOT EXISTS aula_eventos (
+    clase_id INTEGER PRIMARY KEY REFERENCES clases_planificadas(id) ON DELETE CASCADE,
+    evento_id INTEGER UNIQUE NOT NULL REFERENCES eventos(id) ON DELETE CASCADE
+  )`);
 
   // ── Consultas preparadas reutilizadas ──────────────────────────────────────
   const claseConCatedra = db.prepare(
@@ -123,6 +134,8 @@ export function registrarAula(app, db, mensajero, notificaciones) {
     res.status(403).json({ error: "No sos parte de esta clase." });
     return null;
   }
+
+  registrarAulaTransmision(app, db, { accesoAClase, claseConCatedra, estaInscriptoEn });
 
   /** Los ids a los que hay que empujar un evento de la clase: el docente + los
    *  estudiantes conectados en este momento. */
@@ -251,6 +264,14 @@ export function registrarAula(app, db, mensajero, notificaciones) {
 
       const info = insertarClase.run(catedraId, titulo, fechaHora, objetivos, materiales);
       const claseId = info.lastInsertRowid;
+      // La clase tiene una entrada en la agenda del curso y el docente.
+      const fecha = fechaHora.slice(0, 10), hora = fechaHora.slice(11, 16);
+      const curso = db.prepare('SELECT c.curso_id,cu.institucion_id FROM catedras c JOIN cursos cu ON cu.id=c.curso_id WHERE c.id=?').get(catedraId);
+      const evento = db.prepare(`INSERT INTO eventos(institucion_id,creador_id,titulo,tipo,descripcion,enlace,fecha,hora_inicio,recordatorios)
+        VALUES(?,?,?,'evento',?,?,?,?,'[10]')`).run(curso.institucion_id,usuario.id,titulo,objetivos,`/aula-virtual?clase=${claseId}`,fecha,hora);
+      db.prepare('INSERT INTO aula_eventos(clase_id,evento_id) VALUES(?,?)').run(claseId,evento.lastInsertRowid);
+      db.prepare("INSERT INTO evento_destinos(evento_id,tipo,curso_id,rol) VALUES(?,'curso',?,'estudiante')").run(evento.lastInsertRowid,curso.curso_id);
+      db.prepare("INSERT INTO evento_destinos(evento_id,tipo,usuario_id) VALUES(?,'persona',?)").run(evento.lastInsertRowid,usuario.id);
       // El umbral inicial de la alerta de ritmo sale del genoma de la escuela
       // (lo diseña el Maestro); el docente lo puede ajustar después, por clase.
       const alerta = algoritmo(db, usuario.institucionId, "aula.alerta-ritmo");
@@ -387,6 +408,7 @@ export function registrarAula(app, db, mensajero, notificaciones) {
       const { clase } = acc;
 
       db.prepare("UPDATE clases_planificadas SET estado = 'finalizada' WHERE id = ?").run(clase.id);
+      db.prepare('DELETE FROM clase_manos WHERE clase_id=?').run(clase.id);
       // Todos los que quedaron conectados se marcan como salidos ahora.
       db.prepare(
         "UPDATE clase_asistencias SET desconectado_en = datetime('now') WHERE clase_id = ? AND desconectado_en IS NULL"
@@ -609,6 +631,29 @@ export function registrarAula(app, db, mensajero, notificaciones) {
   );
 
   // ── Preguntas pendientes (Error 3.B.6, se conserva) ─────────────────────────
+  app.get('/api/aula/clases/:id/manos', ventanilla((req, res) => {
+    const acc = accesoAClase(req, res, req.params.id); if (!acc) return;
+    const manos = db.prepare(`SELECT u.id, u.nombre, cm.solicitada_en AS solicitadaEn
+      FROM clase_manos cm JOIN usuarios u ON u.id=cm.estudiante_id
+      WHERE cm.clase_id=? ORDER BY cm.solicitada_en, u.id`).all(acc.clase.id);
+    res.json({ manos, levantada: manos.some(m => m.id === acc.usuario.id) });
+  }));
+  app.put('/api/aula/clases/:id/mano', ventanilla((req, res) => {
+    const acc = accesoAClase(req, res, req.params.id); if (!acc) return;
+    if (acc.esDocente || acc.clase.estado !== 'en-vivo') return res.status(403).json({ error: 'Solo estudiantes de una clase en vivo solicitan la palabra.' });
+    if (req.body?.levantada === true) db.prepare('INSERT OR IGNORE INTO clase_manos(clase_id,estudiante_id) VALUES(?,?)').run(acc.clase.id,acc.usuario.id);
+    else if (req.body?.levantada === false) db.prepare('DELETE FROM clase_manos WHERE clase_id=? AND estudiante_id=?').run(acc.clase.id,acc.usuario.id);
+    else return res.status(400).json({ error: 'Indicá si querés levantar o bajar la mano.' });
+    for (const id of destinatariosClase(acc.clase)) mensajero.emitirA(id,{ tipo:'aula-manos', claseId:String(acc.clase.id) });
+    res.json({ levantada:req.body.levantada });
+  }));
+  app.delete('/api/aula/clases/:id/manos/:estudianteId', ventanilla((req, res) => {
+    const acc = accesoAClase(req, res, req.params.id); if (!acc) return;
+    if (!acc.esDocente) return res.status(403).json({ error: 'Solo el docente concede la palabra.' });
+    db.prepare('DELETE FROM clase_manos WHERE clase_id=? AND estudiante_id=?').run(acc.clase.id,Number(req.params.estudianteId));
+    for (const id of destinatariosClase(acc.clase)) mensajero.emitirA(id,{ tipo:'aula-manos', claseId:String(acc.clase.id) });
+    res.json({ ok:true });
+  }));
   app.post(
     "/api/aula/clases/:id/preguntas",
     ventanilla((req, res) => {

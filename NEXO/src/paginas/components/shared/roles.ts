@@ -16,6 +16,7 @@ export type Rol =
     | "profesor"
     | "admin-academico"
     | "preceptor"
+    | "secretaria"
     | "centro-estudiantes"
     | "bibliotecario"
     | "administrador"
@@ -26,6 +27,7 @@ export const ROL_LABELS: Record<Rol, string> = {
     profesor: "Profesor",
     "admin-academico": "Admin. Académica",
     preceptor: "Preceptor",
+    secretaria: "Secretaría",
     "centro-estudiantes": "Centro de Estudiantes",
     bibliotecario: "Bibliotecario",
     // El administrador de plataforma es el perfil MAESTRO: crea y diseña las

@@ -15,6 +15,7 @@ import {
   type Respuesta,
 } from "../../../servicios/calendario";
 import { capitalizar, cuandoEvento, etiquetaRecordatorio, fechaLarga, iconoOrigen, OPCIONES_RECORDATORIO } from "./agendaUtil";
+import { useNavegacion } from "../../../navegacion";
 
 interface Props {
   evento: EventoServidor;
@@ -52,6 +53,9 @@ export function ElegirAlcance({ valor, onCambiar, verbo }: { valor: AlcanceCambi
 }
 
 export default function DetalleEvento({ evento: ev, categorias, onCerrar, onEditar, onDuplicar, onCambio }: Props) {
+  const { usuario } = useNavegacion();
+  const enlaceAula = ev.enlace?.match(/^\/aula-virtual\?clase=(\d+)$/);
+  const enlace = enlaceAula && usuario?.rol === "profesor" ? `/portafolio-docente/aula-virtual?clase=${enlaceAula[1]}` : ev.enlace;
   const categoria = categorias.find((c) => c.id === ev.categoria);
   const [respuesta, setRespuesta] = useState<Respuesta | null>(ev.miRespuesta);
   const [oculto, setOculto] = useState(ev.oculto);
@@ -143,7 +147,7 @@ export default function DetalleEvento({ evento: ev, categorias, onCerrar, onEdit
             {ev.lugar && <Fila icono="location_on" titulo="Lugar">{ev.lugar}</Fila>}
             {ev.enlace && (
               <Fila icono="videocam" titulo="Enlace">
-                <a href={ev.enlace} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline break-all">{ev.enlace}</a>
+                <a href={enlace ?? undefined} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline break-all">{enlaceAula ? "Entrar al aula" : ev.enlace}</a>
               </Fila>
             )}
             <Fila icono="person" titulo="Organiza">{ev.esMio ? "Vos" : ev.creador}</Fila>

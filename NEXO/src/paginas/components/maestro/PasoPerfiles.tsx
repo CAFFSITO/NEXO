@@ -41,6 +41,7 @@ export default function PasoPerfiles({ genoma, catalogo, onCambiar, usuariosPorP
   const quitar = (clave: string) => {
     const g = clonar(genoma);
     g.perfiles = g.perfiles.filter((p) => p.clave !== clave);
+    if (g.personalizacion) delete g.personalizacion.perfiles[clave];
     onCambiar(g);
     setElegido(g.perfiles[0]?.clave ?? "estudiante");
   };

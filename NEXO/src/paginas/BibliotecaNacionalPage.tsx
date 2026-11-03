@@ -5,6 +5,7 @@ import TopBar from "./components/shared/TopBar";
 import { PESTANAS_BIBLIOTECA } from "./components/shared/pestanasModulos";
 import { useNavegacion } from "../navegacion";
 import TarjetaRecursoNacional from "./components/biblioteca/TarjetaRecursoNacional";
+import LectorRecurso from "./components/biblioteca/LectorRecurso";
 import FiltrosNacional, {
   type EstadoFiltros,
 } from "./components/biblioteca/FiltrosNacional";
@@ -45,7 +46,8 @@ const TIPO_NACIONAL: Record<Recurso["tipo"], TipoRecurso> = {
 const A_VOTO: Record<string, Voto> = { "a-favor": "positivo", "en-contra": "negativo" };
 
 export default function BibliotecaNacionalPage() {
-  const [filtros, setFiltros] = useState<EstadoFiltros>(FILTROS_INICIALES);
+  const [lectorId, setLectorId] = useState<string | null>(()=>new URLSearchParams(window.location.search).get('recurso'));
+  const [filtros, setFiltros] = useState<EstadoFiltros>(()=>({...FILTROS_INICIALES,query:new URLSearchParams(window.location.search).get('buscar')??''}));
   const { recursos, cargando, error, recargar } = useBiblioteca("nacional");
 
   // Al votar, el servidor devuelve el estado fresco (mi voto + totales reales).
@@ -175,6 +177,7 @@ export default function BibliotecaNacionalPage() {
                     voto={A_VOTO[estadoVoto[r.id]?.miVoto ?? ""] ?? null}
                     onVotar={handleVotar}
                     onAbrir={handleAbrir}
+                    onLeer={setLectorId}
                   />
                 ))
               ) : (
@@ -199,6 +202,7 @@ export default function BibliotecaNacionalPage() {
           </div>
         </div>
       </main>
+      {lectorId && (recursos ?? []).find(r => r.id === lectorId) && <LectorRecurso recurso={(recursos ?? []).find(r => r.id === lectorId)!} cerrar={() => setLectorId(null)} actualizado={recargar} />}
     </div>
   );
 }

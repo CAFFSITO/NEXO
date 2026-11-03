@@ -95,6 +95,10 @@ export interface EntradaSala {
   nombre: string;
   esDocente: boolean;
 }
+export interface ManoClase { id: number; nombre: string; solicitadaEn: string }
+export async function manosDeClase(claseId: string) { return pedir<{ manos: ManoClase[]; levantada: boolean }>(`/api/aula/clases/${claseId}/manos`); }
+export async function levantarMano(claseId: string, levantada: boolean) { return enviar(`/api/aula/clases/${claseId}/mano`, "PUT", { levantada }); }
+export async function atenderMano(claseId: string, estudianteId: number) { return enviar(`/api/aula/clases/${claseId}/manos/${estudianteId}`, "DELETE"); }
 
 // ─── Planificación (docente) ────────────────────────────
 

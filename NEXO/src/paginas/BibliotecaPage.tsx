@@ -5,6 +5,8 @@ import { PESTANAS_BIBLIOTECA } from "./components/shared/pestanasModulos";
 import { useNavegacion } from "../navegacion";
 import SearchAndFilter from "./components/biblioteca/SearchAndFilter";
 import ResourceCard from "./components/biblioteca/ResourceCard";
+import LectorRecurso from "./components/biblioteca/LectorRecurso";
+import GestorArchivos from "./components/biblioteca/GestorArchivos";
 import ModalPresentarRecurso from "./components/biblioteca/ModalPresentarRecurso";
 import {
   normalizar,
@@ -18,6 +20,7 @@ import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 import { useInstitucion } from "../servicios/institucion";
 import { urlDescarga } from "../servicios/archivos";
 import Selector from "./components/shared/Selector";
+import { useDatos } from "../servicios/api";
 
 // Ícono por tipo de recurso. Decoración, no un dato de la base.
 const ICONO_TIPO: Record<Recurso["tipo"], string> = {
@@ -29,6 +32,7 @@ const ICONO_TIPO: Record<Recurso["tipo"], string> = {
 };
 
 export default function BibliotecaPage() {
+  const [lectorId, setLectorId] = useState<string | null>(()=>new URLSearchParams(window.location.search).get('recurso'));
   const { navegar: handleNavegar, cerrarSesion: handleCerrarSesion, usuario } = useNavegacion();
   const rol: Rol = usuario?.rol ?? "estudiante";
 
@@ -40,6 +44,7 @@ export default function BibliotecaPage() {
 
   const [ambito] = useState<AmbitoBiblioteca>("institucional");
   const [query, setQuery] = useState("");
+  const {datos: busquedaGlobal}=useDatos<{recursos:{id:string;titulo:string}[];colecciones:{id:string;nombre:string}[];anotaciones:{id:string;recursoId:string;contenido:string}[]}>(query.trim()?`/api/biblioteca/buscar?q=${encodeURIComponent(query.trim())}`:null);
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const [tipo, setTipo] = useState("todos");
   const [categoria, setCategoria] = useState("todas");
@@ -153,6 +158,7 @@ export default function BibliotecaPage() {
 
           {/* Filter & Search Bar */}
           <SearchAndFilter onSearch={setQuery} onFilter={() => setFiltrosAbiertos(!filtrosAbiertos)} />
+          {query.trim() && busquedaGlobal && <section aria-label="Búsqueda en biblioteca y notas" className="mb-6 rounded-xl border border-white/10 bg-surface-container p-4 text-sm"><h2 className="font-bold">También en tu biblioteca</h2><p className="text-on-surface-variant">{busquedaGlobal.recursos.length} recursos · {busquedaGlobal.colecciones.length} colecciones · {busquedaGlobal.anotaciones.length} notas</p><div className="mt-2 flex flex-wrap gap-2">{busquedaGlobal.recursos.slice(0,10).map(r=><button key={r.id} type="button" className="rounded border border-white/15 px-2 py-1" onClick={()=>{if(recursos?.some(x=>x.id===r.id))setLectorId(r.id);else handleNavegar(`/biblioteca/nacional?recurso=${r.id}`);}}>{r.titulo}</button>)}{busquedaGlobal.colecciones.slice(0,5).map(c=><span key={c.id} className="rounded border border-white/15 px-2 py-1">Colección: {c.nombre}</span>)}{busquedaGlobal.anotaciones.slice(0,5).map(n=><button key={n.id} type="button" className="rounded border border-white/15 px-2 py-1" onClick={()=>{if(recursos?.some(x=>x.id===n.recursoId))setLectorId(n.recursoId);else handleNavegar(`/biblioteca/nacional?recurso=${n.recursoId}`);}}>Nota: {n.contenido}</button>)}</div></section>}
           {filtrosAbiertos && <section aria-label="Filtros de biblioteca" className="flex flex-wrap items-end gap-4 mb-6 p-4 bg-surface-container border border-white/10 rounded-xl">
             <label className="text-xs text-on-surface-variant">Tipo<Selector value={tipo} onChange={e => setTipo(e.target.value)} className="block mt-2 p-2.5 rounded-lg bg-background"><option value="todos">Todos los tipos</option>{Object.keys(ICONO_TIPO).map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}</Selector></label>
             <label className="text-xs text-on-surface-variant">Categoría<Selector value={categoria} onChange={e => setCategoria(e.target.value)} className="block mt-2 p-2.5 rounded-lg bg-background"><option value="todas">Todas las categorías</option>{[...new Set(recursos?.map(r => r.categoria) ?? [])].map(c => <option key={c}>{c}</option>)}</Selector></label>
@@ -181,6 +187,7 @@ export default function BibliotecaPage() {
                   // "aprobado"/"en-revision". Es la misma cosa; se traduce acá.
                   estado={r.estado === "aprobado" ? "verificado" : "revision"}
                   onAction={() => handleAccionRecurso(r)}
+                  onLeer={() => setLectorId(r.id)}
                   votosPositivos={estadoVoto(r).votosPositivos}
                   votosNegativos={estadoVoto(r).votosNegativos}
                   miVoto={estadoVoto(r).miVoto}
@@ -194,6 +201,7 @@ export default function BibliotecaPage() {
               mensaje={query ? "No se encontraron recursos para tu búsqueda." : "Todavía no hay recursos en esta biblioteca."}
             />
           )}
+          <GestorArchivos direccion={rol === "admin-academico"} />
 
           {/* Antes había, además del botón de arriba, un segundo "Presentar
               recurso" en un bloque al pie: el mismo acceso aparecía dos veces
@@ -226,6 +234,7 @@ export default function BibliotecaPage() {
           }}
         />
       )}
+      {lectorId && (recursos ?? []).find(r => r.id === lectorId) && <LectorRecurso recurso={(recursos ?? []).find(r => r.id === lectorId)!} cerrar={() => setLectorId(null)} actualizado={recargar} />}
     </div>
   );
 }

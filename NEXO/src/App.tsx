@@ -16,6 +16,7 @@ import { iniciarSesion, sesionActual, cerrarSesionEnServidor } from "./servicios
 import { consultarAcceso, olvidarPermisos, type ResultadoAcceso } from "./servicios/permisos";
 import { InstanciaContext, pedirInstancia, useInstancia, type Instancia } from "./servicios/instancia";
 import { aplicarTema } from "./servicios/tema";
+import { aplicarPreferencias } from "./servicios/aplicarPreferencias";
 import { olvidarPush } from "./servicios/push";
 import { inicioPara } from "./paginas/components/shared/navegacionItems";
 const LoginPage = lazy(() => import("./paginas/LoginPage.tsx"));
@@ -24,6 +25,9 @@ const RecuperarContrasenaPage = lazy(() => import("./paginas/RecuperarContrasena
 const AyudaDeAccesoPage = lazy(() => import("./paginas/AyudaDeAccesoPage.tsx"));
 const AsistenciaIAPage = lazy(() => import("./paginas/AsistenciaIAPage.tsx"));
 const BibliotecaPage = lazy(() => import("./paginas/BibliotecaPage.tsx"));
+const DocumentosPage = lazy(() => import("./paginas/DocumentosPage.tsx"));
+const ProyectosPage = lazy(() => import("./paginas/ProyectosPage.tsx"));
+const MetodosEstudioPage = lazy(() => import("./paginas/MetodosEstudioPage.tsx"));
 const BibliotecaNacionalPage = lazy(() => import("./paginas/BibliotecaNacionalPage.tsx"));
 const ComunidadPage = lazy(() => import("./paginas/ComunidadPage.tsx"));
 const DebatesPage = lazy(() => import("./paginas/DebatesPage.tsx"));
@@ -64,6 +68,7 @@ const AnunciosMaestroPage = lazy(() => import("./paginas/AnunciosMaestroPage.tsx
 // La capa de avisos obligatorios: se monta en toda la app (fuera de las rutas)
 // y tapa cualquier pantalla mientras haya avisos sin leer.
 const AvisosObligatorios = lazy(() => import("./paginas/components/anuncios/BandejaObligatoria.tsx"));
+const AlertasMensajes = lazy(() => import("./paginas/components/chat/AlertasMensajes.tsx"));
 
 // Registro central: qué componente concreto dibuja cada página.
 const PAGINAS: Record<Exclude<Page, "login">, () => React.ReactElement> = {
@@ -73,6 +78,9 @@ const PAGINAS: Record<Exclude<Page, "login">, () => React.ReactElement> = {
   "ayuda-de-acceso": () => <AyudaDeAccesoPage />,
   "asistencia-ia": () => <AsistenciaIAPage />,
   biblioteca: () => <BibliotecaPage />,
+  documentos: () => <DocumentosPage />,
+  proyectos: () => <ProyectosPage />,
+  "metodos-estudio": () => <MetodosEstudioPage />,
   "biblioteca-nacional": () => <BibliotecaNacionalPage />,
   comunidad: () => <ComunidadPage />,
   debates: () => <DebatesPage />,
@@ -293,6 +301,7 @@ export default function App() {
       .then((instancia) => {
         if (controlador.signal.aborted) return;
         aplicarTema(instancia.tema);
+        aplicarPreferencias(instancia.personalizacion ?? null);
         setEstadoInstancia({ usuarioId: usuario.id, instancia });
       })
       .catch(() => {
@@ -301,6 +310,7 @@ export default function App() {
     return () => controlador.abort();
   }, [usuario, versionInstancia]);
   useEffect(() => {
+    aplicarPreferencias(null);
     if (!usuario) aplicarTema(null);
   }, [usuario]);
   const instanciaVigente = usuario && estadoInstancia?.usuarioId === usuario.id ? estadoInstancia.instancia : null;
@@ -410,6 +420,7 @@ export default function App() {
       <EstadoConexion />
       <Suspense fallback={null}>
         <AvisosObligatorios />
+        {usuario && !usuario.primerIngreso && <AlertasMensajes key={usuario.id} />}
       </Suspense>
       <ErrorBoundary key={location.pathname}>
       <Suspense fallback={<Cargando />}>

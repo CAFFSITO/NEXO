@@ -48,6 +48,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { registrarSesiones } from "./sesiones.js";
 import { registrarPermisos } from "./permisos.js";
 import { registrarCuenta } from "./cuenta.js";
+import { registrarPreferenciasCuenta } from "./preferencias-cuenta.js";
+import { registrarRetencion } from "./retencion.js";
 import { registrarInstitucion } from "./institucion.js";
 import { registrarPerfiles, programarPurgaPapelera } from "./perfiles.js";
 import { registrarPortafolio } from "./portafolio.js";
@@ -56,7 +58,14 @@ import { registrarObjetivos } from "./objetivos.js";
 import { registrarDiario } from "./diario.js";
 import { registrarComunidad } from "./comunidad.js";
 import { registrarBiblioteca } from "./biblioteca.js";
+import { registrarBibliotecaOrganizacion } from "./biblioteca-organizacion.js";
 import { registrarChat } from "./chat.js";
+import { registrarRespuestasAnuncios } from "./respuestas-anuncios.js";
+import { registrarDocumentos } from "./documentos.js";
+import { registrarEstudio } from "./estudio.js";
+import { registrarProyectos } from "./proyectos.js";
+import { registrarLecciones } from "./lecciones.js";
+import { registrarConectores } from "./conectores.js";
 import { registrarCalendario, programarLimpiezaEventos } from "./calendario.js";
 import { registrarQuejas } from "./quejas.js";
 import { registrarPanel } from "./panel.js";
@@ -64,6 +73,7 @@ import { registrarPlataforma } from "./plataforma.js";
 import { registrarReportes } from "./reportes.js";
 import { registrarAsistenciaIA } from "./asistencia-ia.js";
 import { registrarArchivos } from "./archivos.js";
+import { registrarMultimediaLocal } from "./multimedia-local.js";
 import { registrarTareas } from "./tareas.js";
 import { registrarAula } from "./aula.js";
 import { crearMensajero, conectarMensajero } from "./tiempo-real.js";
@@ -72,6 +82,7 @@ import { registrarGestionAcademica } from "./gestion-academica.js";
 import { migrarBase } from "./migraciones.js";
 import { crearGuardiaInstancia, registrarInstancia } from "./instancia.js";
 import { registrarMaestro } from "./maestro.js";
+import { registrarAppsPublicas } from "./apps-publicas.js";
 import { crearMotorFlujos } from "./flujos.js";
 import { crearMotorTendencias, registrarTendencias } from "./tendencias.js";
 import { registrarEdicion } from "./edicion.js";
@@ -121,13 +132,16 @@ app.use("/api", (_req, res, next) => {
 // nodos): su propio tope, más amplio. Va antes que el general para que el cuerpo
 // ya llegue leído y el tope de 100 KB del resto de la API no cambie.
 app.use("/api/maestro", express.json({ limit: "2mb" }));
-app.use(express.json()); // entender pedidos con cuerpo en formato JSON
+// Los archivos .json son bytes de un adjunto, no pedidos JSON de la API.
+const interpretarJson = express.json();
+app.use((req, res, next) => req.path === "/api/archivos" || req.path.startsWith("/api/multimedia/") ? next() : interpretarJson(req, res, next));
 
 // El mensajero (Etapa 6): el "tubo" en vivo para chat y notificaciones. Se crea
 // acá porque varias ventanillas lo necesitan (chat lo usa para empujar mensajes;
 // notificaciones, para empujar avisos). Se engancha al servidor HTTP más abajo.
 const mensajero = crearMensajero();
-const notificaciones = crearNotificaciones(db, mensajero);
+const push = crearPush(db);
+const notificaciones = crearNotificaciones(db, mensajero, push);
 
 // El genoma de cada escuela (perfil Maestro). La guardia va ANTES de todas las
 // ventanillas: frena los pedidos a módulos ocultos o funciones apagadas en la
@@ -160,6 +174,12 @@ registrarPermisos(app, db);
 
 // ── 6. Cuenta propia y recuperación (Etapa 1, Errores 2.A.1 y 12.5) ─────────
 registrarCuenta(app, db);
+registrarPreferenciasCuenta(app, db);
+registrarDocumentos(app, db, mensajero);
+registrarEstudio(app, db);
+registrarLecciones(app, db);
+registrarProyectos(app, db);
+registrarConectores(app, db);
 
 // ── 7. Ventanillas de lectura, una por módulo (Etapa 2) ─────────────────────
 // El orden es el del plan: primero la institución (la usa media aplicación),
@@ -170,6 +190,7 @@ registrarGestionAcademica(app, db);
 // Etapa 4: servicio transversal de archivos (14.19) y circuito de tareas (14.7).
 // El de archivos va antes que el de tareas porque las tareas lo referencian.
 registrarArchivos(app, db, carpetaDatos);
+registrarMultimediaLocal(app, db);
 // Recibe el servicio de notificaciones para avisarle al estudiante cuando su
 // entrega queda corregida (con nota y devolución): así la notificación abre la
 // tarea EXACTA en su portafolio.
@@ -195,6 +216,7 @@ registrarTendencias(app, db, motorTendencias, notificaciones);
 // revisión y aprueba/rechaza avisando al que presentó (14.11). Por eso recibe el
 // servicio de notificaciones.
 registrarBiblioteca(app, db, notificaciones);
+registrarBibliotecaOrganizacion(app, db);
 // Quejas anónimas (Etapa 7, 14.14): canal sin autor, no vistas arriba y
 // estadística mensual. Avisa al Centro de Estudiantes y a la dirección.
 registrarQuejas(app, db, notificaciones);
@@ -203,7 +225,7 @@ registrarQuejas(app, db, notificaciones);
 // aviso pendiente de quien no está conectado).
 registrarChat(app, db, mensajero, notificaciones);
 // Notificaciones (Etapa 6, servicio transversal 14.15): la campana y los globitos.
-registrarNotificaciones(app, db);
+registrarNotificaciones(app, db, mensajero);
 // Calendario (Etapa 7): además de leer, ahora crea/edita/borra eventos con
 // permisos por rol y capas de visibilidad, y los comunicados se pueden emitir,
 // marcar leídos y responder por chat privado (14.12 y 14.13). Recibe el servicio
@@ -217,6 +239,7 @@ registrarPlataforma(app, db);
 // nodos, simulación y aprobación por probabilidad), y la vista de la instancia
 // desde adentro (lo que dibuja la vidriera y lo que la dirección desoculta).
 registrarMaestro(app, db);
+registrarAppsPublicas(app, db);
 registrarInstancia(app, db);
 // Modo edición de la dirección: jerarquía del menú, módulos, sus funciones y sus
 // algoritmos (con vista previa sobre los datos reales de la escuela).
@@ -229,6 +252,7 @@ registrarReportes(app, db, carpetaDatos);
 // conversación y llama al proveedor gratuito. La clave vive en una variable de
 // entorno del servidor (NEXO_IA_CLAVE), nunca en la base ni en el navegador.
 registrarAsistenciaIA(app, db);
+registrarRetencion(app, db);
 // Aula virtual y clases en vivo (Etapa 9, 14.3): planificación, videollamada
 // PROPIA (WebRTC en malla; la señalización va por el WebSocket de tiempo-real.js,
 // sin servicios externos), asistencia nominal, pizarra del docente, pulso con
@@ -238,13 +262,13 @@ registrarAsistenciaIA(app, db);
 registrarAula(app, db, mensajero, notificaciones);
 // Notificaciones push propias (Web Push cifrado, sin librerías): para que un
 // aviso suene en el celular o la computadora aunque NEXO esté cerrado.
-const push = crearPush(db);
 registrarPush(app, db, push);
 // Anuncios obligatorios entre la dirección y la preceptoría: tarjetas que hay
 // que leer para seguir usando NEXO, por grupos de difusión o a una persona.
 // Recibe el mensajero (la tarjeta aparece en vivo) y el push (suena aunque NEXO
 // esté cerrado, e insiste mientras no se lea).
 const motorAnuncios = registrarAnuncios(app, db, mensajero, push);
+registrarRespuestasAnuncios(app, db, mensajero, notificaciones, push);
 
 app.use("/api", (_req, res) => {
   res.status(404).json({ error: "Ese servicio no existe en NEXO." });
@@ -326,6 +350,7 @@ motorTendencias.programarPropuestas();
 
 // Anuncios sin leer: cada minuto revisa a quién hay que volver a avisarle por push.
 motorAnuncios.programar();
+notificaciones.programar();
 
 const esquema = usaTls ? "https" : "http";
 const esquemaWs = usaTls ? "wss" : "ws";

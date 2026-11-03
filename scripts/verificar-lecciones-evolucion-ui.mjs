@@ -1,0 +1,53 @@
+// Flujo autor → estudiante → entrega → devolución, sobre base descartable.
+import assert from 'node:assert/strict';
+import { crearEntorno } from '../servidor/tests/entorno.js';
+const {chromium}=await import(process.env.NEXO_PLAYWRIGHT||'playwright');
+const e=await crearEntorno('nexo-lecciones-ui-');let browser;
+try{
+  await e.entrar('docente','garcia@sanmartin.nexo.edu');
+  const tarea=await e.ok('/api/tareas','docente','POST',{catedraId:'1',titulo:'Tarea vinculada del tema',consigna:'Resolver con explicación propia.',fechaLimite:'2099-12-31',tipoAsignacion:'individual',adjuntos:[]},201);
+  const base=new URL((await e.request('/api/sesion')).response.url).origin;
+  browser=await chromium.launch({channel:'chrome',headless:true});
+  const errores=[];
+  async function abrir(email){const contexto=await browser.newContext();const page=await contexto.newPage();page.on('pageerror',err=>errores.push(err.message));assert.equal((await page.request.post(`${base}/api/sesion`,{data:{email,contrasena:'nexo1234'}})).status(),200);await page.goto(`${base}/portafolio/materia?catedra=1`,{waitUntil:'domcontentloaded'});return page;}
+  const docente=await abrir('garcia@sanmartin.nexo.edu');
+  const panel=docente.getByRole('region',{name:'Lecciones y accionables'});
+  await panel.getByRole('button',{name:'+ leccion',exact:true}).click();
+  await panel.getByRole('textbox',{name:'Título de la sección o lección'}).fill('Tema con acciones reales');
+  await panel.getByRole('button',{name:'+ Accionable',exact:true}).click();
+  await panel.getByRole('textbox',{name:'Accionable 1',exact:true}).fill('Explicar un ejemplo propio');
+  await panel.getByRole('button',{name:'+ Accionable',exact:true}).click();
+  await panel.getByRole('textbox',{name:'Accionable 2',exact:true}).fill('Entregar la solución');
+  await panel.getByRole('combobox',{name:'Tarea vinculada 2'}).click();
+  await docente.getByRole('option',{name:'Tarea vinculada del tema',exact:true}).click();
+  const creada=docente.waitForResponse(r=>new URL(r.url()).pathname==='/api/catedras/1/lecciones'&&r.request().method()==='POST');
+  await panel.getByRole('button',{name:'Guardar',exact:true}).click();assert.equal((await creada).status(),201);
+  const articulo=panel.getByRole('article').filter({has:docente.getByRole('heading',{name:'Tema con acciones reales',exact:true})});
+  const publicada=docente.waitForResponse(r=>r.url().includes('/lecciones/')&&r.request().method()==='PUT');
+  await articulo.getByRole('button',{name:'Publicar',exact:true}).click();assert.equal((await publicada).status(),200);
+  console.log('PASS: docente crea y publica lección raíz con dos acciones, una vinculada a tarea');
+  const alumna=await abrir('julieta@sanmartin.nexo.edu');
+  let lectura=alumna.getByRole('region',{name:'Lecciones y accionables'});
+  let respuesta=alumna.waitForResponse(r=>r.url().includes('/acciones/')&&r.request().method()==='PUT');
+  await lectura.getByRole('checkbox',{name:/Explicar un ejemplo propio/}).click();assert.equal((await respuesta).status(),200);
+  await lectura.getByRole('textbox',{name:'Evidencia de Explicar un ejemplo propio'}).fill('Conecté el tema con una situación nueva.');
+  respuesta=alumna.waitForResponse(r=>r.url().includes('/acciones/')&&r.request().method()==='PUT');
+  await lectura.getByRole('button',{name:'Guardar evidencia',exact:true}).first().click();assert.equal((await respuesta).status(),200);
+  await lectura.getByRole('button',{name:'Abrir tarea, entregar o ver devolución'}).click();
+  await alumna.getByPlaceholder('Comentario para el profesor (opcional)…').fill('Resolví el problema y expliqué el procedimiento.');
+  const [enviada]=await Promise.all([alumna.waitForResponse(r=>new URL(r.url()).pathname===`/api/tareas/${tarea.id}/entrega`&&r.request().method()==='POST'),lectura.getByRole('button',{name:'Entregar',exact:true}).click()]);assert.equal(enviada.status(),201);
+  await lectura.getByRole('button',{name:'Cerrar',exact:true}).click();
+  const entrega=e.db.prepare('SELECT id FROM entregas WHERE tarea_id=? AND estudiante_id=8 AND anulada_en IS NULL AND reemplazada_en IS NULL').get(Number(tarea.id));
+  await e.ok(`/api/entregas/${entrega.id}/correccion`,'docente','POST',{nota:9,devolucion:'Aplicación clara y comprobable.'});
+  await alumna.reload({waitUntil:'domcontentloaded'});lectura=alumna.getByRole('region',{name:'Lecciones y accionables'});
+  await lectura.getByText('Devolución: Aplicación clara y comprobable.',{exact:true}).waitFor();
+  assert.equal(await lectura.getByRole('checkbox',{name:/Entregar la solución/}).isChecked(),true);
+  assert.equal(await lectura.getByRole('textbox',{name:'Evidencia de Explicar un ejemplo propio'}).inputValue(),'Conecté el tema con una situación nueva.');
+  respuesta=alumna.waitForResponse(r=>r.url().includes('/progreso')&&r.request().method()==='POST');
+  await lectura.getByRole('button',{name:'Marcar realizada',exact:true}).click();assert.equal((await respuesta).status(),200);
+  console.log('PASS: estudiante registra evidencia, entrega desde lección y recibe la nota/devolución real');
+  await docente.reload({waitUntil:'domcontentloaded'});
+  await docente.getByRole('region',{name:'Lecciones y accionables'}).getByRole('button',{name:'Ver seguimiento',exact:true}).click();
+  await docente.getByText('Evidencia: Conecté el tema con una situación nueva.',{exact:true}).waitFor();
+  assert.deepEqual(errores,[]);console.log('PASS: seguimiento docente conserva evidencia y avance; sin errores JS');
+}finally{await browser?.close();await e.cerrar();}

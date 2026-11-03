@@ -20,6 +20,7 @@ import { useTiempoReal, type EventoVivo } from "../../../servicios/tiempoReal";
 import Avatar from "./Avatar";
 import AdjuntosAviso from "./AdjuntosAviso";
 import DialogoConfirmar from "../shared/DialogoConfirmar";
+import RespuestasAviso from "./RespuestasAviso";
 
 /** Cómo se nombra el aviso en el cartel de "¿Seguro?": su comienzo, o lo que trae. */
 function comoSeLlama(aviso: AvisoEnviado): string {
@@ -31,6 +32,7 @@ function comoSeLlama(aviso: AvisoEnviado): string {
 function ItemEnviado({ aviso, error, onBorrar }: { aviso: AvisoEnviado; error: string; onBorrar: () => void }) {
   const [abierto, setAbierto] = useState(aviso.total <= 4);
   const [textoAbierto, setTextoAbierto] = useState(false);
+  const [responderA, setResponderA] = useState<string | null>(null);
   const largo = aviso.cuerpo.length > 300 || aviso.cuerpo.split("\n").length > 4;
   const completo = aviso.total > 0 && aviso.leidos === aviso.total;
   const destino = aviso.grupo
@@ -82,12 +84,14 @@ function ItemEnviado({ aviso, error, onBorrar }: { aviso: AvisoEnviado; error: s
                     : <small className="pendiente">Sin leer · {rolEnAvisos(d.persona.rol)}</small>}
                 </span>
                 {d.reaccion && <span className="emoji" title="Su reacción">{d.reaccion}</span>}
+                <button type="button" className="text-xs text-primary font-bold ml-auto" onClick={() => setResponderA(d.persona.id)}>Respuestas ({d.respuestas ?? 0})</button>
               </li>
             ))}
           </ul>
         )}
       </div>
 
+      {responderA && <RespuestasAviso key={responderA} anuncioId={aviso.id} destinatarioId={responderA} />}
       <button type="button" className="av-boton peligro chico self-end" onClick={onBorrar}>
         <span className="material-symbols-outlined" aria-hidden="true">delete</span>
         Eliminar para todos

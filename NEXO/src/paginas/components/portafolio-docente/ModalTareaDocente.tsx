@@ -30,6 +30,7 @@ type FormTarea = {
   fechaLimite: string;
   metodoEstudio: string;
   tipoAsignacion: "individual" | "grupal";
+  rubrica: string;
 };
 
 const VACIO: FormTarea = {
@@ -39,6 +40,7 @@ const VACIO: FormTarea = {
   fechaLimite: "",
   metodoEstudio: "",
   tipoAsignacion: "individual",
+  rubrica: "",
 };
 
 export default function ModalTareaDocente({
@@ -48,7 +50,7 @@ export default function ModalTareaDocente({
   onGuardar,
   onCerrar,
 }: ModalTareaDocenteProps) {
-  const [datos, setDatos] = useState<FormTarea>(() => tareaEditando ? { catedraId: tareaEditando.catedraId, titulo: tareaEditando.titulo, consigna: tareaEditando.consigna, fechaLimite: tareaEditando.fechaLimite, metodoEstudio: tareaEditando.metodoEstudio, tipoAsignacion: tareaEditando.tipoAsignacion } : { ...VACIO, catedraId: catedras[0]?.id ?? "" });
+  const [datos, setDatos] = useState<FormTarea>(() => tareaEditando ? { catedraId: tareaEditando.catedraId, titulo: tareaEditando.titulo, consigna: tareaEditando.consigna, fechaLimite: tareaEditando.fechaLimite, metodoEstudio: tareaEditando.metodoEstudio, tipoAsignacion: tareaEditando.tipoAsignacion, rubrica: tareaEditando.rubrica?.join("\n") ?? "" } : { ...VACIO, catedraId: catedras[0]?.id ?? "" });
   const [adjuntos, setAdjuntos] = useState<File[]>([]);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -91,6 +93,7 @@ export default function ModalTareaDocente({
         fechaLimite: datos.fechaLimite,
         metodoEstudio: datos.metodoEstudio.trim(),
         tipoAsignacion: datos.tipoAsignacion,
+        rubrica: datos.rubrica.split("\n").map(x => x.trim()).filter(Boolean),
         adjuntos: ids,
       });
     } catch (err: unknown) {
@@ -221,6 +224,8 @@ export default function ModalTareaDocente({
               className="w-full bg-fondo border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-acento"
             />
           </div>
+
+          <div><label htmlFor="rubrica" className="block text-sm font-semibold text-on-surface-variant mb-1">Criterios de evaluación (uno por línea)</label><textarea id="rubrica" rows={4} maxLength={2400} value={datos.rubrica} onChange={e => actualizar("rubrica", e.target.value)} placeholder="Comprensión del concepto&#10;Aplicación a un problema" className="w-full bg-fondo border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white" /><p className="text-xs text-slate-400">Hasta 20 criterios. La nota final se registra por separado.</p></div>
 
           {/* Adjuntos solo al crear (editar los adjuntos existentes es de otra
               etapa; acá se suman al crear la consigna). */}

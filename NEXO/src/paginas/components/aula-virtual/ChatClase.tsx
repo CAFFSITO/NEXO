@@ -11,8 +11,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   enviarMensaje,
   marcarConversacionLeida,
-  useMensajes,
 } from "../../../servicios/chat";
+import { useHistorialChat } from "../../../servicios/useHistorialChat";
 import { useTiempoReal, type EventoVivo } from "../../../servicios/tiempoReal";
 
 interface ChatClaseProps {
@@ -20,7 +20,7 @@ interface ChatClaseProps {
 }
 
 export default function ChatClase({ conversacionId }: ChatClaseProps) {
-  const { mensajes, recargar, error: errorCarga, cargando } = useMensajes(conversacionId);
+  const { mensajes, recargar, error: errorCarga, cargando, hayAnteriores, cargarAnteriores, cargandoAnteriores } = useHistorialChat(conversacionId, "");
   const [texto, setTexto] = useState("");
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -67,6 +67,7 @@ export default function ChatClase({ conversacionId }: ChatClaseProps) {
         Chat de la clase
       </div>
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2 min-h-[120px]">
+        {hayAnteriores && <button type="button" disabled={cargandoAnteriores} onClick={() => void cargarAnteriores()} className="text-xs text-primary">{cargandoAnteriores ? "Cargando…" : "Cargar mensajes anteriores"}</button>}
         {cargando && !mensajes && <p role="status" className="text-xs text-slate-400">Cargando mensajes…</p>}
         {(error || errorCarga) && <p role="alert" className="text-xs text-error">{error || errorCarga} <button onClick={recargar} className="underline">Reintentar</button></p>}
         {(mensajes ?? []).map((m) => (

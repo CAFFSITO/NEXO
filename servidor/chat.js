@@ -20,6 +20,8 @@
 // ============================================================================
 
 import { exigirAcceso, ventanilla } from "./comun.js";
+import { EMOJIS_ANUNCIO } from "./anuncios.js";
+import { registrarCanales, canalDe, puedeEscribirCanal, puedeRecibirCanal } from "./canales.js";
 
 /**
  * Asegura que un curso tenga su "comunidad" (Error 7.A.5): una conversación de
@@ -161,15 +163,17 @@ export function asegurarConversacionClase(db, claseId, sumarUsuarioId) {
 }
 
 export function registrarChat(app, db, mensajero, notificaciones) {
+  registrarCanales(app, db, mensajero);
   const contactosPosibles = db.prepare(`SELECT id, nombre, rol FROM usuarios
     WHERE institucion_id = ? AND estado = 'activo' AND id <> ?
-      AND rol IN ('estudiante', 'profesor', 'preceptor', 'bibliotecario', 'familia', 'admin-academico') ORDER BY nombre`);
+      AND rol IN ('estudiante', 'profesor', 'preceptor', 'bibliotecario', 'familia', 'admin-academico', 'secretaria') ORDER BY nombre`);
   const familiaDelPreceptor = db.prepare(`SELECT 1 FROM familiares f
     JOIN inscripciones i ON i.estudiante_id = f.estudiante_id
     JOIN cursos c ON c.id = i.curso_id
     WHERE f.usuario_familia_id = ? AND c.preceptor_id = ? LIMIT 1`);
   function contactosDe(usuario) {
     return contactosPosibles.all(usuario.institucionId, usuario.id).filter((otro) => {
+      if (usuario.rol === "secretaria" || otro.rol === "secretaria") return ["secretaria", "admin-academico", "preceptor"].includes(usuario.rol) && ["secretaria", "admin-academico", "preceptor"].includes(otro.rol);
       if (usuario.rol === "familia") return otro.rol === "admin-academico" || (otro.rol === "preceptor" && Boolean(familiaDelPreceptor.get(usuario.id, otro.id)));
       if (otro.rol === "familia") return usuario.rol === "admin-academico" || (usuario.rol === "preceptor" && Boolean(familiaDelPreceptor.get(otro.id, usuario.id)));
       return true;
@@ -256,11 +260,13 @@ export function registrarChat(app, db, mensajero, notificaciones) {
 
       const conversaciones = misConversaciones.all(usuario.id).map((fila) => {
         const otros = otrosMiembros.all(fila.id, usuario.id);
+        const canal = fila.tipo === 'canal' ? canalDe(db, fila.id, usuario) : null;
 
         return {
           id: String(fila.id),
           tipo: fila.tipo,
-          nombre: nombrarConversacion(fila, otros),
+          nombre: canal?.nombre ?? nombrarConversacion(fila, otros),
+          canal,
           // Solo en las directas hay "un" avatar: en un grupo no hay una cara.
           avatarUrl: fila.tipo === "directa" ? otros[0]?.avatar_url ?? undefined : undefined,
           participantes: otros.map((o) => ({ id: o.id, nombre: o.nombre, rol: o.rol })),
@@ -268,7 +274,7 @@ export function registrarChat(app, db, mensajero, notificaciones) {
           ultimoEn: fila.ultimo_en ?? null,
           noLeidos: fila.no_leidos,
         };
-      });
+      }).filter(c => c.tipo !== 'canal' || c.canal?.miembro);
 
       res.json({ conversaciones });
     })
@@ -284,22 +290,69 @@ export function registrarChat(app, db, mensajero, notificaciones) {
       WHERE conversacion_id = ? AND usuario_id = ?`
   );
 
-  const mensajesDe = db.prepare(
-    `SELECT m.id,
+  const sqlMensajes = `SELECT m.id,
             m.autor_id,
             m.archivo_id,
             m.contenido,
+            m.prioridad,
+            m.respuesta_a,
+            r.contenido AS respuesta_contenido,
+            r.eliminado_en AS respuesta_eliminada,
+            ru.nombre AS respuesta_autor,
+            ra.nombre_original AS respuesta_archivo,
             m.enviado_en,
             u.nombre     AS autor,
             u.avatar_url AS autor_avatar,
-            a.nombre_original AS archivo
+            a.nombre_original AS archivo,
+            a.tipo_mime AS archivo_tipo
        FROM mensajes m
        JOIN usuarios u      ON u.id = m.autor_id
        LEFT JOIN archivos a ON a.id = m.archivo_id
+       LEFT JOIN mensajes r ON r.id = m.respuesta_a AND r.conversacion_id = m.conversacion_id
+       LEFT JOIN usuarios ru ON ru.id = r.autor_id
+       LEFT JOIN archivos ra ON ra.id = r.archivo_id
       WHERE m.conversacion_id = ?
         AND m.eliminado_en IS NULL
-      ORDER BY m.enviado_en, m.id`
-  );
+      ORDER BY m.enviado_en, m.id`;
+  const mensajesDe = db.prepare(sqlMensajes);
+  const mensajePorId = db.prepare(sqlMensajes.replace('m.conversacion_id = ?', 'm.conversacion_id = ? AND m.id = ?'));
+  const mensajesPagina = db.prepare(sqlMensajes.replace('m.conversacion_id = ?', 'm.conversacion_id = ?1 AND (?2 IS NULL OR m.id < ?2) AND (?3 = \'\' OR instr(lower(m.contenido),lower(?3)) > 0)').replace('ORDER BY m.enviado_en, m.id', 'ORDER BY m.id DESC LIMIT ?4'));
+
+  const reaccionesDe = db.prepare(`SELECT r.emoji, u.id AS usuarioId, u.nombre FROM mensaje_reacciones r
+    JOIN usuarios u ON u.id = r.usuario_id WHERE r.mensaje_id = ? ORDER BY u.id`);
+  app.put("/api/chat/mensajes/:mensajeId/reaccion", ventanilla((req, res) => {
+    const usuario = exigirAcceso(db, req, res, "chat");
+    if (!usuario) return;
+    const id = Number(req.params.mensajeId);
+    const mensaje = Number.isSafeInteger(id) ? db.prepare("SELECT conversacion_id FROM mensajes WHERE id = ? AND eliminado_en IS NULL").get(id) : null;
+    if (!mensaje || !soyMiembro.get(mensaje.conversacion_id, usuario.id) || !puedeRecibirCanal(db,mensaje.conversacion_id,usuario)) return res.status(404).json({ error: "Ese mensaje no está disponible." });
+    const emoji = req.body?.emoji ?? null;
+    if (emoji !== null && !EMOJIS_ANUNCIO.includes(emoji)) return res.status(400).json({ error: "Esa reacción no está disponible." });
+    db.exec("BEGIN");
+    try {
+    if (emoji === null) db.prepare("DELETE FROM mensaje_reacciones WHERE mensaje_id = ? AND usuario_id = ?").run(id, usuario.id);
+    else db.prepare(`INSERT INTO mensaje_reacciones(mensaje_id, usuario_id, emoji) VALUES (?, ?, ?)
+      ON CONFLICT(mensaje_id, usuario_id) DO UPDATE SET emoji = excluded.emoji`).run(id, usuario.id, emoji);
+    if (emoji !== null) db.prepare("UPDATE notificaciones SET leida_en = COALESCE(leida_en, datetime('now')) WHERE mensaje_id = ? AND usuario_id = ?").run(id, usuario.id);
+    db.exec("COMMIT");
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+    if (emoji !== null) mensajero.emitirA(usuario.id, { tipo: "notificaciones-leidas" });
+    for (const miembro of db.prepare("SELECT usuario_id FROM conversacion_miembros WHERE conversacion_id = ?").all(mensaje.conversacion_id)) {
+      if(!puedeRecibirCanal(db,mensaje.conversacion_id,miembro.usuario_id))continue;
+      mensajero.emitirA(miembro.usuario_id, { tipo: "mensaje-reaccion", conversacionId: String(mensaje.conversacion_id) });
+    }
+    res.json({ reaccion: emoji });
+  }));
+  const extrasMensaje = (fila) => ({
+    reacciones: reaccionesDe.all(fila.id),
+    prioridad: fila.prioridad,
+    archivoTipo: fila.archivo_tipo ?? null,
+    respuestaA: fila.respuesta_a == null ? null : {
+      id: String(fila.respuesta_a),
+      autor: fila.respuesta_autor,
+      contenido: fila.respuesta_eliminada ? "Mensaje eliminado" : (fila.respuesta_contenido || fila.respuesta_archivo || "Adjunto"),
+    },
+  });
 
   app.get(
     "/api/chat/conversaciones/:id/mensajes",
@@ -319,8 +372,17 @@ export function registrarChat(app, db, mensajero, notificaciones) {
           .status(403)
           .json({ error: "No sos parte de esta conversación." });
       }
+      if (db.prepare("SELECT 1 FROM conversaciones WHERE id=? AND tipo='canal'").get(id) && !canalDe(db,id,usuario)?.miembro) return res.status(403).json({ error: 'No tenés acceso al contexto de esta conversación.' });
 
-      const mensajes = mensajesDe.all(id).map((fila) => ({
+      const antes = req.query.antes == null ? null : Number(req.query.antes);
+      const limite = req.query.limite == null ? 50 : Number(req.query.limite);
+      const q = String(req.query.q ?? '').trim();
+      if ((antes !== null && (!Number.isSafeInteger(antes) || antes < 1)) || !Number.isSafeInteger(limite) || limite < 1 || limite > 100 || q.length > 200) return res.status(400).json({ error: 'Paginación o búsqueda inválida.' });
+      const pagina = mensajesPagina.all(id, antes, q, limite + 1);
+      const hayMas = pagina.length > limite;
+      const visibles = pagina.slice(0, limite).reverse();
+      const mensajes = visibles.map((fila) => ({
+        ...extrasMensaje(fila),
         id: String(fila.id),
         autorId: fila.autor_id,
         autor: fila.autor,
@@ -335,7 +397,7 @@ export function registrarChat(app, db, mensajero, notificaciones) {
         enviadoEn: fila.enviado_en,
       }));
 
-      res.json({ mensajes });
+      res.json({ mensajes, siguienteAntes: hayMas ? String(visibles[0].id) : null });
     })
   );
 
@@ -347,8 +409,8 @@ export function registrarChat(app, db, mensajero, notificaciones) {
     "SELECT usuario_id FROM conversacion_miembros WHERE conversacion_id = ?"
   );
   const insertarMensaje = db.prepare(
-    `INSERT INTO mensajes (conversacion_id, autor_id, contenido, archivo_id)
-     VALUES (?, ?, ?, ?)`
+    `INSERT INTO mensajes (conversacion_id, autor_id, contenido, archivo_id, prioridad, respuesta_a)
+     VALUES (?, ?, ?, ?, ?, ?)`
   );
   const marcarLeidaAhora = db.prepare(
     `UPDATE conversacion_miembros
@@ -374,6 +436,14 @@ export function registrarChat(app, db, mensajero, notificaciones) {
       }
 
       const contenido = String(req.body?.contenido ?? "").trim();
+      if (!puedeEscribirCanal(db, id, usuario)) return res.status(403).json({ error: 'Este canal no admite mensajes: revisá su estado o abrí un tema dentro del foro.' });
+      if (contenido.length > 10000) return res.status(400).json({ error: "El mensaje supera los 10.000 caracteres." });
+      const prioridad = req.body?.prioridad ?? "estandar";
+      if (!["estandar", "urgente"].includes(prioridad)) return res.status(400).json({ error: "La prioridad no es válida." });
+      const respuestaA = req.body?.respuestaA == null ? null : Number(req.body.respuestaA);
+      if (respuestaA !== null && (!Number.isSafeInteger(respuestaA) || !db.prepare("SELECT 1 FROM mensajes WHERE id = ? AND conversacion_id = ? AND eliminado_en IS NULL").get(respuestaA, id))) {
+        return res.status(400).json({ error: "El mensaje al que respondés no pertenece a esta conversación o fue eliminado." });
+      }
       const archivoBruto = req.body?.archivoId;
       let archivoId = null;
       if (archivoBruto !== undefined && archivoBruto !== null && archivoBruto !== "") {
@@ -390,11 +460,12 @@ export function registrarChat(app, db, mensajero, notificaciones) {
         return res.status(400).json({ error: "El mensaje está vacío." });
       }
 
-      const info = insertarMensaje.run(id, usuario.id, contenido, archivoId);
+      const info = insertarMensaje.run(id, usuario.id, contenido, archivoId, prioridad, respuestaA);
       marcarLeidaAhora.run(id, usuario.id);
 
-      const fila = mensajesDe.all(id).find((m) => m.id === Number(info.lastInsertRowid));
+      const fila = mensajePorId.get(id, Number(info.lastInsertRowid));
       const mensaje = {
+        ...extrasMensaje(fila),
         id: String(info.lastInsertRowid),
         autorId: usuario.id,
         autor: usuario.nombre,
@@ -415,11 +486,7 @@ export function registrarChat(app, db, mensajero, notificaciones) {
 
       for (const m of miembrosDe.all(id)) {
         if (m.usuario_id === usuario.id) continue;
-        mensajero.emitirA(m.usuario_id, {
-          tipo: "mensaje",
-          conversacionId: String(id),
-          mensaje: { ...mensaje, mio: false },
-        });
+        if (!puedeRecibirCanal(db,id,m.usuario_id)) continue;
         notificaciones.crear({
           usuarioId: m.usuario_id,
           tipo: "mensaje",
@@ -427,6 +494,13 @@ export function registrarChat(app, db, mensajero, notificaciones) {
           cuerpo: contenido || "Archivo adjunto",
           objetoTipo: "conversacion",
           objetoId: id,
+          prioridad,
+          mensajeId: Number(info.lastInsertRowid),
+        });
+        mensajero.emitirA(m.usuario_id, {
+          tipo: "mensaje",
+          conversacionId: String(id),
+          mensaje: { ...mensaje, mio: false },
         });
       }
 
@@ -450,6 +524,10 @@ export function registrarChat(app, db, mensajero, notificaciones) {
         return res.status(403).json({ error: "No sos parte de esta conversación." });
       }
       marcarLeidaAhora.run(id, usuario.id);
+      // Los urgentes requieren confirmación explícita, aunque el chat esté abierto.
+      db.prepare(`UPDATE notificaciones SET leida_en = datetime('now') WHERE usuario_id = ?
+        AND objeto_tipo = 'conversacion' AND objeto_id = ? AND prioridad = 'estandar' AND leida_en IS NULL`).run(usuario.id, id);
+      mensajero.emitirA(usuario.id, { tipo: "notificaciones-leidas" });
       res.json({ ok: true });
     })
   );

@@ -8,6 +8,7 @@
 
 import { enviar, pedir } from "./api";
 import type { ArchivoSubido } from "./archivos";
+import type { RecurrenciaPersonal } from "./portafolio";
 
 // ─── Profesor: crear y gestionar ────────────────────────
 
@@ -30,9 +31,13 @@ export interface TareaDocente {
   fechaLimite: string;
   metodoEstudio: string;
   tipoAsignacion: "individual" | "grupal";
+  rubrica: string[];
   alDia: number;
   tarde: number;
   pendiente: number;
+  porCorregir: number;
+  reentregadas: number;
+  revisionesParesPendientes: number;
 }
 
 /** Lo que el profesor completa en el formulario de creación/edición. */
@@ -43,6 +48,7 @@ export interface DatosNuevaTarea {
   fechaLimite: string;
   metodoEstudio: string;
   tipoAsignacion: "individual" | "grupal";
+  rubrica?: string[];
   adjuntos: string[]; // ids de archivos ya subidos
 }
 
@@ -79,7 +85,7 @@ export interface FilaCorreccion {
   comentario: string;
   entregadoEn: string | null;
   archivos: ArchivoSubido[];
-  correccion: { nota: number; devolucion: string; corregidoEn: string } | null;
+  correccion: { nota: number; devolucion: string; corregidoEn: string; criterios: Record<string,string> } | null;
 }
 
 export interface PanelCorreccion {
@@ -90,6 +96,8 @@ export interface PanelCorreccion {
     materia: string;
     curso: string;
     fechaLimite: string;
+    tipoAsignacion: "individual" | "grupal";
+    rubrica: string[];
   };
   alumnos: FilaCorreccion[];
 }
@@ -98,13 +106,14 @@ export function traerPanel(tareaId: string) {
   return pedir<PanelCorreccion>("/api/tareas/" + tareaId + "/panel");
 }
 
-export function corregirEntrega(entregaId: string, nota: number, devolucion: string) {
-  return enviar("/api/entregas/" + entregaId + "/correccion", "POST", { nota, devolucion });
+export function corregirEntrega(entregaId: string, nota: number, devolucion: string, criterios: Record<string,string> = {}) {
+  return enviar("/api/entregas/" + entregaId + "/correccion", "POST", { nota, devolucion, criterios });
 }
 
 // ─── Estudiante: detalle y entrega ──────────────────────
 
 export interface DetalleTarea {
+  equipo: { id: string; nombre: string; miembros: string[] } | null;
   tarea: {
     id: string;
     titulo: string;
@@ -126,6 +135,7 @@ export interface DetalleTarea {
     nota: number | null;
     devolucion: string;
     corregidoEn: string | null;
+    criterios?: Record<string,string>;
   } | null;
 }
 
@@ -133,11 +143,19 @@ export function traerDetalle(tareaId: string) {
   return pedir<DetalleTarea>("/api/tareas/" + tareaId);
 }
 
-export function entregarTarea(tareaId: string, comentario: string, archivos: string[]) {
+export function entregarTarea(tareaId: string, comentario: string, archivos: string[], nuevaVersion = false) {
   return enviar<{ id: string }>("/api/tareas/" + tareaId + "/entrega", "POST", {
     comentario,
     archivos,
+    nuevaVersion,
   });
+}
+
+export interface VersionEntrega {
+  id: string; comentario: string; entregadoEn: string;
+  estado: "vigente" | "anterior" | "anulada";
+  nota: number | null; devolucion: string; corregidoEn: string | null;
+  archivos: ArchivoSubido[];
 }
 
 export function anularEntrega(tareaId: string) {
@@ -146,11 +164,12 @@ export function anularEntrega(tareaId: string) {
 
 // ─── Estudiante: tareas personales (recordatorios propios) ──
 
-export function crearPersonal(titulo: string, descripcion: string, fechaLimite: string | null) {
+export function crearPersonal(titulo: string, descripcion: string, fechaLimite: string | null, recurrencia:RecurrenciaPersonal|null=null) {
   return enviar<{ id: string }>("/api/tareas-personales", "POST", {
     titulo,
     descripcion,
     fechaLimite: fechaLimite ?? "",
+    recurrencia,
   });
 }
 
@@ -158,12 +177,14 @@ export function editarPersonal(
   id: string,
   titulo: string,
   descripcion: string,
-  fechaLimite: string | null
+  fechaLimite: string | null,
+  recurrencia:RecurrenciaPersonal|null=null
 ) {
   return enviar("/api/tareas-personales/" + id, "PUT", {
     titulo,
     descripcion,
     fechaLimite: fechaLimite ?? "",
+    recurrencia,
   });
 }
 

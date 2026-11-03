@@ -23,6 +23,10 @@ import InputField from "./components/shared/InputField";
 import { inicioPara } from "./components/shared/navegacionItems";
 import { useNavegacion } from "../navegacion";
 import { useInstancia } from "../servicios/instancia";
+import PreferenciasCuenta from "./components/shared/personalizacion/PreferenciasCuenta";
+import ConectoresCuenta from "./components/shared/ConectoresCuenta";
+import GestionModelosPrivados from "./components/shared/GestionModelosPrivados";
+import PasosAsignados from "./components/objetivos/PasosAsignados";
 import {
   miCuenta,
   cambiarContrasena,
@@ -437,7 +441,7 @@ function ConfiguracionHabitual() {
                 Configuración de mi cuenta
               </h1>
               <p className="text-white/60 mt-1">
-                Tus datos y tu contraseña.
+                Tus datos, tus preferencias y tu contraseña.
               </p>
             </div>
 
@@ -445,6 +449,10 @@ function ConfiguracionHabitual() {
             <TarjetaMisDatos cuenta={cuenta} cargando={cargando} onNombre={(nombre) => setCuenta((c) => (c ? { ...c, nombre } : c))} />
 
             {/* ── Cambiar contraseña ── */}
+            <PreferenciasCuenta />
+            <ConectoresCuenta />
+            <GestionModelosPrivados />
+            <PasosAsignados />
             <div className="bg-fondo border border-acento/20 rounded-2xl p-6">
               <h2 className="font-headline text-lg font-bold text-white mb-1">
                 Cambiar mi contraseña

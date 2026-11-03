@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Sidebar from "./components/shared/Sidebar";
 import TopBar from "./components/shared/TopBar";
+import LeccionesMateria from "./components/cursos/LeccionesMateria";
+import RecursosVinculados from "./components/biblioteca/RecursosVinculados";
 import { PESTANAS_PORTAFOLIO } from "./components/shared/pestanasModulos";
 import TarjetaTarea from "./components/portafolio/TarjetaTarea";
 import ModalDetalleTarea from "./components/shared/tareas/ModalDetalleTarea";
@@ -75,6 +77,8 @@ export default function DetalleMateriaPage() {
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         {/* Las pestañas del Portafolio son del alumno; el profesor no las tiene. */}
         <TopBar title="Portafolio de aprendizaje" subtitle="Materia" pestanas={esProfesor ? undefined : PESTANAS_PORTAFOLIO} pestanaActiva="/portafolio/mis-cursos" />
+        {detalle?.materiaId && <div className="mx-auto w-full max-w-5xl px-4 pt-4"><RecursosVinculados tipo="materia" id={detalle.materiaId} /></div>}
+        {catedraId && <div className="mx-auto w-full max-w-5xl px-4 pt-4"><LeccionesMateria catedraId={catedraId} /></div>}
         {avisoError && <p role="alert" className="p-4 text-error">{avisoError}</p>}
 
         <div className="flex-1 overflow-y-auto bg-background p-8">

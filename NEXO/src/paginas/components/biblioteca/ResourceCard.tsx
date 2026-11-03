@@ -14,6 +14,7 @@ interface ResourceCardProps {
   fileSize: string;
   estado?: EstadoRecurso;
   onAction?: () => void;
+  onLeer?: () => void;
   // Votos reales del recurso (totales de la tabla `votos`, incluyen el propio).
   // Solo se muestran los controles si se pasa `onVotar`.
   votosPositivos?: number;
@@ -46,6 +47,7 @@ export default function ResourceCard({
   fileSize,
   estado,
   onAction,
+  onLeer,
   votosPositivos = 0,
   votosNegativos = 0,
   miVoto = null,
@@ -149,6 +151,7 @@ export default function ResourceCard({
       )}
 
       <div className="mt-4 pt-4 border-t border-fondo flex justify-between items-center">
+        {onLeer && <button type="button" onClick={onLeer} className="text-acento text-sm">Leer y anotar</button>}
         <span className="text-xs text-gray-500">
           {esEnlace ? "Enlace Externo" : `${fileType} • ${fileSize}`}
         </span>

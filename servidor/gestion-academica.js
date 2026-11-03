@@ -1,5 +1,6 @@
 import { exigirAcceso, ventanilla } from "./comun.js";
 import { asegurarComunidadCurso } from "./chat.js";
+import { leerGenoma } from "./genoma.js";
 
 const idValido = (valor) => Number.isSafeInteger(Number(valor)) && Number(valor) > 0;
 
@@ -55,8 +56,11 @@ export function registrarGestionAcademica(app, db) {
     const anio = Number(req.body?.anio);
     const division = String(req.body?.division ?? "").trim().toUpperCase();
     const preceptorId = req.body?.preceptorId == null || req.body.preceptorId === "" ? null : Number(req.body.preceptorId);
-    if (!Number.isInteger(anio) || anio < 1 || anio > 7 || !/^[A-Z0-9ÁÉÍÓÚÑ -]{1,12}$/.test(division)) {
-      res.status(400).json({ error: "Elegí un año entre 1 y 7 y una división válida de hasta 12 caracteres." });
+    const { anioMin, anioMax } = leerGenoma(db, usuario.institucionId).personalizacion.academico;
+    // Un cambio de política no impide editar un curso ya existente fuera del rango.
+    const anioExistente = actual && anio === actual.anio;
+    if (!Number.isInteger(anio) || (!anioExistente && (anio < anioMin || anio > anioMax)) || !/^[A-Z0-9ÁÉÍÓÚÑ -]{1,12}$/.test(division)) {
+      res.status(400).json({ error: `Elegí un año entre ${anioMin} y ${anioMax} y una división válida de hasta 12 caracteres.` });
       return null;
     }
     if (preceptorId !== null && (!idValido(preceptorId) || !persona.get(preceptorId, usuario.institucionId, "preceptor"))) {

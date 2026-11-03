@@ -17,7 +17,11 @@ export interface EventoVivo {
     | "conectado"
     | "pong"
     | "mensaje"
+    | "mensaje-reaccion"
+    | "conversaciones-actualizadas"
     | "notificacion"
+    | "notificaciones-leidas"
+    | "anuncio-respuesta"
     // Eventos del aula virtual en vivo (Etapa 9, sección 14.3). El tubo es el
     // mismo del chat y las notificaciones: la sala de clase no abre uno nuevo.
     | "aula-trazo"          // el docente dibujó un trazo en la pizarra (2.C.1)
@@ -26,6 +30,7 @@ export interface EventoVivo {
     | "aula-pulso"          // cambió el pulso del aula (3.B.4)
     | "aula-conectados"     // entró o salió alguien de la clase (3.B.11)
     | "aula-pregunta"       // llegó una pregunta de un estudiante (3.B.6)
+    | "aula-manos"          // cambió la cola de solicitudes de palabra
     | "aula-alerta"         // saltó la alerta de ritmo (3.B.5)
     | "aula-estado"         // la clase pasó a en-vivo / finalizada
     // Señalización de la videollamada propia (WebRTC en malla, reemplazo de Jitsi).
@@ -43,7 +48,11 @@ export interface EventoVivo {
     | "anuncio"             // me llegó un aviso: aparece la tarjeta encima de todo
     | "anuncio-leido"       // lo marqué leído en otro navegador (el celular, otra pestaña)
     | "anuncio-lectura"     // alguien leyó o reaccionó a un aviso que mandé
-    | "anuncio-borrado";    // quien lo mandó lo borró para todos
+    | "anuncio-borrado"     // quien lo mandó lo borró para todos
+    | "documento-version";  // se guardó una nueva versión de un documento compartido
+  documentoId?: string;
+  version?: number;
+  autorId?: string;
   conversacionId?: string;
   anuncioId?: string;
   mensaje?: unknown;

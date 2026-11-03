@@ -9,7 +9,7 @@ const TEXTOS: Record<EstadoPush, { icono: string; titulo: string; detalle: strin
   activo: {
     icono: "notifications_active",
     titulo: "Alertas activadas en este dispositivo",
-    detalle: "Los avisos te suenan aunque NEXO esté cerrado, y se repiten cada 10 minutos hasta que los leas.",
+    detalle: "Recibís mensajes y avisos con NEXO cerrado. Los mensajes urgentes se recuerdan cada minuto hasta confirmar lectura. El sonido y la persistencia dependen del dispositivo y sus permisos.",
   },
   inactivo: {
     icono: "notifications_off",

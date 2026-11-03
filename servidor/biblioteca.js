@@ -78,7 +78,7 @@ export function registrarBiblioteca(app, db, notificaciones) {
        LEFT JOIN instituciones i ON i.id = r.institucion_id
       WHERE r.eliminado_en IS NULL
         AND r.alcance = ?4
-        AND (r.institucion_id = ?1 OR r.institucion_id IS NULL)
+        AND (r.institucion_id = ?1 OR r.institucion_id IS NULL OR (?4 = 'nacional' AND r.estado = 'aprobado'))
         AND (
               r.estado = 'aprobado'
               OR (r.estado = 'en-revision' AND (r.autor_id = ?2 OR ?3 = 1))
@@ -459,7 +459,7 @@ export function registrarBiblioteca(app, db, notificaciones) {
        FROM recursos r
       WHERE r.id = ?1
         AND r.eliminado_en IS NULL
-        AND (r.institucion_id = ?2 OR r.institucion_id IS NULL)
+        AND (r.institucion_id = ?2 OR r.institucion_id IS NULL OR (r.alcance = 'nacional' AND r.estado = 'aprobado'))
         AND (
               r.estado = 'aprobado'
               OR (r.estado = 'en-revision' AND (r.autor_id = ?3 OR ?4 = 1))

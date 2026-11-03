@@ -1,5 +1,11 @@
 // Actualizaciones aditivas: conservar siempre las bases existentes.
 export function migrarBase(db) {
+  db.exec(`CREATE TABLE IF NOT EXISTS usuario_preferencias (
+    usuario_id INTEGER PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE,
+    preferencias TEXT NOT NULL DEFAULT '{}',
+    version INTEGER NOT NULL DEFAULT 1,
+    actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+  )`);
   const columnas = db.prepare("PRAGMA table_info(evidencias)").all();
   if (!columnas.some((columna) => columna.name === "tarea_id")) {
     db.exec("ALTER TABLE evidencias ADD COLUMN tarea_id INTEGER REFERENCES tareas(id)");
@@ -90,6 +96,67 @@ export function migrarBase(db) {
   // Anuncios obligatorios (dirección ↔ preceptoría) y suscripciones Web Push:
   // tablas nuevas, nada que convertir.
   db.exec(TABLAS_ANUNCIOS);
+  db.exec(TABLAS_RESPUESTAS_ANUNCIOS);
+  db.exec(TABLA_REACCIONES_MENSAJES);
+  migrarComunicacion(db);
+}
+
+export const TABLA_REACCIONES_MENSAJES = `CREATE TABLE IF NOT EXISTS mensaje_reacciones (
+  mensaje_id INTEGER NOT NULL REFERENCES mensajes(id) ON DELETE CASCADE,
+  usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  emoji TEXT NOT NULL,
+  PRIMARY KEY(mensaje_id, usuario_id)
+);`;
+
+export const TABLAS_RESPUESTAS_ANUNCIOS = `
+CREATE TABLE IF NOT EXISTS anuncio_respuestas (
+  id INTEGER PRIMARY KEY,
+  anuncio_id INTEGER NOT NULL REFERENCES anuncios(id) ON DELETE CASCADE,
+  destinatario_id INTEGER NOT NULL REFERENCES usuarios(id),
+  autor_id INTEGER NOT NULL REFERENCES usuarios(id),
+  cuerpo TEXT NOT NULL DEFAULT '',
+  creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_anuncio_respuestas_hilo ON anuncio_respuestas(anuncio_id, destinatario_id, id);
+CREATE TABLE IF NOT EXISTS anuncio_respuesta_adjuntos (
+  respuesta_id INTEGER NOT NULL REFERENCES anuncio_respuestas(id) ON DELETE CASCADE,
+  archivo_id INTEGER NOT NULL REFERENCES archivos(id),
+  orden INTEGER NOT NULL,
+  PRIMARY KEY (respuesta_id, archivo_id)
+);`;
+
+// Conserva cuentas, claves, sesiones y relaciones al ampliar el CHECK del rol.
+export function migrarComunicacion(db) {
+  const tabla = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'usuarios'").get();
+  if (!tabla.sql.includes("'secretaria'")) {
+    const objetos = db.prepare("SELECT sql FROM sqlite_master WHERE tbl_name = 'usuarios' AND type IN ('index', 'trigger') AND sql IS NOT NULL").all();
+    const columnas = db.prepare("PRAGMA table_info(usuarios)").all().map((c) => `"${c.name}"`).join(", ");
+    db.exec("PRAGMA foreign_keys = OFF; PRAGMA legacy_alter_table = ON; BEGIN");
+    try {
+      db.exec(tabla.sql.replace(/CREATE TABLE\s+"?usuarios"?/i, 'CREATE TABLE usuarios_nueva').replace("'preceptor'", "'preceptor','secretaria'"));
+      db.exec(`INSERT INTO usuarios_nueva (${columnas}) SELECT ${columnas} FROM usuarios`);
+      db.exec("DROP TABLE usuarios; ALTER TABLE usuarios_nueva RENAME TO usuarios");
+      for (const objeto of objetos) db.exec(objeto.sql);
+      if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("La migración de Secretaría dejó relaciones inválidas.");
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    } finally {
+      db.exec("PRAGMA legacy_alter_table = OFF; PRAGMA foreign_keys = ON");
+    }
+  }
+  const agregar = (tabla, nombre, definicion) => {
+    if (!db.prepare(`PRAGMA table_info(${tabla})`).all().some((c) => c.name === nombre)) {
+      db.exec(`ALTER TABLE ${tabla} ADD COLUMN ${nombre} ${definicion}`);
+    }
+  };
+  agregar("mensajes", "prioridad", "TEXT NOT NULL DEFAULT 'estandar' CHECK (prioridad IN ('estandar','urgente'))");
+  agregar("mensajes", "respuesta_a", "INTEGER REFERENCES mensajes(id) ON DELETE SET NULL");
+  agregar("notificaciones", "prioridad", "TEXT NOT NULL DEFAULT 'estandar' CHECK (prioridad IN ('estandar','urgente'))");
+  agregar("notificaciones", "mensaje_id", "INTEGER REFERENCES mensajes(id) ON DELETE CASCADE");
+  agregar("notificaciones", "ultimo_push_en", "TEXT");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_notificaciones_mensajes_pendientes ON notificaciones(usuario_id, leida_en, prioridad) WHERE mensaje_id IS NOT NULL");
 }
 
 /**

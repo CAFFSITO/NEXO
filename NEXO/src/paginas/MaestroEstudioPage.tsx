@@ -14,6 +14,7 @@ import { Fallo } from "./components/shared/EstadoCarga";
 import Universo from "./components/maestro/Universo";
 import Forja from "./components/maestro/Forja";
 import CampoEstelar from "./components/maestro/CampoEstelar";
+import AppsPublicasMaestro from "./components/maestro/AppsPublicasMaestro";
 import "./components/maestro/maestro.css";
 
 export default function MaestroEstudioPage() {
@@ -45,6 +46,7 @@ export default function MaestroEstudioPage() {
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
       <main id="contenido-principal" tabIndex={-1} className="app-content min-h-screen">
         <Universo catalogo={catalogo} onForjar={() => navegar("/maestro/forja")} onAbrir={(i) => navegar(`/maestro/instancia?id=${encodeURIComponent(i)}`)} />
+        <div className="mx-auto max-w-6xl px-4 pb-12"><AppsPublicasMaestro /></div>
       </main>
     </div>
   );

@@ -1,0 +1,11 @@
+import { useDatos } from './api';
+export type RolProyecto='coordinador'|'participante'|'lector';
+export type Proyecto={id:string;titulo:string;problema:string;objetivo:string;criterio:string;visibilidad:'privada'|'institucion';archivado:boolean;version:number;rol:RolProyecto|null;puedeEditar:boolean;puedeGestionar:boolean;creadorId:string};
+export type PasoProyecto={id:string;titulo:string;padreId:string|null;dependeDeId:string|null;responsableId:string|null;completada:boolean;evidencia:string;archivoId:string|null;version:number;creadoPor:string};
+export type MiembroProyecto={id:string;nombre:string;perfil:string;rol:RolProyecto};
+export type VinculoProyecto={tipo:'biblioteca'|'leccion'|'tarea';id:string;titulo:string;href:string};
+export type DevolucionProyecto={id:number;autor:string;criterio:string;comentario:string;siguienteAccion:string;creadoEn:string};
+export type EntregaProyecto={id:string;pasoId:string|null;autorId:string;autor:string;numero:number;texto:string;archivos:string[];creadoEn:string;devoluciones:DevolucionProyecto[]};
+export type DetalleProyecto={proyecto:Proyecto;miembros:MiembroProyecto[];pasos:PasoProyecto[];entregas:EntregaProyecto[];vinculos:VinculoProyecto[]};
+export const useProyectos=(q='')=>useDatos<{proyectos:Proyecto[];antes:string|null}>(`/api/proyectos?q=${encodeURIComponent(q)}`);
+export const useProyecto=(id:string|null)=>useDatos<DetalleProyecto>(id?`/api/proyectos/${id}`:null);

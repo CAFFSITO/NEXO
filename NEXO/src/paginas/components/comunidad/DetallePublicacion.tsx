@@ -15,6 +15,7 @@ import HiloRespuestas from "./HiloRespuestas";
 import CajaRespuesta from "./CajaRespuesta";
 import { TextoComunidad } from "./piezas";
 import type { OrdenRespuestas } from "./comunidadUtil";
+import RecursosVinculados from "../biblioteca/RecursosVinculados";
 
 interface Props {
   tipo: ObjetoTipo;
@@ -96,6 +97,8 @@ export default function DetallePublicacion({ tipo, id, yo, puedeFijar, puedePubl
                   <p className="mt-2 text-[12px] text-on-surface-variant/60">{datos.objeto.votosAFavor} a favor · {datos.objeto.votosEnContra} en contra</p>
                 </article>
               )}
+
+              {tipo === "publicacion" && !soloLectura && <RecursosVinculados tipo="publicacion" id={id} />}
 
               {!soloLectura && (publicacion ? publicacion.puedoResponder : true) && (
                 <div className="mt-4">

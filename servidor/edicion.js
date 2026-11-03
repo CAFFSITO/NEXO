@@ -61,6 +61,14 @@ const formato = (n) => (Math.round(Number(n) * 100) / 100).toLocaleString("es-AR
  */
 function aplicarCambios(actual, cuerpo) {
   const g = structuredClone(actual);
+  if (cuerpo.personalizacion !== undefined) {
+    const p = objeto(cuerpo.personalizacion);
+    // Dirección configura su instalación; el registro de extensiones lo diseña Maestro.
+    g.personalizacion = { ...g.personalizacion };
+    for (const clave of ["institucion", "perfiles", "academico", "retencion", "evidencias"]) {
+      if (p[clave] !== undefined) g.personalizacion[clave] = p[clave];
+    }
+  }
   if (Array.isArray(cuerpo.secciones)) g.secciones = cuerpo.secciones;
 
   const cm = objeto(cuerpo.modulos);
@@ -125,6 +133,9 @@ const ordenDelMenu = (genoma) => MODULOS.map((m) => m.id).sort((a, b) => genoma.
 export function describirCambios(antes, despues) {
   const cambios = [];
   const agregar = (icono, texto) => cambios.push({ icono, texto });
+  for (const [clave, etiqueta] of Object.entries({ institucion: "Preferencias de la institución", perfiles: "Preferencias por perfil", academico: "Rango de años académicos", retencion: "Conservación de datos", evidencias: "Fichas de evidencia" })) {
+    if (JSON.stringify(antes.personalizacion?.[clave]) !== JSON.stringify(despues.personalizacion?.[clave])) agregar("tune", etiqueta);
+  }
   const nombreSeccion = (genoma, id) => (id ? genoma.secciones.find((s) => s.id === id)?.nombre ?? "Mi espacio" : "Mi espacio");
 
   // Secciones
@@ -285,6 +296,7 @@ export function registrarEdicion(app, db, motorTendencias) {
       version: versionDeGenoma(db, institucionId),
       escuela: { nombre: genoma.identidad.nombre, lema: genoma.identidad.lema, icono: genoma.identidad.icono },
       tema: genoma.tema,
+      personalizacion: genoma.personalizacion,
       secciones: genoma.secciones,
       modulos: genoma.modulos,
       jerarquia: genoma.jerarquia,

@@ -76,22 +76,22 @@ export default function MisCursosEstudiantePage() {
         handleNavegar(`/portafolio/materia?catedra=${catedraId}`);
 
     return (
-        <div className="flex bg-fondo min-h-screen">
+        <div className="flex bg-fondo min-h-screen overflow-x-clip">
             <Sidebar
                 usuario={usuario}
                 onNavegar={handleNavegar}
                 onCerrarSesion={handleCerrarSesion}
             />
 
-            <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
+            <main id="contenido-principal" tabIndex={-1} className="app-content min-w-0 flex flex-col min-h-screen overflow-x-clip">
                 {/* Mismas pestañas que Mis Tareas y Calificaciones, para poder ir y volver. */}
                 <TopBar title="Portafolio de aprendizaje" pestanas={PESTANAS_PORTAFOLIO} />
 
                 <div className="flex-1 overflow-y-auto bg-background">
-                    <div className="p-8 max-w-7xl mx-auto w-full space-y-16">
+                    <div className="p-4 sm:p-8 max-w-7xl mx-auto w-full min-w-0 space-y-16">
                         {/* ── SECCIÓN 1: MIS CURSOS ── */}
                         <section className="space-y-8" id="mis-cursos">
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-wrap items-center justify-between gap-4">
                                 <div>
                                     <h1 className="text-4xl font-black text-white tracking-tight">Mis Cursos</h1>
                                     <p className="text-slate-400 mt-2">

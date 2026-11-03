@@ -24,6 +24,7 @@
 // ============================================================================
 
 import { ROLES_POR_PAGINA } from "./permisos.js";
+import { normalizarPersonalizacion, catalogoPersonalizacion } from "./personalizacion.js";
 import {
   validarGrafo,
   compilarGrafo,
@@ -38,6 +39,7 @@ export class ErrorGenoma extends Error {}
 
 // ── Arquetipos: los siete perfiles escolares que el servidor sabe custodiar ──
 export const ARQUETIPOS = [
+  { id: "secretaria", nombre: "Secretaría", color: "#06b6d4", icono: "contact_mail" },
   { id: "estudiante", nombre: "Estudiante", color: "#10b981", icono: "school" },
   { id: "profesor", nombre: "Profesor", color: "#3b82f6", icono: "cast_for_education" },
   { id: "preceptor", nombre: "Preceptor", color: "#94a3b8", icono: "badge" },
@@ -66,7 +68,7 @@ export const JERARQUIA_BASE = Object.freeze({
 /** El nivel de fábrica de cada arquetipo (índice en JERARQUIA_BASE). */
 const NIVEL_DE_ARQUETIPO = {
   "admin-academico": 0, "centro-estudiantes": 0,
-  profesor: 1, bibliotecario: 1, preceptor: 1,
+  profesor: 1, bibliotecario: 1, preceptor: 1, secretaria: 1,
   estudiante: 2, familia: 2,
 };
 const MAX_NIVELES = 6;
@@ -94,9 +96,9 @@ export const NECESIDADES = [
 // afinidad: [comunidad, academico, familias, autonomia, control, innovacion]
 const COMUNIDAD6 = ["estudiante", "profesor", "admin-academico", "preceptor", "centro-estudiantes", "bibliotecario"];
 const PUBLICAN = ["estudiante", "profesor", "admin-academico", "centro-estudiantes"];
-const CHAT = ["estudiante", "profesor", "preceptor", "bibliotecario", "familia", "admin-academico"];
+const CHAT = ["estudiante", "profesor", "preceptor", "bibliotecario", "familia", "admin-academico", "secretaria"];
 const BIBLIO = ["estudiante", "profesor", "admin-academico", "bibliotecario"];
-const TODOS = ["estudiante", "profesor", "preceptor", "admin-academico", "centro-estudiantes", "bibliotecario", "familia"];
+const TODOS = ["estudiante", "profesor", "preceptor", "admin-academico", "centro-estudiantes", "bibliotecario", "familia", "secretaria"];
 const EQUIPO = ["profesor", "preceptor", "admin-academico", "centro-estudiantes", "bibliotecario"];
 
 // ── Capacidades: lo que solo algunos perfiles pueden hacer ──────────────────
@@ -276,6 +278,25 @@ export const MODULOS = [
     ],
   },
   {
+    id: "documentos", nombre: "Documentos y formularios", icono: "edit_document", color: "#8b5cf6",
+    descripcion: "Páginas de bloques y formularios compartibles con historial.",
+    paginas: ["documentos"], sesgo: 0.6, afinidad: [0.4, 0.6, 0.3, 0.5, 0, 0.2],
+    rutas: [{ prefijo: "/api/documentos" }],
+    funciones: [],
+  },
+  {
+    id: "proyectos", nombre: "Proyectos compartidos", icono: "workspaces", color: "#14b8a6",
+    descripcion: "Problemas, proyectos y producciones compartidas con responsables, evidencias y devolución.",
+    paginas: ["proyectos"], sesgo: 0.6, afinidad: [0.6, 0.7, 0.7, 0.6, 0, 0.3],
+    rutas: [{ prefijo: "/api/proyectos" }], funciones: [],
+  },
+  {
+    id: "metodos-estudio", nombre: "Métodos de estudio", icono: "psychology", color: "#8b5cf6",
+    descripcion: "Prácticas estructuradas y repaso basados en reglas sin IA.",
+    paginas: ["metodos-estudio"], sesgo: 0.6, afinidad: [0.4, 0.6, 0.4, 0.5, 0, 0.3],
+    rutas: [{ prefijo: "/api/estudio" }], funciones: [],
+  },
+  {
     id: "gestion-biblioteca", nombre: "Gestión de biblioteca", icono: "fact_check", color: "#eab308",
     descripcion: "El panel del bibliotecario y la cola de revisión.",
     paginas: ["panel-bibliotecario"],
@@ -293,6 +314,10 @@ export const MODULOS = [
     funciones: [
       { id: "chat.iniciar", nombre: "Iniciar conversaciones", arquetipos: CHAT, sens: 0.4,
         rutas: [["POST", "/api/chat/conversaciones"]] },
+      { id: "chat.espacios", nombre: "Crear y configurar canales, foros y ayuda", arquetipos: CHAT, sens: 0.4,
+        rutas: [["POST", "/api/chat/canales"], ["PUT", "/api/chat/canales/:id"]] },
+      { id: "chat.contextos", nombre: "Abrir conversaciones de tareas, entregas y metas", arquetipos: CHAT, sens: 0.3,
+        rutas: [["POST", "/api/chat/contextos/:tipo/:id"]] },
       { id: "chat.enviar", nombre: "Enviar mensajes", arquetipos: CHAT, sens: 0.3,
         rutas: [["POST", "/api/chat/conversaciones/:id/mensajes"]] },
       { id: "chat.adjuntos", nombre: "Adjuntar archivos", arquetipos: CHAT, sens: 0.2,
@@ -372,7 +397,7 @@ export const MODULOS = [
     paginas: ["anuncios", "anuncios-grupos"],
     sesgo: 1.2, afinidad: [0.3, 0, 0, 0, 1.2, 0.3],
     funciones: [
-      { id: "anuncios.enviar", nombre: "Enviar avisos", arquetipos: ["preceptor", "admin-academico"], sens: 0,
+      { id: "anuncios.enviar", nombre: "Enviar avisos", arquetipos: ["preceptor", "admin-academico", "secretaria"], sens: 0,
         rutas: [["POST", "/api/anuncios"]] },
       { id: "anuncios.grupos", nombre: "Crear y editar grupos de difusión", arquetipos: ["admin-academico"], sens: 0,
         rutas: [["POST", "/api/anuncios/grupos"], ["PUT", "/api/anuncios/grupos/:id"], ["DELETE", "/api/anuncios/grupos/:id"]] },
@@ -993,6 +1018,7 @@ export function perfilPorDefecto(arquetipo) {
 export function genomaPorDefecto(nombre = "Nueva instancia") {
   return {
     version: 1,
+    personalizacion: normalizarPersonalizacion(),
     identidad: { nombre: String(nombre).slice(0, 80), lema: "", icono: "hub", dominio: "", semilla: 1 },
     tema: { ...TEMA_BASE },
     // Jerarquía del menú: secciones con nombre (vacío = todo en "Mi espacio").
@@ -1326,7 +1352,13 @@ export function normalizarGenoma(crudo, { estricto = true, nombreInstitucion } =
     });
   }
 
-  return { version: 1, identidad, tema, secciones, modulos, algoritmos, perfiles, jerarquia, capacidades, flujos };
+  let personalizacion;
+  try {
+    personalizacion = normalizarPersonalizacion(c.personalizacion, { estricto, perfiles });
+  } catch (error) {
+    throw new ErrorGenoma(error.message);
+  }
+  return { version: 1, identidad, tema, secciones, modulos, algoritmos, perfiles, jerarquia, capacidades, flujos, personalizacion };
 }
 
 // ── Resolución para una persona ─────────────────────────────────────────────
@@ -1772,6 +1804,7 @@ export function proponerGenoma({ necesidades = {}, semilla = 1, base } = {}) {
 // ── Catálogo público (lo que recibe el estudio del Maestro) ─────────────────
 export function catalogoPublico() {
   return {
+    personalizacion: catalogoPersonalizacion(),
     arquetipos: ARQUETIPOS,
     necesidades: NECESIDADES,
     armonias: ARMONIAS,

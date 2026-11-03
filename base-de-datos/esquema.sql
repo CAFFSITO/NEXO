@@ -36,7 +36,7 @@ CREATE TABLE usuarios (
     hash_contrasena TEXT NOT NULL,
     nombre          TEXT NOT NULL,
     rol             TEXT NOT NULL CHECK (rol IN (
-                        'estudiante','profesor','preceptor','admin-academico',
+                        'estudiante','profesor','preceptor','secretaria','admin-academico',
                         'centro-estudiantes','bibliotecario','familia','administrador')),
     avatar_url      TEXT,
     estado          TEXT NOT NULL DEFAULT 'activo'
@@ -55,6 +55,13 @@ CREATE TABLE usuarios (
 
 -- Sesiones abiertas: la "llave" que el navegador guarda para sobrevivir
 -- a las recargas (Error 12.1). El servidor valida el token en cada pedido.
+CREATE TABLE usuario_preferencias (
+    usuario_id INTEGER PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE,
+    preferencias TEXT NOT NULL DEFAULT '{}',
+    version INTEGER NOT NULL DEFAULT 1,
+    actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE sesiones (
     id          INTEGER PRIMARY KEY,
     usuario_id  INTEGER NOT NULL REFERENCES usuarios(id),
@@ -185,6 +192,7 @@ CREATE TABLE tareas (
     metodo_estudio  TEXT,                        -- sugerencia del docente
     tipo_asignacion TEXT NOT NULL DEFAULT 'individual'
                         CHECK (tipo_asignacion IN ('individual','grupal')),
+    rubrica TEXT NOT NULL DEFAULT '[]',
     creado_en       TEXT NOT NULL DEFAULT (datetime('now')),
     eliminado_en    TEXT
 );
@@ -196,15 +204,31 @@ CREATE TABLE tarea_adjuntos (
     archivo_id INTEGER NOT NULL REFERENCES archivos(id)
 );
 
+CREATE TABLE tarea_equipos (
+    id INTEGER PRIMARY KEY,
+    tarea_id INTEGER NOT NULL REFERENCES tareas(id),
+    nombre TEXT NOT NULL,
+    creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE tarea_equipo_miembros (
+    equipo_id INTEGER NOT NULL REFERENCES tarea_equipos(id),
+    tarea_id INTEGER NOT NULL REFERENCES tareas(id),
+    estudiante_id INTEGER NOT NULL REFERENCES usuarios(id),
+    PRIMARY KEY (equipo_id, estudiante_id),
+    UNIQUE (tarea_id, estudiante_id)
+);
+
 -- Entrega de un estudiante. La fecha dice si fue en término o tarde.
 -- anulada_en permite deshacer una entrega no corregida (Error 2.C.6).
 CREATE TABLE entregas (
     id            INTEGER PRIMARY KEY,
     tarea_id      INTEGER NOT NULL REFERENCES tareas(id),
     estudiante_id INTEGER NOT NULL REFERENCES usuarios(id),
+    equipo_id INTEGER REFERENCES tarea_equipos(id),
     comentario    TEXT NOT NULL DEFAULT '',
     entregado_en  TEXT NOT NULL DEFAULT (datetime('now')),
-    anulada_en    TEXT
+    anulada_en    TEXT,
+    reemplazada_en TEXT                 -- versión anterior sustituida tras devolución
 );
 
 -- Archivos de cada entrega (Error 2.C.4).
@@ -221,7 +245,19 @@ CREATE TABLE correcciones (
     entrega_id   INTEGER NOT NULL UNIQUE REFERENCES entregas(id),
     nota         REAL CHECK (nota BETWEEN 1 AND 10),
     devolucion   TEXT NOT NULL DEFAULT '',
+    criterios TEXT NOT NULL DEFAULT '{}',
     corregido_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Revisión de pares: asignación del docente, devolución descriptiva sin nota.
+CREATE TABLE revisiones_pares (
+    id INTEGER PRIMARY KEY,
+    entrega_id INTEGER NOT NULL REFERENCES entregas(id),
+    revisor_id INTEGER NOT NULL REFERENCES usuarios(id),
+    comentario TEXT,
+    asignada_en TEXT NOT NULL DEFAULT (datetime('now')),
+    respondida_en TEXT,
+    UNIQUE(entrega_id, revisor_id)
 );
 
 -- Recordatorios personales del estudiante (editables y borrables).
@@ -232,6 +268,9 @@ CREATE TABLE tareas_personales (
     descripcion   TEXT NOT NULL DEFAULT '',
     fecha_limite  TEXT,
     completada_en TEXT,
+    recurrencia   TEXT,
+    restantes     INTEGER,
+    origen_id     INTEGER REFERENCES tareas_personales(id) ON DELETE SET NULL,
     creado_en     TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -259,8 +298,13 @@ CREATE TABLE metas (
 CREATE TABLE subtareas (
     id            INTEGER PRIMARY KEY,
     meta_id       INTEGER NOT NULL REFERENCES metas(id),
+    padre_id      INTEGER REFERENCES subtareas(id),
+    depende_de_id INTEGER REFERENCES subtareas(id),
     titulo        TEXT NOT NULL,
     orden         INTEGER NOT NULL DEFAULT 0,
+    evidencia     TEXT NOT NULL DEFAULT '',
+    archivo_id    INTEGER REFERENCES archivos(id),
+    responsable_id INTEGER REFERENCES usuarios(id),
     completada_en TEXT
 );
 
@@ -617,11 +661,29 @@ CREATE TABLE cola_revision (
 -- Error 7.A.5) o clase (chat de una clase en vivo).
 CREATE TABLE conversaciones (
     id        INTEGER PRIMARY KEY,
-    tipo      TEXT NOT NULL CHECK (tipo IN ('directa','grupo-curso','clase')),
+    tipo      TEXT NOT NULL CHECK (tipo IN ('directa','grupo-curso','clase','canal')),
     curso_id  INTEGER REFERENCES cursos(id),      -- solo para grupo-curso
     clase_id  INTEGER REFERENCES clases_planificadas(id), -- solo para clase
     creado_en TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Miembros de cada conversación. ultimo_leido_en es la clave de los
+-- Canales, foros y contextos comparten mensajes y participantes con el chat.
+CREATE TABLE chat_canales (
+    conversacion_id INTEGER PRIMARY KEY REFERENCES conversaciones(id),
+    institucion_id INTEGER NOT NULL REFERENCES instituciones(id),
+    creador_id INTEGER NOT NULL REFERENCES usuarios(id),
+    nombre TEXT NOT NULL, descripcion TEXT NOT NULL DEFAULT '',
+    clase TEXT NOT NULL CHECK(clase IN ('canal','foro','hilo','ayuda','sugerencias','contexto')),
+    visibilidad TEXT NOT NULL CHECK(visibilidad IN ('institucion','privada')),
+    solo_lectura INTEGER NOT NULL DEFAULT 0,
+    estado TEXT NOT NULL DEFAULT 'abierto' CHECK(estado IN ('abierto','resuelto','cerrado')),
+    padre_id INTEGER REFERENCES chat_canales(conversacion_id),
+    contexto_tipo TEXT, contexto_id INTEGER,
+    version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(institucion_id,contexto_tipo,contexto_id)
+);
+CREATE INDEX idx_chat_canales_institucion ON chat_canales(institucion_id,padre_id);
 
 -- Miembros de cada conversación. ultimo_leido_en es la clave de los
 -- no-leídos: no leídos = mensajes posteriores a esa marca (Error 2.F.5).
@@ -636,6 +698,8 @@ CREATE TABLE conversacion_miembros (
 -- Mensajes. El adjunto referencia a archivos (Error 2.F.3).
 CREATE TABLE mensajes (
     id              INTEGER PRIMARY KEY,
+    prioridad       TEXT NOT NULL DEFAULT 'estandar' CHECK (prioridad IN ('estandar','urgente')),
+    respuesta_a     INTEGER REFERENCES mensajes(id) ON DELETE SET NULL,
     conversacion_id INTEGER NOT NULL REFERENCES conversaciones(id),
     autor_id        INTEGER NOT NULL REFERENCES usuarios(id),
     contenido       TEXT NOT NULL DEFAULT '',
@@ -877,6 +941,9 @@ CREATE TABLE quejas (
 
 CREATE TABLE notificaciones (
     id          INTEGER PRIMARY KEY,
+    prioridad   TEXT NOT NULL DEFAULT 'estandar' CHECK (prioridad IN ('estandar','urgente')),
+    mensaje_id  INTEGER REFERENCES mensajes(id) ON DELETE CASCADE,
+    ultimo_push_en TEXT,
     usuario_id  INTEGER NOT NULL REFERENCES usuarios(id),
     tipo        TEXT NOT NULL,                    -- 'mensaje','correccion','comunicado','recurso','evento','denuncia'...
     titulo      TEXT NOT NULL,
@@ -891,14 +958,13 @@ CREATE TABLE notificaciones (
 -- 14. PLATAFORMA: IA, REPORTES, LOGS (secciones 14.16 y 14.18, y sección 5)
 -- ============================================================================
 
--- Configuración de la Asistencia IA (Error 2.G.1). La clave de la API
--- vive en el servidor (variable de entorno), NUNCA en esta tabla ni en
--- la aplicación del navegador.
+-- Configuración pedagógica de la Asistencia IA. El destino del modelo es
+-- local o institucional privado y se configura con NEXO_IA_URL en el servidor.
 CREATE TABLE config_ia (
     id             INTEGER PRIMARY KEY,
     institucion_id INTEGER REFERENCES instituciones(id), -- NULL = configuración global
     system_prompt  TEXT NOT NULL,
-    proveedor      TEXT NOT NULL DEFAULT 'google-ai-studio',
+    proveedor      TEXT NOT NULL DEFAULT 'local',
     modelo         TEXT NOT NULL DEFAULT '',
     temperatura    REAL NOT NULL DEFAULT 0.7,
     activo         INTEGER NOT NULL DEFAULT 1
@@ -1256,3 +1322,28 @@ CREATE INDEX idx_plantilla_items        ON plantilla_items(plantilla_id);
 CREATE INDEX idx_genoma_versiones       ON genoma_versiones(institucion_id, version);
 CREATE INDEX idx_flujo_ejecuciones      ON flujo_ejecuciones(institucion_id, flujo_id, creado_en);
 CREATE INDEX idx_tendencias_nacionales  ON tendencias_nacionales(estado, institucion_id);
+
+-- Respuestas privadas a los avisos recibidos.
+
+CREATE TABLE IF NOT EXISTS anuncio_respuestas (
+  id INTEGER PRIMARY KEY,
+  anuncio_id INTEGER NOT NULL REFERENCES anuncios(id) ON DELETE CASCADE,
+  destinatario_id INTEGER NOT NULL REFERENCES usuarios(id),
+  autor_id INTEGER NOT NULL REFERENCES usuarios(id),
+  cuerpo TEXT NOT NULL DEFAULT '',
+  creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_anuncio_respuestas_hilo ON anuncio_respuestas(anuncio_id, destinatario_id, id);
+CREATE TABLE IF NOT EXISTS anuncio_respuesta_adjuntos (
+  respuesta_id INTEGER NOT NULL REFERENCES anuncio_respuestas(id) ON DELETE CASCADE,
+  archivo_id INTEGER NOT NULL REFERENCES archivos(id),
+  orden INTEGER NOT NULL,
+  PRIMARY KEY (respuesta_id, archivo_id)
+);
+
+CREATE TABLE IF NOT EXISTS mensaje_reacciones (
+  mensaje_id INTEGER NOT NULL REFERENCES mensajes(id) ON DELETE CASCADE,
+  usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  emoji TEXT NOT NULL,
+  PRIMARY KEY(mensaje_id, usuario_id)
+);

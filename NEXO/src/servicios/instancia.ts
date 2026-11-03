@@ -9,6 +9,7 @@ import { createContext, useContext } from "react";
 import { pedir, useDatos } from "./api";
 import type { Tema } from "./tema";
 import type { SeccionMenu } from "./maestro";
+import type { Preferencias } from "./personalizacion";
 
 export interface ModuloResuelto {
   id: string;
@@ -34,6 +35,8 @@ export interface PerfilResuelto {
 }
 
 export interface Instancia {
+  personalizacion?: Preferencias;
+  academico?: { anioMin: number; anioMax: number };
   institucion: { id: string; nombre: string; cicloLectivo: number } | null;
   identidad: { nombre: string; lema: string; icono: string };
   tema: Tema;

@@ -6,7 +6,7 @@ import { useListasCurso } from "./useListasCurso";
 import { useOpcionesGestionAcademica, type DatosCurso } from "../../../servicios/gestionAcademica";
 import { Cargando, Fallo } from "../shared/EstadoCarga";
 import Selector from "../shared/Selector";
-import { useFuncion } from "../../../servicios/instancia";
+import { useFuncion, useInstancia } from "../../../servicios/instancia";
 
 interface Props {
   abierto: boolean;
@@ -18,7 +18,11 @@ export default function ModalNuevoCurso({ abierto, cursosExistentes, onCerrar, o
   const { datos, cargando, error: errorCarga, recargar } = useOpcionesGestionAcademica();
   // Sin "Cátedras e inscripciones", la escuela no usa alumnos ni docentes en los cursos.
   const conAlumnos = useFuncion("cursos.organizar");
-  const [anio, setAnio] = useState(1);
+  const { instancia } = useInstancia();
+  const rango = instancia?.academico ?? { anioMin: 1, anioMax: 7 };
+  const [anioElegido, setAnio] = useState<number | null>(null);
+  const anio = anioElegido !== null && anioElegido >= rango.anioMin && anioElegido <= rango.anioMax ? anioElegido : rango.anioMin;
+  const anios = Array.from({ length: rango.anioMax - rango.anioMin + 1 }, (_, i) => rango.anioMin + i);
   const [division, setDivision] = useState("A");
   // El turno no trae uno elegido de antemano: que la dirección lo marque a
   // conciencia, en vez de guardar "mañana" sin haberlo mirado.
@@ -64,7 +68,7 @@ export default function ModalNuevoCurso({ abierto, cursosExistentes, onCerrar, o
         </div>
         {cargando ? <Cargando que="las opciones académicas" /> : errorCarga ? <Fallo error={errorCarga} onReintentar={recargar} /> : servidorViejo ? <ServidorDesactualizado onCerrar={cerrar} /> : <>
           <div className="grid grid-cols-2 gap-4 mb-5">
-            <label className="text-sm text-slate-300">Año<Selector value={anio} onChange={(e) => setAnio(Number(e.target.value))} className={campo}>{[1,2,3,4,5,6,7].map((n) => <option key={n} value={n}>{n}° año</option>)}</Selector></label>
+            <label className="text-sm text-slate-300">Año<Selector value={anio} onChange={(e) => setAnio(Number(e.target.value))} className={campo}>{anios.map((n) => <option key={n} value={n}>{n}° año</option>)}</Selector></label>
             <label className="text-sm text-slate-300">División<input required maxLength={10} value={division} onChange={(e) => setDivision(e.target.value.toUpperCase())} className={campo} /></label>
           </div>
           <div className="mb-5">

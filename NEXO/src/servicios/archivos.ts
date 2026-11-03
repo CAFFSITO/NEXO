@@ -26,6 +26,7 @@ export interface ArchivoSubido {
  * referencia desde la entrega, el recurso, etc.
  */
 export async function subirArchivo(archivo: File): Promise<ArchivoSubido> {
+  if (archivo.size > 5 * 1024 * 1024) return subirReanudable(archivo);
   let respuesta: Response;
   try {
     respuesta = await fetch("/api/archivos", {
@@ -50,6 +51,41 @@ export async function subirArchivo(archivo: File): Promise<ArchivoSubido> {
     );
   }
   return datos.archivo as ArchivoSubido;
+}
+
+/** Guarda el avance local para continuar tras corte de red o recarga. */
+async function subirReanudable(archivo: File): Promise<ArchivoSubido> {
+  const clave = `nexo-carga:${archivo.name}:${archivo.size}:${archivo.lastModified}`;
+  const json = async (r: Response) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new ErrorDeApi(d.error ?? 'No se pudo continuar la carga.', r.status); return d; };
+  let id = localStorage.getItem(clave);
+  let recibido = 0;
+  if (id) {
+    const r = await fetch(`/api/archivos/cargas/${id}`);
+    if (r.ok) {
+      const estado = await r.json();
+      if (estado.archivo) { localStorage.removeItem(clave); return estado.archivo as ArchivoSubido; }
+      recibido = estado.recibido;
+    }
+    else { id = null; localStorage.removeItem(clave); }
+  }
+  if (!id) {
+    const creada = await json(await fetch('/api/archivos/cargas', { method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:archivo.name,tipo:archivo.type.split(';')[0]||'application/octet-stream',tamano:archivo.size}) }));
+    id = String(creada.id); localStorage.setItem(clave,id);
+  }
+  while (recibido < archivo.size) {
+    const siguiente = Math.min(archivo.size,recibido+5*1024*1024);
+    try {
+      const r = await json(await fetch(`/api/archivos/cargas/${id}`,{method:'PUT',headers:{'Content-Type':'application/octet-stream','X-Offset':String(recibido)},body:archivo.slice(recibido,siguiente)}));
+      recibido = r.recibido;
+    } catch (error) {
+      const estado = await fetch(`/api/archivos/cargas/${id}`);
+      if (estado.ok) { const progreso = await estado.json(); if (progreso.recibido > recibido) { recibido = progreso.recibido; continue; } }
+      throw error;
+    }
+  }
+  const terminado = await json(await fetch(`/api/archivos/cargas/${id}/completar`,{method:'POST'}));
+  localStorage.removeItem(clave);
+  return terminado.archivo as ArchivoSubido;
 }
 
 /**

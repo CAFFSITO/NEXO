@@ -1,0 +1,42 @@
+// Circuito de lectura, bloque accionable y cuestionario; base temporal.
+import assert from 'node:assert/strict';
+import { crearEntorno } from '../servidor/tests/entorno.js';
+const {chromium}=await import(process.env.NEXO_PLAYWRIGHT||'playwright');
+const e=await crearEntorno('nexo-documentos-ui-');
+let browser;
+try{
+ await e.entrar('docente','garcia@sanmartin.nexo.edu');
+ const contenido=[{id:'t',tipo:'tabla',texto:'Tabla de conceptos',filas:[['Concepto','Valor'],['Suma','4']]},{id:'l',tipo:'enlace',texto:'Referencia',url:'https://example.org/'},{id:'a',tipo:'accionable',texto:'Explicar la suma'}];
+ const doc=(await e.ok('/api/documentos','docente','POST',{tipo:'documento',titulo:'Lectura enriquecida',contenido},201)).documento;
+ await e.ok(`/api/documentos/${doc.id}`,'docente','PUT',{version:1,publicado:true});
+ const quiz=(await e.ok('/api/documentos','docente','POST',{tipo:'formulario',titulo:'Prueba de suma',contenido:[{id:'p',tipo:'pregunta',texto:'Cuánto es dos más dos',respuesta:'numero',opciones:[],correcta:4,puntos:3,obligatoria:true,devolucion:'Revisá la operación.'}],evaluacion:{intentosMaximos:1,aprobacion:60}},201)).documento;
+ await e.ok(`/api/documentos/${quiz.id}`,'docente','PUT',{version:1,publicado:true});
+ const base=new URL((await e.request('/api/sesion')).response.url).origin;
+ browser=await chromium.launch({channel:'chrome',headless:true});
+ const context=await browser.newContext({viewport:{width:1280,height:900}}),page=await context.newPage(),errores=[];
+ page.on('pageerror',x=>errores.push(x.message));
+ assert.equal((await context.request.post(`${base}/api/sesion`,{data:{email:'julieta@sanmartin.nexo.edu',contrasena:'nexo1234'}})).status(),200);
+ await page.goto(`${base}/documentos?documento=${doc.id}`,{waitUntil:'networkidle'});
+ assert.equal(await page.getByRole('table',{name:'Tabla de conceptos'}).getByRole('cell',{name:'Suma',exact:true}).count(),1);
+ assert.equal(await page.getByRole('link',{name:'Referencia',exact:true}).getAttribute('href'),'https://example.org/');
+ await page.getByRole('textbox',{name:'Evidencia: Explicar la suma'}).fill('Demostración concreta');
+ const guardado=page.waitForResponse(r=>r.url().endsWith(`/acciones/a`)&&r.request().method()==='PUT');
+ await page.getByRole('checkbox',{name:'Explicar la suma',exact:true}).click();assert.equal((await guardado).status(),200);
+ await page.reload({waitUntil:'networkidle'});
+ assert.equal(await page.getByRole('checkbox',{name:'Explicar la suma',exact:true}).isChecked(),true);
+ assert.equal(await page.getByRole('textbox',{name:'Evidencia: Explicar la suma'}).inputValue(),'Demostración concreta');
+ console.log('PASS: tabla y enlace reales; avance/evidencia persisten al recargar');
+ await page.goto(`${base}/documentos?documento=${quiz.id}`,{waitUntil:'networkidle'});
+ assert.equal(await page.getByText('Solución: 4',{exact:true}).count(),0);
+ await page.getByRole('spinbutton',{name:'Cuánto es dos más dos'}).fill('4');
+ await page.getByRole('button',{name:'Enviar respuestas',exact:true}).click();
+ await page.getByText('Solución: 4',{exact:true}).waitFor();
+ assert.ok((await page.getByText(/3\/3 puntos/).innerText()).includes('100%'));
+ await page.reload({waitUntil:'networkidle'});
+ await page.getByText('Solución: 4',{exact:true}).waitFor();
+ await page.getByRole('spinbutton',{name:'Cuánto es dos más dos'}).fill('4');
+ await page.getByRole('button',{name:'Enviar respuestas',exact:true}).click();
+ await page.getByRole('status').filter({hasText:'Alcanzaste el máximo de intentos'}).waitFor();
+ assert.deepEqual(errores,[]);
+ console.log('PASS: cuestionario corrige, conserva resultado y respeta máximo de intentos; sin errores JS');
+}finally{await browser?.close();await e.cerrar();}

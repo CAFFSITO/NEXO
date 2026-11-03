@@ -3,7 +3,7 @@
 // cualquier tipo y notas de voz (mantener apretado el micrófono). Los archivos
 // se suben recién al tocar "Enviar aviso": hasta ahí, se pueden sacar.
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useDatos } from "../../../servicios/api";
 import { subirArchivo, tamanoLegible } from "../../../servicios/archivos";
 import {
@@ -17,12 +17,11 @@ import {
   type Destinos,
   type PersonaAnuncio,
 } from "../../../servicios/anuncios";
-import Avatar from "./Avatar";
-import InfoPersona from "./InfoPersona";
+import SelectorDestinatarios from "./SelectorDestinatarios";
 import GrabadorVoz, { type NotaGrabada } from "./GrabadorVoz";
 import ReproductorVoz from "./ReproductorVoz";
 
-type Eleccion = { tipo: "grupo"; id: string } | { tipo: "personas" } | null;
+type Eleccion = { tipo: "grupo"; id: string } | { tipo: "persona" | "manual" } | null;
 
 /** Un archivo elegido (o un audio grabado) que todavía no se subió. */
 interface Pendiente {
@@ -44,7 +43,7 @@ export default function Compositor({ onVerEnviados }: { onVerEnviados: () => voi
   const { datos: destinos, cargando, error: errorCarga, recargar } = useDatos<Destinos>("/api/anuncios/destinos");
   const [eleccion, setEleccion] = useState<Eleccion>(null);
   const [personas, setPersonas] = useState<string[]>([]);
-  const [buscar, setBuscar] = useState("");
+  const [personaDirecta, setPersonaDirecta] = useState<string[]>([]);
   const [texto, setTexto] = useState("");
   const [pendientes, setPendientes] = useState<Pendiente[]>([]);
   const [grabando, setGrabando] = useState(false);
@@ -59,24 +58,18 @@ export default function Compositor({ onVerEnviados }: { onVerEnviados: () => voi
 
   const grupo = eleccion?.tipo === "grupo" ? destinos?.grupos.find((g) => g.id === eleccion.id) ?? null : null;
   const color = grupo?.color ?? destinos?.colorDirecto ?? "#7c3aed";
-  const elegidas = (destinos?.personas ?? []).filter((p) => personas.includes(p.id));
+  const idsElegidos = eleccion?.tipo === "manual" ? personas : eleccion?.tipo === "persona" ? personaDirecta : [];
+  const elegidas = (destinos?.personas ?? []).filter((p) => idsElegidos.includes(p.id));
   const llegaA = grupo ? grupo.destinatarios : elegidas;
   const maximo = destinos?.maxCuerpo ?? 5000;
   const maxAdjuntos = destinos?.maxAdjuntos ?? 10;
+  const maxPersonas = destinos?.maxPersonas ?? 50;
   const hayAlgo = texto.trim().length > 0 || pendientes.length > 0;
-  const listo = Boolean(eleccion) && llegaA.length > 0 && hayAlgo && texto.length <= maximo && !grabando;
-
-  const filtradas = useMemo(() => {
-    const q = buscar.trim().toLocaleLowerCase("es");
-    return (destinos?.personas ?? []).filter((p) => !q || p.nombre.toLocaleLowerCase("es").includes(q));
-  }, [destinos, buscar]);
+  const listo = Boolean(eleccion) && llegaA.length > 0 && (eleccion?.tipo === "grupo" || llegaA.length <= maxPersonas) && hayAlgo && texto.length <= maximo && !grabando;
 
   // Las grabaciones se escuchan desde la memoria: al salir, se libera.
   const urls = useRef<string[]>([]);
   useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
-
-  const alternarPersona = (id: string) =>
-    setPersonas((lista) => (lista.includes(id) ? lista.filter((x) => x !== id) : [...lista, id]));
 
   const sumarArchivos = (lista: FileList | null) => {
     if (!lista?.length) return;
@@ -121,7 +114,7 @@ export default function Compositor({ onVerEnviados }: { onVerEnviados: () => voi
         }
       }
       setProgresoSubida("");
-      const destino = eleccion.tipo === "grupo" ? { grupoId: eleccion.id } : { personas };
+      const destino = eleccion.tipo === "grupo" ? { grupoId: eleccion.id } : { personas: elegidas.map((p) => p.id) };
       const { anuncio } = await enviarAviso({ ...destino, cuerpo: texto, adjuntos });
       setEnviado(anuncio);
       setTexto("");
@@ -170,7 +163,7 @@ export default function Compositor({ onVerEnviados }: { onVerEnviados: () => voi
   }
 
   return (
-    <div className="flex max-w-3xl flex-col gap-5" style={estiloAviso(color)}>
+    <div className="av-compositor flex min-w-0 max-w-3xl flex-col gap-5" style={estiloAviso(color)}>
       <section className="av-panel flex flex-col gap-4" aria-labelledby="av-paso-1">
         <h3 id="av-paso-1" className={`av-titulo-paso ${eleccion && llegaA.length ? "is-hecho" : ""}`}>
           <i>{eleccion && llegaA.length ? <span className="material-symbols-outlined !text-[16px]">check</span> : 1}</i>
@@ -184,6 +177,7 @@ export default function Compositor({ onVerEnviados }: { onVerEnviados: () => voi
               className="av-destino"
               style={{ "--av-color": g.color } as CSSProperties}
               aria-pressed={eleccion?.tipo === "grupo" && eleccion.id === g.id}
+              disabled={enviando}
               onClick={() => setEleccion({ tipo: "grupo", id: g.id })}
             >
               <span className="av-marca" aria-hidden="true"><span className="material-symbols-outlined">check</span></span>
@@ -199,8 +193,9 @@ export default function Compositor({ onVerEnviados }: { onVerEnviados: () => voi
             type="button"
             className="av-destino"
             style={{ "--av-color": destinos?.colorDirecto ?? "#7c3aed" } as CSSProperties}
-            aria-pressed={eleccion?.tipo === "personas"}
-            onClick={() => setEleccion({ tipo: "personas" })}
+            aria-pressed={eleccion?.tipo === "persona"}
+            disabled={enviando}
+            onClick={() => setEleccion({ tipo: "persona" })}
           >
             <span className="av-marca" aria-hidden="true"><span className="material-symbols-outlined">check</span></span>
             <strong>A alguien en particular</strong>
@@ -208,7 +203,23 @@ export default function Compositor({ onVerEnviados }: { onVerEnviados: () => voi
               <span className="material-symbols-outlined" aria-hidden="true">person</span>
               Mensaje directo
             </small>
-            <p>Elegí una o más personas de la dirección o la preceptoría.</p>
+            <p>Enviá un aviso a una persona de tu escuela.</p>
+          </button>
+          <button
+            type="button"
+            className="av-destino"
+            style={{ "--av-color": destinos?.colorDirecto ?? "#7c3aed" } as CSSProperties}
+            aria-pressed={eleccion?.tipo === "manual"}
+            disabled={enviando}
+            onClick={() => setEleccion({ tipo: "manual" })}
+          >
+            <span className="av-marca" aria-hidden="true"><span className="material-symbols-outlined">check</span></span>
+            <strong>Elegir manualmente</strong>
+            <small>
+              <span className="material-symbols-outlined" aria-hidden="true">checklist</span>
+              Varias personas
+            </small>
+            <p>Armá tu propia lista para este aviso, sin crear un grupo.</p>
           </button>
         </div>
         {destinos && destinos.grupos.length === 0 && (
@@ -217,23 +228,16 @@ export default function Compositor({ onVerEnviados }: { onVerEnviados: () => voi
           </p>
         )}
 
-        {eleccion?.tipo === "personas" && (
-          <div className="flex flex-col gap-3">
-            <div className="av-buscar-caja">
-              <span className="material-symbols-outlined" aria-hidden="true">search</span>
-              <input className="av-buscar" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar por nombre" aria-label="Buscar personas" />
-            </div>
-            <div className="av-personas" role="group" aria-label="Personas">
-              {filtradas.map((p) => (
-                <button key={p.id} type="button" className="av-persona" aria-pressed={personas.includes(p.id)} onClick={() => alternarPersona(p.id)}>
-                  <Avatar persona={p} />
-                  <InfoPersona persona={p} />
-                  <span className="av-check" aria-hidden="true"><span className="material-symbols-outlined">check</span></span>
-                </button>
-              ))}
-              {filtradas.length === 0 && <p className="text-sm text-on-surface-variant">No hay nadie con ese nombre.</p>}
-            </div>
-          </div>
+        {(eleccion?.tipo === "persona" || eleccion?.tipo === "manual") && (
+          <SelectorDestinatarios
+            key={eleccion.tipo}
+            personas={destinos?.personas ?? []}
+            seleccionadas={elegidas.map((p) => p.id)}
+            multiple={eleccion.tipo === "manual"}
+            maximo={maxPersonas}
+            disabled={enviando}
+            onCambiar={eleccion.tipo === "manual" ? setPersonas : setPersonaDirecta}
+          />
         )}
       </section>
 
@@ -242,7 +246,7 @@ export default function Compositor({ onVerEnviados }: { onVerEnviados: () => voi
         {eleccion && llegaA.length > 0 && (
           <p className="flex items-center gap-2 text-sm text-on-surface-variant">
             <span className="material-symbols-outlined !text-[18px]" aria-hidden="true">group</span>
-            Le va a llegar a {listaDeNombres(llegaA)}.
+            {llegaA.length === 1 ? "1 destinatario" : `${llegaA.length} destinatarios`}: {listaDeNombres(llegaA)}.
           </p>
         )}
         <textarea
@@ -250,7 +254,7 @@ export default function Compositor({ onVerEnviados }: { onVerEnviados: () => voi
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           placeholder={eleccion ? "Escribí acá el aviso. Va a aparecer grande, encima de todo." : "Primero elegí a quién va dirigido."}
-          disabled={!eleccion}
+          disabled={!eleccion || enviando}
           maxLength={maximo + 200}
           aria-label="Texto del aviso"
         />

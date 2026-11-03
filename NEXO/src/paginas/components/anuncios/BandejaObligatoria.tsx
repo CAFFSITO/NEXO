@@ -227,19 +227,25 @@ function Bandeja() {
   };
 
   const reaccionar = async (emoji: string | null) => {
-    if (!arriba) return;
-    const previa = estados[arriba.id]?.reaccion ?? null;
-    setEstados((s) => ({ ...s, [arriba.id]: { leido: true, reaccion: emoji } }));
+    if (!arriba || marcando) return;
+    setMarcando(true);
+    const yaLeido = estados[arriba.id]?.leido ?? false;
+    if (emoji !== null) marcadosAca.current.add(arriba.id);
+    const previa = estados[arriba.id] ? estados[arriba.id].reaccion : arriba.reaccion ?? null;
+    setEstados((s) => ({ ...s, [arriba.id]: { leido: s[arriba.id]?.leido ?? false, reaccion: emoji } }));
     setError("");
     try {
       await reaccionarAviso(arriba.id, emoji);
+      setEstados((s) => ({ ...s, [arriba.id]: { leido: emoji !== null || yaLeido, reaccion: emoji } }));
     } catch (e) {
-      setEstados((s) => ({ ...s, [arriba.id]: { leido: true, reaccion: previa } }));
+      if (!yaLeido) marcadosAca.current.delete(arriba.id);
+      setEstados((s) => ({ ...s, [arriba.id]: { leido: s[arriba.id]?.leido ?? false, reaccion: previa } }));
       setError(e instanceof Error ? e.message : "No se pudo guardar la reacción.");
-    }
+    } finally { setMarcando(false); }
   };
 
   const siguiente = (lado: Lado = "derecha") => {
+    if (capa.current?.querySelector('[data-respuesta-activa="true"]')) return;
     if (!arriba || volando) return;
     if (!estadoArriba?.leido) {
       setArrastre(0);
@@ -264,6 +270,7 @@ function Bandeja() {
 
   // ── Deslizar con el dedo (además del botón "Terminar" de la tarjeta) ─────
   const empezar = (e: EventoPuntero<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('[data-respuesta-activa="true"], button, input, textarea, audio')) return;
     if (e.pointerType === "mouse" || volando) return;
     gesto.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, eje: null, id: e.pointerId };
   };
@@ -302,7 +309,7 @@ function Bandeja() {
   const teclas = (e: EventoTecla) => {
     reconocer();
     if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-      if ((e.target as HTMLElement).closest(".av-emojis")) return;
+      if ((e.target as HTMLElement).closest('.av-emojis, input, textarea, audio, [data-respuesta-activa="true"]')) return;
       e.preventDefault();
       siguiente(e.key === "ArrowLeft" ? "izquierda" : "derecha");
     }
@@ -381,7 +388,7 @@ function Bandeja() {
                   <TarjetaAviso
                     aviso={aviso}
                     leido={Boolean(estados[aviso.id]?.leido)}
-                    reaccion={estados[aviso.id]?.reaccion ?? null}
+                    reaccion={estados[aviso.id] ? estados[aviso.id].reaccion : aviso.reaccion ?? null}
                     emojis={emojis}
                     ultimo={cola.length === 1}
                     marcando={marcando}

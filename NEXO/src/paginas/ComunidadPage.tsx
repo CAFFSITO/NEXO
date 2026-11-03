@@ -27,6 +27,7 @@ import PerfilComunidad from "./components/comunidad/PerfilComunidad";
 import PanelLateral from "./components/comunidad/PanelLateral";
 import ModalDenuncia from "./components/comunidad/ModalDenuncia";
 import ModalModeracion from "./components/comunidad/ModalModeracion";
+import AppsInstaladas from "./components/comunidad/AppsInstaladas";
 import { useDialogo } from "../servicios/useDialogo";
 import "./components/comunidad/comunidad.css";
 
@@ -135,6 +136,8 @@ export default function ComunidadPage() {
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <TopBar title="Comunidad" pestanas={pestanas} />
+        <AppsInstaladas />
+        {rutaVisible(instancia, "/chat") && <button type="button" className="self-start mx-4 my-2 text-sm text-primary font-bold" onClick={() => navegar("/chat?espacios=1")}>Explorar canales y foros</button>}
 
         <div className="mx-auto flex w-full max-w-[1180px] flex-1 gap-8 px-3 py-6 sm:px-8">
           <div className="min-w-0 max-w-[680px] flex-1">

@@ -10,6 +10,8 @@
 //   · "Corregir" abre el panel con la lista real del curso (14.7 paso 4).
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useDetalleEnRuta } from "../servicios/detalleEnRuta";
 import { useDatos } from "../servicios/api";
 import Sidebar from "./components/shared/Sidebar";
 import TopBar from "./components/shared/TopBar";
@@ -45,9 +47,10 @@ export default function GestionTareasProfesorPage() {
   const [busqueda, setBusqueda] = useState<string>("");
   const [modalAbierto, setModalAbierto] = useState<boolean>(false);
   const [tareaEditando, setTareaEditando] = useState<TareaDocente | null>(null);
-  const [correccionId, setCorreccionId] = useState<string | null>(null);
+  const [correccionId, setCorreccionId] = useDetalleEnRuta("correccion");
+  const [parametros] = useSearchParams();
   // Qué tarea se abrió en "Ver detalle" (modal compartido con el estudiante).
-  const [detalleId, setDetalleId] = useState<string | null>(null);
+  const [detalleId, setDetalleId] = useDetalleEnRuta("tarea");
 
   const cargar = () => { estadoCatedras.recargar(); estadoTareas.recargar(); };
 
@@ -127,6 +130,7 @@ export default function GestionTareasProfesorPage() {
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <TopBar title="Portafolio Docente" pestanas={PESTANAS_PORTAFOLIO_DOCENTE} />
+        {detalleId && !cargando && !error && !tareas.some(t => t.id === detalleId) && <p role="status" className="p-4 text-amber-200">Esta tarea ya no está disponible. <button type="button" className="underline" onClick={() => setDetalleId(null)}>Cerrar enlace</button></p>}
 
         <div className="p-8 max-w-5xl mx-auto w-full space-y-6">
           {/* Header vista + acciones */}
@@ -147,6 +151,15 @@ export default function GestionTareasProfesorPage() {
               Nueva Tarea
             </button>
           </header>
+
+          {!cargando && !error && tareas.length > 0 && <section aria-label="Seguimiento de tareas" className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {([
+              ["Entregas por corregir", tareas.reduce((n, t) => n + t.porCorregir, 0)],
+              ["Estudiantes sin entregar", tareas.reduce((n, t) => n + t.pendiente, 0)],
+              ["Entregas mejoradas", tareas.reduce((n, t) => n + t.reentregadas, 0)],
+              ["Revisiones de pares pendientes", tareas.reduce((n, t) => n + t.revisionesParesPendientes, 0)],
+            ] as const).map(([titulo, valor]) => <div key={titulo} className="rounded-xl border border-white/10 bg-lienzo p-4"><p className="text-xs text-slate-400">{titulo}</p><p className="mt-1 text-2xl font-bold text-white">{valor}</p></div>)}
+          </section>}
 
           {/* Buscador */}
           <div className="relative w-full md:w-96">
@@ -404,6 +417,7 @@ export default function GestionTareasProfesorPage() {
       {correccionId && (
         <ModalPanelCorreccion
           tareaId={correccionId}
+          entregaIdInicial={parametros.get("entrega")}
           onCerrar={() => setCorreccionId(null)}
           onCambio={cargar}
         />

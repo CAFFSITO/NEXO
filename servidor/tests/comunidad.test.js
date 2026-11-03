@@ -55,8 +55,10 @@ test('Multimedia: por defecto solo dirección y centro; la dirección se lo da a
   assert.equal(descarga.status, 206);
   assert.match(descarga.cabeceras.get('content-disposition'), /^inline/);
   assert.equal((await crudo(`/api/archivos/${video.datos.archivo.id}`, 'austral')).status, 403);
-  // Programas y páginas web, nunca.
-  assert.equal((await subir('centro', { tipo: 'application/octet-stream', nombre: 'juego.exe' })).status, 415);
+  // Se puede compartir cualquier extensión; el contenido activo se descarga.
+  const programa = await subir('centro', { tipo: 'application/octet-stream', nombre: 'juego.exe' });
+  assert.equal(programa.status, 201);
+  assert.match((await crudo(`/api/archivos/${programa.datos.archivo.id}?inline=1`, 'centro')).cabeceras.get('content-disposition'), /^attachment/);
 
   const g = await guardarEdicion({ capacidades: { 'comunidad.multimedia': ['admin-academico', 'centro-estudiantes', 'estudiante'] } });
   assert.ok(g.cambios.some((c) => c.texto.includes('Estudiante ahora puede: subir fotos, videos y archivos')));

@@ -476,7 +476,7 @@ INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, objeto_tipo, objet
 INSERT INTO config_ia (id, institucion_id, system_prompt, proveedor, modelo, temperatura, activo) VALUES
   (1, NULL,
    'Sos el tutor académico de NEXO para estudiantes de secundaria. Explicá paso a paso, con ejemplos simples y en español rioplatense. Guiá al estudiante para que llegue solo a la respuesta: no resuelvas la tarea por él. Si te piden hacer la tarea completa, proponé en cambio un plan de estudio. Adaptá la dificultad al nivel que muestre el estudiante.',
-   'groq', 'llama-3.1-8b-instant', 0.7, 1);
+   'local', 'llama3.2', 0.7, 1);
 
 -- ── Logs del sistema (lo ÚNICO que ve el Administrador de plataforma) ───────
 INSERT INTO logs_sistema (nivel, mensaje, contexto, creado_en) VALUES

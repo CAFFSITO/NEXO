@@ -40,6 +40,8 @@ import SalaVideo from "./SalaVideo";
 import PizarraClase from "./PizarraClase";
 import TrayectoriaVivo from "./TrayectoriaVivo";
 import ChatClase from "./ChatClase";
+import ManosClase from "./ManosClase";
+import TransmisionClase from './TransmisionClase';
 
 interface SalaClaseProps {
   claseId: string;
@@ -56,6 +58,7 @@ export default function SalaClase({ claseId, onSalir }: SalaClaseProps) {
   const [sala, setSala] = useState<string | null>(null);
   const [conversacionId, setConversacionId] = useState<string | null>(null);
   const [nombre, setNombre] = useState("");
+  const [modoVideo,setModoVideo] = useState<'participar'|'ver'>('participar');
 
   const [cargarNum, setCargarNum] = useState(0);
   const recargarDetalle = useCallback(() => setCargarNum((n) => n + 1), []);
@@ -156,8 +159,12 @@ export default function SalaClase({ claseId, onSalir }: SalaClaseProps) {
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-4 h-full">
       {/* ── Columna principal: video + pizarra ── */}
       <div className="flex flex-col gap-4 min-w-0">
+        <div className="flex gap-2 text-sm" role="group" aria-label="Modo de video">
+          <button type="button" aria-pressed={modoVideo==='participar'} className={`rounded-full px-3 py-1 ${modoVideo==='participar'?'bg-primary text-white':'bg-white/10 text-slate-300'}`} onClick={()=>setModoVideo('participar')}>Participar con cámara o voz</button>
+          <button type="button" aria-pressed={modoVideo==='ver'} className={`rounded-full px-3 py-1 ${modoVideo==='ver'?'bg-primary text-white':'bg-white/10 text-slate-300'}`} onClick={()=>setModoVideo('ver')}>Ver transmisión</button>
+        </div>
         <div className="h-[42vh] min-h-[280px]">
-          {sala ? (
+          {modoVideo==='ver' ? <TransmisionClase claseId={claseId} esDocente={esDocente} /> : sala ? (
             <SalaVideo claseId={claseId} nombre={nombre} onSalir={onSalir} />
           ) : (
             <div className="h-full rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center text-slate-400">
@@ -172,6 +179,7 @@ export default function SalaClase({ claseId, onSalir }: SalaClaseProps) {
 
       {/* ── Columna lateral: paneles ── */}
       <aside className="flex flex-col gap-4 min-w-0">
+        <ManosClase claseId={claseId} esDocente={esDocente} />
         {errorEtapa && <p role="alert" className="text-sm text-red-300">{errorEtapa}</p>}
         <TrayectoriaVivo
           etapas={etapas}

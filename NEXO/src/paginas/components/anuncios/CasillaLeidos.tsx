@@ -17,6 +17,7 @@ import {
 import { useTiempoReal, type EventoVivo } from "../../../servicios/tiempoReal";
 import Avatar from "./Avatar";
 import AdjuntosAviso from "./AdjuntosAviso";
+import RespuestasAviso from "./RespuestasAviso";
 
 const LARGO_RECORTE = 360;
 
@@ -24,6 +25,7 @@ function ItemLeido({ aviso, emojis, onReaccion }: { aviso: AvisoLeido; emojis: s
   const [abierto, setAbierto] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const [eligiendo, setEligiendo] = useState(false);
+  const [respondiendo, setRespondiendo] = useState(false);
   const largo = aviso.cuerpo.length > LARGO_RECORTE || aviso.cuerpo.split("\n").length > 5;
 
   const copiar = async () => {
@@ -64,6 +66,8 @@ function ItemLeido({ aviso, emojis, onReaccion }: { aviso: AvisoLeido; emojis: s
         </button>
       )}
       <AdjuntosAviso adjuntos={aviso.adjuntos ?? []} />
+      <button type="button" className="self-start text-sm font-bold text-primary" onClick={() => setRespondiendo((v) => !v)}>{respondiendo ? "Ocultar respuestas" : "Responder · texto, archivos o audio"}</button>
+      {respondiendo && <RespuestasAviso anuncioId={aviso.id} />}
 
       <div className="av-item-pie">
         <span className="inline-flex items-center gap-1">

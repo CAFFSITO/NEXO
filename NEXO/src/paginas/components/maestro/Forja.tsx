@@ -30,6 +30,7 @@ import PasoPerfiles from "./PasoPerfiles";
 import PasoFlujos from "./PasoFlujos";
 import PasoRevision from "./PasoRevision";
 import { clonar } from "./genomaUtil";
+import PanelPersonalizacion from "../shared/personalizacion/PanelPersonalizacion";
 
 type Editor =
   | { modo: "algoritmo"; slot: AlgoritmoCatalogo; grafo: Grafo; aprobacion: Aprobacion | null }
@@ -87,6 +88,7 @@ export default function Forja({ catalogo, modo, detalle, onRecargar, onSalir, on
     { id: "algoritmos", titulo: "Algoritmos", sub: "Cómo piensa", icono: "function" },
     { id: "perfiles", titulo: "Perfiles", sub: "Quiénes la habitan", icono: "groups" },
     { id: "flujos", titulo: "Flujos", sub: "Funciones por nodos", icono: "account_tree" },
+    { id: "personalizacion", titulo: "Personalización", sub: "Lectura, evidencia y conservación", icono: "tune" },
     { id: "revision", titulo: "Revisión", sub: modo === "crear" ? "Y la ignición" : "Guardar versión", icono: modo === "crear" ? "rocket_launch" : "save" },
   ], [modo]);
 
@@ -218,7 +220,7 @@ export default function Forja({ catalogo, modo, detalle, onRecargar, onSalir, on
         </div>
       </nav>
 
-      <div className="m-forja-centro">
+      <main id="contenido-principal" tabIndex={-1} className="m-forja-centro">
         <div className="m-progreso"><span style={{ width: `${((paso + 1) / pasos.length) * 100}%` }} /></div>
         <header className="m-forja-cabecera">
           <div className="flex items-center gap-3 min-w-0">
@@ -289,6 +291,7 @@ export default function Forja({ catalogo, modo, detalle, onRecargar, onSalir, on
           )}
 
           <div key={actual.id}>
+            {actual.id === "personalizacion" && <PanelPersonalizacion valor={genoma.personalizacion} perfiles={genoma.perfiles} algoritmos={catalogo.algoritmos} onCambiar={p => setGenoma(g => ({ ...g, personalizacion: p }))} />}
             {actual.id === "genesis" && <PasoGenesis catalogo={catalogo} genoma={genoma} onAplicar={(g) => { setGenoma(g); setMensaje({ tipo: "ok", texto: "Propuesta aplicada. Seguí esculpiendo en los próximos pasos." }); }} />}
             {actual.id === "identidad" && (
               <PasoIdentidad
@@ -344,7 +347,7 @@ export default function Forja({ catalogo, modo, detalle, onRecargar, onSalir, on
             </button>
           )}
         </footer>
-      </div>
+      </main>
 
       {editor && (
         <EditorNodos

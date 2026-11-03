@@ -17,7 +17,7 @@
 // hecho nada; una racha contada solo puede decir la verdad.
 // ============================================================================
 
-import { exigirAcceso, ventanilla, hoyISO } from "./comun.js";
+import { exigirAcceso, exigirSesion, ventanilla, hoyISO } from "./comun.js";
 import { algoritmo } from "./genoma.js";
 
 /** Cuántos días trae el historial que dibuja cada tarjeta de hábito. */
@@ -70,6 +70,11 @@ export function calcularRacha(fechasCumplidas, hoy, diasGracia = 0) {
 }
 
 export function registrarObjetivos(app, db) {
+  if (!db.prepare('PRAGMA table_info(subtareas)').all().some(c => c.name === 'padre_id')) db.exec('ALTER TABLE subtareas ADD COLUMN padre_id INTEGER REFERENCES subtareas(id)');
+  if (!db.prepare('PRAGMA table_info(subtareas)').all().some(c => c.name === 'depende_de_id')) db.exec('ALTER TABLE subtareas ADD COLUMN depende_de_id INTEGER REFERENCES subtareas(id)');
+  if (!db.prepare('PRAGMA table_info(subtareas)').all().some(c => c.name === 'evidencia')) db.exec("ALTER TABLE subtareas ADD COLUMN evidencia TEXT NOT NULL DEFAULT ''");
+  if (!db.prepare('PRAGMA table_info(subtareas)').all().some(c => c.name === 'archivo_id')) db.exec('ALTER TABLE subtareas ADD COLUMN archivo_id INTEGER REFERENCES archivos(id)');
+  if (!db.prepare('PRAGMA table_info(subtareas)').all().some(c => c.name === 'responsable_id')) db.exec('ALTER TABLE subtareas ADD COLUMN responsable_id INTEGER REFERENCES usuarios(id)');
   // ── Metas y sus subtareas ────────────────────────────────────────────────
   // El progreso se cuenta de `subtareas`, una por una. La pantalla lo traía
   // escrito ("progreso: 60") junto a "3 de 5", dos números que podían no tener
@@ -97,10 +102,10 @@ export function registrarObjetivos(app, db) {
   );
 
   const subtareasDe = db.prepare(
-    `SELECT id, meta_id, titulo, orden, completada_en
-       FROM subtareas
-      WHERE meta_id = ?
-      ORDER BY orden`
+    `SELECT s.id, s.meta_id, s.padre_id, s.depende_de_id, s.evidencia, s.archivo_id, s.responsable_id, u.nombre AS responsable_nombre, s.titulo, s.orden, s.completada_en
+       FROM subtareas s LEFT JOIN usuarios u ON u.id=s.responsable_id
+      WHERE s.meta_id = ?
+      ORDER BY s.orden`
   );
 
   // ── Hábitos y sus registros ──────────────────────────────────────────────
@@ -172,6 +177,12 @@ export function registrarObjetivos(app, db) {
           id: String(s.id),
           titulo: s.titulo,
           orden: s.orden,
+          padreId: s.padre_id === null ? null : String(s.padre_id),
+          dependeDeId: s.depende_de_id === null ? null : String(s.depende_de_id),
+          evidencia: s.evidencia,
+          archivoId: s.archivo_id === null ? null : String(s.archivo_id),
+          responsableId: s.responsable_id === null ? null : String(s.responsable_id),
+          responsableNombre: s.responsable_nombre ?? null,
           completada: s.completada_en !== null,
         })),
       }));
@@ -451,14 +462,16 @@ export function registrarObjetivos(app, db) {
       }
       const titulo = String(req.body?.titulo ?? "").trim();
       if (!titulo) return res.status(400).json({ error: "La subtarea necesita un texto." });
+      const padreId = req.body?.padreId == null ? null : Number(req.body.padreId);
+      if (padreId !== null && !db.prepare('SELECT 1 FROM subtareas WHERE id=? AND meta_id=?').get(padreId, Number(req.params.id))) return res.status(400).json({ error: 'El paso padre debe ser de esta meta.' });
 
       const orden = db.prepare(
         "SELECT COALESCE(MAX(orden) + 1, 0) AS n FROM subtareas WHERE meta_id = ?"
       ).get(Number(req.params.id)).n;
 
       const info = db.prepare(
-        "INSERT INTO subtareas (meta_id, titulo, orden) VALUES (?, ?, ?)"
-      ).run(Number(req.params.id), titulo, orden);
+        "INSERT INTO subtareas (meta_id, padre_id, titulo, orden) VALUES (?, ?, ?, ?)"
+      ).run(Number(req.params.id), padreId, titulo, orden);
       res.status(201).json({ id: String(info.lastInsertRowid) });
     })
   );
@@ -472,6 +485,52 @@ export function registrarObjetivos(app, db) {
         return res.status(404).json({ error: "Esa subtarea no existe." });
       }
 
+      const id = Number(req.params.id);
+      const actual = db.prepare('SELECT meta_id, depende_de_id, completada_en, responsable_id FROM subtareas WHERE id=?').get(id);
+      if (req.body?.evidencia !== undefined && (typeof req.body.evidencia !== 'string' || req.body.evidencia.length > 3000)) {
+        return res.status(400).json({ error: 'La evidencia debe ser texto de hasta 3000 caracteres.' });
+      }
+      if (req.body?.archivoId !== undefined) {
+        const archivoId = req.body.archivoId === null ? null : Number(req.body.archivoId);
+        if (archivoId !== null && (!Number.isSafeInteger(archivoId) || archivoId <= 0 ||
+          !db.prepare('SELECT 1 FROM archivos WHERE id=? AND subido_por=?').get(archivoId, usuario.id))) {
+          return res.status(400).json({ error: 'El archivo de evidencia debe ser propio.' });
+        }
+      }
+      if (req.body?.responsableId !== undefined) {
+        const responsableId=req.body.responsableId===null?null:Number(req.body.responsableId);
+        if (responsableId!==null && (!Number.isSafeInteger(responsableId)||responsableId<=0||
+          !db.prepare("SELECT 1 FROM usuarios WHERE id=? AND institucion_id=? AND estado='activo'").get(responsableId,usuario.institucionId))) {
+          return res.status(400).json({error:'El responsable debe ser una persona activa de esta institución.'});
+        }
+      }
+      if (typeof req.body?.titulo === 'string' && !req.body.titulo.trim()) {
+        return res.status(400).json({ error: 'La subtarea no puede quedar vacía.' });
+      }
+      if (req.body?.dependeDeId !== undefined) {
+        const dependeDeId = req.body.dependeDeId === null ? null : Number(req.body.dependeDeId);
+        if (dependeDeId !== null && (!Number.isSafeInteger(dependeDeId) || dependeDeId === id ||
+          !db.prepare('SELECT 1 FROM subtareas WHERE id=? AND meta_id=?').get(dependeDeId, actual.meta_id))) {
+          return res.status(400).json({ error: 'La dependencia debe ser otro paso de esta meta.' });
+        }
+        const vistos = new Set([id]);
+        let cursor = dependeDeId;
+        while (cursor !== null) {
+          if (vistos.has(cursor)) return res.status(400).json({ error: 'Las dependencias no pueden formar ciclos.' });
+          vistos.add(cursor);
+          cursor = db.prepare('SELECT depende_de_id FROM subtareas WHERE id=?').get(cursor)?.depende_de_id ?? null;
+        }
+      }
+      const dependenciaFinal = req.body?.dependeDeId === undefined ? actual.depende_de_id : req.body.dependeDeId === null ? null : Number(req.body.dependeDeId);
+      if ((req.body?.completada === true || (actual.completada_en && req.body?.completada !== false)) && dependenciaFinal !== null &&
+        !db.prepare('SELECT 1 FROM subtareas WHERE id=? AND completada_en IS NOT NULL').get(dependenciaFinal)) {
+        return res.status(409).json({ error: 'Completá primero el paso del que depende.' });
+      }
+      if (req.body?.completada === false && db.prepare('SELECT 1 FROM subtareas WHERE depende_de_id=? AND completada_en IS NOT NULL').get(id)) {
+        return res.status(409).json({ error: 'Hay pasos dependientes completados; reabrilos primero.' });
+      }
+      if (req.body?.dependeDeId !== undefined) db.prepare('UPDATE subtareas SET depende_de_id=? WHERE id=?').run(dependenciaFinal, id);
+
       // Se puede cambiar el texto, el estado de completado, o ambos.
       if (typeof req.body?.titulo === "string") {
         const titulo = req.body.titulo.trim();
@@ -484,9 +543,50 @@ export function registrarObjetivos(app, db) {
           Number(req.params.id)
         );
       }
+      if (req.body?.evidencia !== undefined) db.prepare('UPDATE subtareas SET evidencia=? WHERE id=?').run(req.body.evidencia.trim(), id);
+      if (req.body?.archivoId !== undefined) db.prepare('UPDATE subtareas SET archivo_id=? WHERE id=?').run(req.body.archivoId === null ? null : Number(req.body.archivoId), id);
+      if (req.body?.responsableId !== undefined) db.prepare('UPDATE subtareas SET responsable_id=? WHERE id=?').run(req.body.responsableId === null ? null : Number(req.body.responsableId),id);
       res.json({ ok: true });
     })
   );
+
+  // La persona delegada ve únicamente el paso asignado y su contexto mínimo.
+  // La meta completa, sus otros pasos y el perfil cognitivo siguen privados.
+  app.get('/api/objetivos/responsables',ventanilla((req,res)=>{
+    const usuario=exigirAcceso(db,req,res,'objetivos-metas');if(!usuario)return;
+    const personas=db.prepare("SELECT id,nombre,rol FROM usuarios WHERE institucion_id=? AND estado='activo' AND id<>? ORDER BY nombre LIMIT 500").all(usuario.institucionId,usuario.id);
+    res.json({personas:personas.map(p=>({...p,id:String(p.id)}))});
+  }));
+  app.get('/api/objetivos/pasos-asignados',ventanilla((req,res)=>{
+    const usuario=exigirSesion(db,req,res);if(!usuario)return;
+    const pasos=db.prepare(`SELECT s.id,s.titulo,s.evidencia,s.archivo_id,s.completada_en,s.depende_de_id,
+        m.titulo AS meta_titulo,m.vence_el,o.nombre AS asignado_por
+      FROM subtareas s JOIN metas m ON m.id=s.meta_id JOIN usuarios o ON o.id=m.estudiante_id
+      WHERE s.responsable_id=? AND o.institucion_id=? AND m.estado<>'archivada'
+      ORDER BY m.vence_el,s.orden LIMIT 500`).all(usuario.id,usuario.institucionId);
+    res.json({pasos:pasos.map(p=>({id:String(p.id),titulo:p.titulo,evidencia:p.evidencia,archivoId:p.archivo_id===null?null:String(p.archivo_id),completada:p.completada_en!==null,dependeDeId:p.depende_de_id===null?null:String(p.depende_de_id),metaTitulo:p.meta_titulo,venceEl:p.vence_el,asignadoPor:p.asignado_por}))});
+  }));
+  app.put('/api/objetivos/pasos-asignados/:id/avance',ventanilla((req,res)=>{
+    const usuario=exigirSesion(db,req,res);if(!usuario)return;
+    const id=Number(req.params.id);
+    const paso=db.prepare(`SELECT s.id,s.meta_id,s.depende_de_id,s.completada_en
+      FROM subtareas s JOIN metas m ON m.id=s.meta_id JOIN usuarios o ON o.id=m.estudiante_id
+      WHERE s.id=? AND s.responsable_id=? AND o.institucion_id=? AND m.estado<>'archivada'`).get(id,usuario.id,usuario.institucionId);
+    if(!paso)return res.status(404).json({error:'El paso asignado no está disponible.'});
+    const {completada,evidencia,archivoId}=req.body??{};
+    if(completada===undefined&&evidencia===undefined&&archivoId===undefined)return res.status(400).json({error:'Indicá un avance.'});
+    if(completada!==undefined&&typeof completada!=='boolean')return res.status(400).json({error:'Estado inválido.'});
+    if(evidencia!==undefined&&(typeof evidencia!=='string'||evidencia.length>3000))return res.status(400).json({error:'La evidencia debe ser texto de hasta 3000 caracteres.'});
+    if(archivoId!==undefined){const aid=archivoId===null?null:Number(archivoId);
+      if(aid!==null&&(!Number.isSafeInteger(aid)||aid<=0||!db.prepare('SELECT 1 FROM archivos WHERE id=? AND subido_por=?').get(aid,usuario.id)))return res.status(400).json({error:'El archivo debe ser propio.'});
+    }
+    if(completada===true&&paso.depende_de_id&&!db.prepare('SELECT 1 FROM subtareas WHERE id=? AND completada_en IS NOT NULL').get(paso.depende_de_id))return res.status(409).json({error:'El paso previo todavía no está completado.'});
+    if(completada===false&&db.prepare('SELECT 1 FROM subtareas WHERE depende_de_id=? AND completada_en IS NOT NULL').get(id))return res.status(409).json({error:'Reabrí antes los pasos que dependen de éste.'});
+    if(completada!==undefined)db.prepare('UPDATE subtareas SET completada_en=? WHERE id=?').run(completada?new Date().toISOString():null,id);
+    if(evidencia!==undefined)db.prepare('UPDATE subtareas SET evidencia=? WHERE id=?').run(evidencia.trim(),id);
+    if(archivoId!==undefined)db.prepare('UPDATE subtareas SET archivo_id=? WHERE id=?').run(archivoId===null?null:Number(archivoId),id);
+    res.json({ok:true});
+  }));
 
   app.delete(
     "/api/objetivos/subtareas/:id",
@@ -496,7 +596,11 @@ export function registrarObjetivos(app, db) {
       if (!subtareaPropia.get(Number(req.params.id), usuario.id)) {
         return res.status(404).json({ error: "Esa subtarea no existe." });
       }
-      db.prepare("DELETE FROM subtareas WHERE id = ?").run(Number(req.params.id));
+      const id = Number(req.params.id);
+      const padre = db.prepare('SELECT padre_id FROM subtareas WHERE id=?').get(id).padre_id;
+      db.prepare('UPDATE subtareas SET padre_id=? WHERE padre_id=?').run(padre, id);
+      db.prepare('UPDATE subtareas SET depende_de_id=NULL WHERE depende_de_id=?').run(id);
+      db.prepare("DELETE FROM subtareas WHERE id = ?").run(id);
       res.json({ ok: true });
     })
   );

@@ -60,6 +60,7 @@ function Diagrama({ tipo }: { tipo: TipoGrupo }) {
 const ATAJO_ROL: Record<string, string> = {
   "admin-academico": "Toda la dirección",
   preceptor: "Toda la preceptoría",
+  secretaria: "Toda la secretaría",
   profesor: "Todos los docentes",
 };
 

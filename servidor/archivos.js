@@ -23,10 +23,15 @@
 // ============================================================================
 
 import express from "express";
-import { mkdirSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync, existsSync, appendFileSync, readFileSync, unlinkSync, statSync, truncateSync } from "node:fs";
 import { join, extname, basename } from "node:path";
 import { randomBytes } from "node:crypto";
+import { puedeDescargarArchivoProyecto } from './proyectos.js';
 import { exigirSesion, ventanilla, estaInscripto } from "./comun.js";
+import { canalDe } from "./canales.js";
+import { puedeVer } from './permisos.js';
+import { paginaVisible } from './genoma.js';
+import { leccionRealizada } from './lecciones.js';
 
 // Topes de tamaño: 15 MB para documentos e imágenes (una entrega, un recurso) y
 // 100 MB para video y audio (la Comunidad). Un freno para que nadie llene el
@@ -40,13 +45,14 @@ const esMultimedia = (tipo) => tipo.startsWith("video/") || tipo.startsWith("aud
 const TIPOS_EN_LINEA = new Set(["application/pdf", "text/plain", "image/png", "image/jpeg", "image/gif", "image/webp"]);
 const seMuestraEnLinea = (tipo) => TIPOS_EN_LINEA.has(tipo) || esMultimedia(tipo);
 
-// "Archivos de todo tipo" (la Comunidad), menos lo que se ejecuta.
-const EXTENSIONES_PROHIBIDAS = new Set([".exe", ".bat", ".cmd", ".com", ".msi", ".scr", ".ps1", ".vbs", ".jar", ".app", ".sh", ".dll", ".html", ".htm", ".svg", ".hta", ".lnk"]);
+// Se admite cualquier extensión. El contenido activo siempre se descarga como
+// binario, incluso si quien lo sube declara un MIME de imagen o documento.
+const EXTENSIONES_SOLO_DESCARGA = new Set([".exe", ".bat", ".cmd", ".com", ".msi", ".scr", ".ps1", ".vbs", ".jar", ".app", ".sh", ".dll", ".html", ".htm", ".svg", ".hta", ".lnk", ".js", ".mjs", ".xhtml"]);
 
 // Tipos conocidos: se guardan con su tipo. Cualquier otro se guarda como binario
 // genérico (application/octet-stream), que nunca se muestra en la página: solo se
 // descarga. Así un tipo nuevo peligroso no pasa "por olvido" a mostrarse. Los
-// ejecutables se frenan por la extensión (EXTENSIONES_PROHIBIDAS).
+// archivos activos se fuerzan a binario por extensión.
 const TIPOS_PERMITIDOS = new Set([
   "application/pdf",
   "application/msword",
@@ -74,6 +80,12 @@ const TIPOS_PERMITIDOS = new Set([
   "audio/ogg",
   "audio/wav",
   "audio/webm",
+  "audio/aac",
+  "audio/x-m4a",
+  "audio/x-wav",
+  "audio/flac",
+  "audio/x-flac",
+  "audio/3gpp",
   // Más documentos y comprimidos.
   "application/vnd.oasis.opendocument.text",
   "application/vnd.oasis.opendocument.spreadsheet",
@@ -116,6 +128,15 @@ function archivoDescargable(db, usuario, archivoId, res) {
 
   // 1. El dueño.
   if (archivo.subido_por === usuario.id) return archivo;
+  if (puedeDescargarArchivoProyecto(db,usuario,archivoId)) return archivo;
+
+  // Evidencia de un paso delegado: únicamente dueño de la meta o responsable
+  // actual. Revocar la asignación revoca también la descarga del adjunto.
+  const evidenciaPaso=db.prepare(`SELECT 1 FROM subtareas s JOIN metas m ON m.id=s.meta_id
+    JOIN usuarios o ON o.id=m.estudiante_id
+    WHERE s.archivo_id=? AND o.institucion_id=? AND m.estado<>'archivada'
+      AND (m.estudiante_id=? OR s.responsable_id=?) LIMIT 1`).get(archivoId,usuario.institucionId,usuario.id,usuario.id);
+  if(evidenciaPaso)return archivo;
 
   // 2. Adjunto de la consigna de una tarea.
   const comoAdjunto = db
@@ -135,7 +156,7 @@ function archivoDescargable(db, usuario, archivoId, res) {
   // 3. Archivo de una entrega.
   const comoEntrega = db
     .prepare(
-      `SELECT e.estudiante_id, ca.profesor_id
+      `SELECT e.id AS entrega_id, e.estudiante_id, e.equipo_id, e.anulada_en, ca.profesor_id, ca.curso_id
          FROM entrega_archivos ea
          JOIN entregas e ON e.id = ea.entrega_id
          JOIN tareas t   ON t.id = e.tarea_id
@@ -146,6 +167,9 @@ function archivoDescargable(db, usuario, archivoId, res) {
   if (comoEntrega) {
     if (usuario.id === comoEntrega.estudiante_id) return archivo;
     if (usuario.id === comoEntrega.profesor_id) return archivo;
+    if (comoEntrega.equipo_id && db.prepare('SELECT 1 FROM tarea_equipo_miembros WHERE equipo_id=? AND estudiante_id=?').get(comoEntrega.equipo_id, usuario.id)) return archivo;
+    if (!comoEntrega.anulada_en && estaInscripto(db, usuario.id, comoEntrega.curso_id) &&
+        db.prepare('SELECT 1 FROM revisiones_pares WHERE entrega_id=? AND revisor_id=?').get(comoEntrega.entrega_id, usuario.id)) return archivo;
   }
 
   // 4. Adjunto de un mensaje de chat → lo ven los miembros de esa conversación
@@ -153,14 +177,14 @@ function archivoDescargable(db, usuario, archivoId, res) {
   //    quien lo recibe. Solo miembros: un tercero con el número no lo baja.
   const comoAdjuntoChat = db
     .prepare(
-      `SELECT 1
+      `SELECT m.conversacion_id, c.tipo
          FROM mensajes m
+         JOIN conversaciones c ON c.id = m.conversacion_id
          JOIN conversacion_miembros cm ON cm.conversacion_id = m.conversacion_id
-        WHERE m.archivo_id = ? AND cm.usuario_id = ?
-        LIMIT 1`
+        WHERE m.archivo_id = ? AND cm.usuario_id = ? AND m.eliminado_en IS NULL`
     )
-    .get(archivoId, usuario.id);
-  if (comoAdjuntoChat) return archivo;
+    .all(archivoId, usuario.id);
+  if (comoAdjuntoChat.some(c => c.tipo !== 'canal' || canalDe(db,c.conversacion_id,usuario)?.miembro)) return archivo;
 
   // 5. Archivo de un recurso de BIBLIOTECA (Error 2.E.4). Un recurso aprobado
   //    lo baja quien puede verlo en la biblioteca: cualquiera si es nacional,
@@ -235,6 +259,49 @@ function archivoDescargable(db, usuario, archivoId, res) {
     .get(archivoId, usuario.id);
   if (comoAviso) return archivo;
 
+  // Respuestas privadas: emisor del aviso y destinatario de ese hilo solamente.
+  const comoRespuesta = db.prepare(`SELECT 1 FROM anuncio_respuesta_adjuntos ra
+    JOIN anuncio_respuestas r ON r.id = ra.respuesta_id JOIN anuncios a ON a.id = r.anuncio_id
+    WHERE ra.archivo_id = ? AND a.institucion_id = ? AND (a.autor_id = ? OR r.destinatario_id = ?) LIMIT 1`)
+    .get(archivoId, usuario.institucionId, usuario.id, usuario.id);
+  if (comoRespuesta) return archivo;
+
+  // Adjuntos de bloques publicados/compartidos: sólo lectores actuales del
+  // documento y del módulo, nunca por una versión histórica o ID adivinado.
+  if (puedeVer(usuario.rol,'documentos') && paginaVisible(db,usuario,'documentos')) {
+    const documento=db.prepare(`SELECT 1 FROM documentos_nexo d, json_each(d.contenido) b
+      WHERE d.institucion_id=? AND json_extract(b.value,'$.tipo')='archivo'
+        AND CAST(json_extract(b.value,'$.archivoId') AS TEXT)=?
+        AND (d.publicado=1 OR d.autor_id=? OR EXISTS(SELECT 1 FROM documentos_nexo_colaboradores c WHERE c.documento_id=d.id AND c.usuario_id=?)) LIMIT 1`)
+      .get(usuario.institucionId,String(archivoId),usuario.id,usuario.id);
+    if(documento)return archivo;
+  }
+
+  // Material grabado dentro de una lección: solo participantes de esa cátedra.
+  // Las condiciones de publicación se vuelven a comprobar al descargar, no
+  // solo al listar, para que un enlace directo no salte la secuencia didáctica.
+  const enLecciones = db.prepare(`SELECT n.id,n.catedra_id,n.padre_id,n.publicado,n.disponible_desde,n.prerrequisito_id,
+      ca.profesor_id,ca.curso_id,m.institucion_id
+    FROM curso_nodos n JOIN catedras ca ON ca.id=n.catedra_id JOIN materias m ON m.id=ca.materia_id
+    WHERE n.archivo_id=?`).all(archivoId);
+  const ahora=new Date().toISOString();
+  for (const n of enLecciones) {
+    if(n.institucion_id!==usuario.institucionId)continue;
+    if(!paginaVisible(db,usuario,usuario.rol==='admin-academico'?'cursos-activos':'detalle-materia-estudiante'))continue;
+    if(usuario.id===n.profesor_id||usuario.rol==='admin-academico')return archivo;
+    if(!estaInscripto(db,usuario.id,n.curso_id))continue;
+    let cursor=n;const vistos=new Set();let visible=true;
+    while(cursor){
+      if(vistos.has(cursor.id)||!cursor.publicado||cursor.disponible_desde&&cursor.disponible_desde>ahora||cursor.prerrequisito_id&&!leccionRealizada(db,cursor.prerrequisito_id,usuario.id)){visible=false;break;}
+      vistos.add(cursor.id);
+      if(!cursor.padre_id)break;
+      cursor=db.prepare('SELECT * FROM curso_nodos WHERE id=? AND catedra_id=?').get(cursor.padre_id,n.catedra_id);
+      if(!cursor){visible=false;break;}
+    }
+    if(!visible)continue;
+    return archivo;
+  }
+
   res.status(403).json({ error: "No tenés permiso para ver este archivo." });
   return null;
 }
@@ -307,6 +374,154 @@ export function registrarArchivos(app, db, carpetaServidor) {
   // debería fallar por una carpeta que falta).
   const almacen = join(carpetaServidor, "almacen");
   mkdirSync(almacen, { recursive: true });
+  const temporales = join(carpetaServidor, 'cargas');
+  mkdirSync(temporales, { recursive: true });
+  db.exec(`CREATE TABLE IF NOT EXISTS archivo_cargas (
+    id TEXT PRIMARY KEY, usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    nombre TEXT NOT NULL, tipo TEXT NOT NULL, tamano INTEGER NOT NULL,
+    recibido INTEGER NOT NULL DEFAULT 0, archivo_id INTEGER REFERENCES archivos(id),
+    creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+  )`);
+  if (!db.prepare('PRAGMA table_info(archivo_cargas)').all().some(c=>c.name==='archivo_id'))
+    db.exec('ALTER TABLE archivo_cargas ADD COLUMN archivo_id INTEGER REFERENCES archivos(id)');
+  db.exec(`CREATE TABLE IF NOT EXISTS archivo_carpetas (
+    id INTEGER PRIMARY KEY, usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    nombre TEXT NOT NULL, creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS archivo_carpeta_elementos (
+    carpeta_id INTEGER NOT NULL REFERENCES archivo_carpetas(id) ON DELETE CASCADE,
+    archivo_id INTEGER NOT NULL REFERENCES archivos(id) ON DELETE CASCADE,
+    PRIMARY KEY(carpeta_id,archivo_id)
+  );`);
+  db.exec(`CREATE TABLE IF NOT EXISTS archivo_cuotas (
+    institucion_id INTEGER PRIMARY KEY REFERENCES instituciones(id) ON DELETE CASCADE,
+    limite_bytes INTEGER NOT NULL CHECK(limite_bytes > 0)
+  );`);
+  const cuota=(institucionId)=>{
+    const limite=db.prepare('SELECT limite_bytes FROM archivo_cuotas WHERE institucion_id=?').get(institucionId)?.limite_bytes??null;
+    const usado=db.prepare('SELECT COALESCE(SUM(a.tamano_bytes),0) AS total FROM archivos a JOIN usuarios u ON u.id=a.subido_por WHERE u.institucion_id=?').get(institucionId).total;
+    const reservado=db.prepare(`SELECT COALESCE(SUM(c.tamano),0) AS total FROM archivo_cargas c JOIN usuarios u ON u.id=c.usuario_id
+      WHERE u.institucion_id=? AND c.archivo_id IS NULL`).get(institucionId).total;
+    return {limiteBytes:limite,usadoBytes:usado,reservadoBytes:reservado};
+  };
+  app.get('/api/archivos/cuota',ventanilla((req,res)=>{
+    const u=exigirSesion(db,req,res);if(!u)return;
+    res.json(cuota(u.institucionId));
+  }));
+  app.put('/api/archivos/cuota',ventanilla((req,res)=>{
+    const u=exigirSesion(db,req,res);if(!u)return;
+    if(u.rol!=='admin-academico')return res.status(403).json({error:'Solo la dirección configura la cuota de archivos.'});
+    const valor=req.body?.limiteBytes;
+    if(valor!==null&&(!Number.isSafeInteger(valor)||valor<1024*1024||valor>Number.MAX_SAFE_INTEGER))return res.status(400).json({error:'Indicá una cuota de al menos 1 MB o dejala sin límite.'});
+    if(valor===null)db.prepare('DELETE FROM archivo_cuotas WHERE institucion_id=?').run(u.institucionId);
+    else db.prepare('INSERT INTO archivo_cuotas(institucion_id,limite_bytes) VALUES(?,?) ON CONFLICT(institucion_id) DO UPDATE SET limite_bytes=excluded.limite_bytes').run(u.institucionId,valor);
+    res.json(cuota(u.institucionId));
+  }));
+  // Las cargas sin actividad se liberan al arrancar. Las terminadas conservan
+  // el recibo un mes para responder de forma idempotente a reintentos tardíos.
+  for (const c of db.prepare("SELECT id FROM archivo_cargas WHERE archivo_id IS NULL AND creado_en < datetime('now','-7 days')").all()) {
+    const ruta=join(temporales,c.id);if(existsSync(ruta))unlinkSync(ruta);
+    db.prepare('DELETE FROM archivo_cargas WHERE id=?').run(c.id);
+  }
+  db.prepare("DELETE FROM archivo_cargas WHERE archivo_id IS NOT NULL AND creado_en < datetime('now','-30 days')").run();
+  app.get('/api/archivos/mis-archivos',ventanilla((req,res)=>{
+    const u=exigirSesion(db,req,res);if(!u)return;
+    const q=String(req.query?.q??'').trim().slice(0,120);
+    const normalizar=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    const archivos=db.prepare('SELECT id,nombre_original,tipo_mime,tamano_bytes FROM archivos WHERE subido_por=? ORDER BY id DESC LIMIT 1000').all(u.id)
+      .filter(a=>!q||normalizar(a.nombre_original).includes(normalizar(q))).slice(0,100)
+      .map(a=>({id:String(a.id),nombre:a.nombre_original,tipoMime:a.tipo_mime,tamanoBytes:a.tamano_bytes}));
+    res.json({archivos});
+  }));
+  app.get('/api/archivos/carpetas',ventanilla((req,res)=>{
+    const u=exigirSesion(db,req,res);if(!u)return;
+    const carpetas=db.prepare(`SELECT c.id,c.nombre,COUNT(e.archivo_id) AS total FROM archivo_carpetas c
+      LEFT JOIN archivo_carpeta_elementos e ON e.carpeta_id=c.id WHERE c.usuario_id=? GROUP BY c.id ORDER BY c.nombre`).all(u.id);
+    res.json({carpetas:carpetas.map(c=>({...c,id:String(c.id)}))});
+  }));
+  app.post('/api/archivos/carpetas',ventanilla((req,res)=>{
+    const u=exigirSesion(db,req,res);if(!u)return;
+    const nombre=String(req.body?.nombre??'').trim();if(!nombre||nombre.length>120)return res.status(400).json({error:'Nombre de carpeta inválido.'});
+    const id=db.prepare('INSERT INTO archivo_carpetas(usuario_id,nombre) VALUES(?,?)').run(u.id,nombre).lastInsertRowid;
+    res.status(201).json({id:String(id),nombre});
+  }));
+  app.get('/api/archivos/carpetas/:id',ventanilla((req,res)=>{
+    const u=exigirSesion(db,req,res);if(!u)return;
+    const c=db.prepare('SELECT id,nombre FROM archivo_carpetas WHERE id=? AND usuario_id=?').get(Number(req.params.id),u.id);
+    if(!c)return res.status(404).json({error:'Carpeta no disponible.'});
+    const archivos=db.prepare(`SELECT a.id,a.nombre_original AS nombre,a.tipo_mime AS tipoMime,a.tamano_bytes AS tamanoBytes
+      FROM archivo_carpeta_elementos e JOIN archivos a ON a.id=e.archivo_id
+      WHERE e.carpeta_id=? AND a.subido_por=? ORDER BY a.id DESC`).all(c.id,u.id).map(a=>({...a,id:String(a.id)}));
+    res.json({id:String(c.id),nombre:c.nombre,archivos});
+  }));
+  app.put('/api/archivos/carpetas/:id/archivos/:archivoId',ventanilla((req,res)=>{
+    const u=exigirSesion(db,req,res);if(!u)return;
+    const c=db.prepare('SELECT id FROM archivo_carpetas WHERE id=? AND usuario_id=?').get(Number(req.params.id),u.id);
+    const a=db.prepare('SELECT id FROM archivos WHERE id=? AND subido_por=?').get(Number(req.params.archivoId),u.id);
+    if(!c||!a)return res.status(404).json({error:'Carpeta o archivo no disponible.'});
+    db.prepare('INSERT OR IGNORE INTO archivo_carpeta_elementos(carpeta_id,archivo_id) VALUES(?,?)').run(c.id,a.id);res.json({ok:true});
+  }));
+  app.delete('/api/archivos/carpetas/:id/archivos/:archivoId',ventanilla((req,res)=>{
+    const u=exigirSesion(db,req,res);if(!u)return;
+    db.prepare('DELETE FROM archivo_carpeta_elementos WHERE carpeta_id IN (SELECT id FROM archivo_carpetas WHERE id=? AND usuario_id=?) AND archivo_id=?').run(Number(req.params.id),u.id,Number(req.params.archivoId));
+    res.json({ok:true});
+  }));
+  const cargaPropia=(id,u)=>db.prepare('SELECT * FROM archivo_cargas WHERE id=? AND usuario_id=?').get(id,u.id);
+  app.post('/api/archivos/cargas',ventanilla((req,res)=>{
+    const u=exigirSesion(db,req,res);if(!u)return;
+    const nombre=nombreSeguro(String(req.body?.nombre??'')),declarado=String(req.body?.tipo??'application/octet-stream').toLowerCase();
+    const tipo=!EXTENSIONES_SOLO_DESCARGA.has(extname(nombre).toLowerCase())&&TIPOS_PERMITIDOS.has(declarado)?declarado:'application/octet-stream';
+    const tamano=Number(req.body?.tamano);
+    if(!Number.isSafeInteger(tamano)||tamano<1||tamano>(esMultimedia(tipo)?LIMITE_MULTIMEDIA:LIMITE_BYTES))return res.status(413).json({error:'Tamaño no admitido.'});
+    const espacio=cuota(u.institucionId);
+    if(espacio.limiteBytes!==null&&espacio.usadoBytes+espacio.reservadoBytes+tamano>espacio.limiteBytes)return res.status(413).json({error:'La escuela alcanzó su cuota de archivos.'});
+    const id=randomBytes(20).toString('hex');
+    db.prepare('INSERT INTO archivo_cargas(id,usuario_id,nombre,tipo,tamano) VALUES(?,?,?,?,?)').run(id,u.id,nombre,tipo,tamano);
+    writeFileSync(join(temporales,id),Buffer.alloc(0));
+    res.status(201).json({id,recibido:0,tamano});
+  }));
+  app.get('/api/archivos/cargas/:id',ventanilla((req,res)=>{
+    const u=exigirSesion(db,req,res);if(!u)return;
+    const c=cargaPropia(req.params.id,u);if(!c)return res.status(404).json({error:'Carga no disponible.'});
+    res.json({id:c.id,recibido:c.recibido,tamano:c.tamano,archivo:c.archivo_id?archivoDeCarga(c):null});
+  }));
+  function archivoDeCarga(c) { return {id:String(c.archivo_id),nombreOriginal:c.nombre,tipoMime:c.tipo,tamanoBytes:c.tamano}; }
+  app.put('/api/archivos/cargas/:id',express.raw({type:'*/*',limit:'5mb'}),ventanilla((req,res)=>{
+    const u=exigirSesion(db,req,res);if(!u)return;
+    const c=cargaPropia(req.params.id,u);if(!c)return res.status(404).json({error:'Carga no disponible.'});
+    if(c.archivo_id)return res.status(409).json({error:'La carga ya finalizó.',recibido:c.recibido});
+    const offset=Number(req.headers['x-offset']),bytes=req.body;
+    if(!Number.isSafeInteger(offset)||offset!==c.recibido)return res.status(409).json({error:'Consultá la posición recibida antes de reintentar.',recibido:c.recibido});
+    if(!Buffer.isBuffer(bytes)||!bytes.length||bytes.length>5*1024*1024||offset+bytes.length>c.tamano)return res.status(400).json({error:'Fragmento inválido.'});
+    const ruta=join(temporales,c.id);if(!existsSync(ruta))return res.status(409).json({error:'Falta el archivo temporal; reiniciá la carga.'});
+    const tamanoDisco=statSync(ruta).size;
+    if(tamanoDisco<c.recibido)return res.status(409).json({error:'La carga temporal está incompleta; reiniciá la carga.'});
+    if(tamanoDisco>c.recibido)truncateSync(ruta,c.recibido);
+    appendFileSync(ruta,bytes);
+    db.prepare('UPDATE archivo_cargas SET recibido=? WHERE id=?').run(offset+bytes.length,c.id);
+    res.json({recibido:offset+bytes.length,tamano:c.tamano});
+  }));
+  app.post('/api/archivos/cargas/:id/completar',ventanilla((req,res)=>{
+    const u=exigirSesion(db,req,res);if(!u)return;
+    const c=cargaPropia(req.params.id,u);if(!c)return res.status(404).json({error:'Carga no disponible.'});
+    if(c.archivo_id)return res.json({archivo:archivoDeCarga(c)});
+    if(c.recibido!==c.tamano)return res.status(409).json({error:'Todavía faltan fragmentos.',recibido:c.recibido});
+    const ruta=join(temporales,c.id);if(!existsSync(ruta))return res.status(409).json({error:'Falta el archivo temporal.'});
+    const bytes=readFileSync(ruta);if(bytes.length!==c.tamano)return res.status(409).json({error:'La carga está incompleta.'});
+    const espacio=cuota(u.institucionId);
+    if(espacio.limiteBytes!==null&&espacio.usadoBytes+espacio.reservadoBytes-c.tamano+bytes.length>espacio.limiteBytes)return res.status(413).json({error:'La escuela alcanzó su cuota de archivos.'});
+    const guardado=guardarArchivoServidor(db,carpetaServidor,{nombreOriginal:c.nombre,tipoMime:c.tipo,bytes,subidoPor:u.id});
+    db.prepare('UPDATE archivo_cargas SET archivo_id=? WHERE id=?').run(guardado.id,c.id);unlinkSync(ruta);
+    res.status(201).json({archivo:{id:String(guardado.id),nombreOriginal:guardado.nombreOriginal,tipoMime:guardado.tipoMime,tamanoBytes:guardado.tamanoBytes}});
+  }));
+  app.delete('/api/archivos/cargas/:id',ventanilla((req,res)=>{
+    const u=exigirSesion(db,req,res);if(!u)return;
+    const c=cargaPropia(req.params.id,u);if(!c)return res.status(404).json({error:'Carga no disponible.'});
+    if(c.archivo_id)return res.status(409).json({error:'La carga ya finalizó.'});
+    db.prepare('DELETE FROM archivo_cargas WHERE id=?').run(c.id);
+    const ruta=join(temporales,c.id);if(existsSync(ruta))unlinkSync(ruta);
+    res.json({ok:true});
+  }));
 
   // ── Subir ──────────────────────────────────────────────────────────────────
   // express.raw junta el cuerpo binario en un Buffer. Se limita acá también el
@@ -325,23 +540,17 @@ export function registrarArchivos(app, db, carpetaServidor) {
       // Un tipo que no está en la lista se guarda como binario genérico en vez
       // de rechazarse: subirlo así ya estaba permitido (octet-stream), y un
       // archivo genérico nunca se muestra en la página, solo se descarga. Lo que
-      // sí se frena es lo que se ejecuta (por la extensión, más abajo).
+      // tenga contenido activo también se entrega exclusivamente como descarga.
       const declarado = String(req.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
-      const tipo = TIPOS_PERMITIDOS.has(declarado) ? declarado : "application/octet-stream";
+      const nombreOriginal = decodeURIComponent(String(req.headers["x-nombre-archivo"] || "archivo"));
+      const tipo = !EXTENSIONES_SOLO_DESCARGA.has(extname(nombreOriginal.trim()).toLowerCase()) && TIPOS_PERMITIDOS.has(declarado) ? declarado : "application/octet-stream";
       if (bytes.length > (esMultimedia(tipo) ? LIMITE_MULTIMEDIA : LIMITE_BYTES)) {
         return res
           .status(413)
           .json({ error: esMultimedia(tipo) ? "El video o audio supera el límite de 100 MB." : "El archivo supera el límite de 15 MB." });
       }
-
-      // El nombre original viaja codificado en una cabecera propia (una cabecera
-      // HTTP no admite acentos ni espacios crudos, así que va URL-encoded).
-      const nombreOriginal = decodeURIComponent(
-        String(req.headers["x-nombre-archivo"] || "archivo")
-      );
-      if (EXTENSIONES_PROHIBIDAS.has(extname(nombreOriginal).toLowerCase())) {
-        return res.status(415).json({ error: "Por seguridad, no se pueden subir programas ni páginas web." });
-      }
+      const espacio=cuota(usuario.institucionId);
+      if(espacio.limiteBytes!==null&&espacio.usadoBytes+espacio.reservadoBytes+bytes.length>espacio.limiteBytes)return res.status(413).json({error:'La escuela alcanzó su cuota de archivos.'});
 
       // Escribir en disco y anotar en la tabla, con la MISMA pieza que usa el
       // servidor para los reportes que genera él mismo (sección 1.4).

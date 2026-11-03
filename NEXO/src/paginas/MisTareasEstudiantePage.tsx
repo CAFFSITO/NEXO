@@ -6,6 +6,7 @@ import TarjetaTarea from "./components/portafolio/TarjetaTarea";
 import TarjetaTareaPersonal from "./components/portafolio/TarjetaTareaPersonal";
 import ModalNuevaTareaPersonal from "./components/portafolio/ModalNuevaTareaPersonal";
 import ModalDetalleTarea from "./components/shared/tareas/ModalDetalleTarea";
+import { MisRevisionesPares } from "./components/portafolio/RevisionesPares";
 import { PESTANAS_PORTAFOLIO } from "./components/shared/pestanasModulos";
 import {
   estadoEfectivo,
@@ -13,7 +14,7 @@ import {
   type FiltroTarea,
   type TareaPersonal,
 } from "./components/portafolio/tiposTareas";
-import { usePortafolio } from "../servicios/portafolio";
+import { usePortafolio, type RecurrenciaPersonal } from "../servicios/portafolio";
 import { verEnfoque, limpiarEnfoque } from "../servicios/enfoque";
 import {
   crearPersonal,
@@ -24,6 +25,7 @@ import {
 import { diasHasta } from "../servicios/fechas";
 import { subtituloInstitucional, useInstitucion } from "../servicios/institucion";
 import { Cargando, Fallo } from "./components/shared/EstadoCarga";
+import { useDetalleEnRuta } from "../servicios/detalleEnRuta";
 
 // Los datos de ejemplo que vivían acá se fueron a la base. Eran cuatro tareas
 // con profesores que no las dan (la Revolución de Mayo figuraba a nombre del
@@ -50,7 +52,7 @@ export default function MisTareasEstudiantePage() {
   // Qué tarea académica se abrió en detalle. Es la misma vista para "Ver
   // detalle", "Entregar" y "Ver feedback": el modal muestra el flujo que
   // corresponde según el estado real de la entrega.
-  const [tareaDetalleId, setTareaDetalleId] = useState<string | null>(null);
+  const [tareaDetalleId, setTareaDetalleId] = useDetalleEnRuta("tarea");
 
   // Quién sos sale de la sesión. Esta página tenía escrita a Julieta Rossi con
   // su curso y su avatar: entrara quien entrara, el menú decía Julieta.
@@ -74,7 +76,7 @@ export default function MisTareasEstudiantePage() {
     const id = objetivoTarea.current;
     if (tareas.some((t) => t.id === id)) setTareaDetalleId(id);
     else setObjetivoNoDisponible(true);
-  }, [cargando, tareas]);
+  }, [cargando, tareas, setTareaDetalleId]);
 
   // Las tareas personales ahora se guardan de verdad en `tareas_personales`
   // (Etapa 4): crear, marcar, editar y borrar pasan por el servidor y después se
@@ -147,16 +149,17 @@ export default function MisTareasEstudiantePage() {
     catch (e) { setErrorPersonal(e instanceof Error ? e.message : "No se pudo eliminar la tarea."); }
     finally { ocupadas.current.delete(id); }
   };
-  const guardarPersonal = async (titulo: string, descripcion: string, fecha: string | null) => {
+  const guardarPersonal = async (titulo: string, descripcion: string, fecha: string | null, recurrencia:RecurrenciaPersonal|null) => {
     if (personalEditando) {
       await editarPersonal(
         personalEditando.id,
         titulo,
         descripcion,
-        fecha
+        fecha,
+        recurrencia
       );
     } else {
-      await crearPersonal(titulo, descripcion, fecha);
+      await crearPersonal(titulo, descripcion, fecha, recurrencia);
     }
     setModalAbierto(false);
     setPersonalEditando(null);
@@ -184,6 +187,15 @@ export default function MisTareasEstudiantePage() {
 
         <div className="flex-1 overflow-y-auto bg-background p-8">
           <div className="max-w-6xl mx-auto">
+            <MisRevisionesPares />
+            {datos && datos.tareas.length > 0 && <section aria-label="Mi seguimiento" className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+              {([
+                ["Por entregar", tareas.filter(t => t.estado === "pendiente").length],
+                ["Esperan devolución", tareas.filter(t => t.estado === "entregada" && t.nota === null).length],
+                ["Con devolución", tareas.filter(t => t.nota !== null).length],
+                ["Tareas personales hechas", personales.filter(t => t.completada).length],
+              ] as const).map(([titulo, valor]) => <div key={titulo} className="rounded-xl border border-white/10 bg-lienzo p-4"><p className="text-xs text-slate-400">{titulo}</p><p className="mt-1 text-xl font-bold text-white">{valor}</p></div>)}
+            </section>}
             {errorPersonal && <p role="alert" className="mb-4 rounded-xl bg-red-500/10 p-4 text-sm text-red-300">{errorPersonal}</p>}
             {objetivoNoDisponible && (
               <div className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
@@ -321,6 +333,7 @@ export default function MisTareasEstudiantePage() {
           tituloInicial={personalEditando?.titulo ?? ""}
           descripcionInicial={personalEditando?.descripcion ?? ""}
           fechaInicial={personalEditando?.fechaLimite}
+          recurrenciaInicial={personalEditando?.recurrencia ?? null}
           onGuardar={guardarPersonal}
           onCerrar={() => {
             setModalAbierto(false);

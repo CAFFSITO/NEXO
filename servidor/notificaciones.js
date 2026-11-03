@@ -24,23 +24,24 @@
 // ============================================================================
 
 import { exigirSesion, ventanilla } from "./comun.js";
+import { puedeRecibirCanal } from "./canales.js";
 
 /**
  * Crea el servicio de notificaciones. Necesita el mensajero para el aviso en
  * vivo. Devuelve `crear`, que es lo que llaman los otros módulos.
  */
-export function crearNotificaciones(db, mensajero) {
+export function crearNotificaciones(db, mensajero, push) {
   const insertar = db.prepare(
-    `INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, objeto_tipo, objeto_id)
-     VALUES (?, ?, ?, ?, ?, ?)`
+    `INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, objeto_tipo, objeto_id, prioridad, mensaje_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   );
 
   /**
    * Avisar a una persona. `objetoTipo`/`objetoId` dicen a dónde navegar cuando
    * toque la notificación (por ejemplo objetoTipo "conversacion", objetoId 4).
    */
-  function crear({ usuarioId, tipo, titulo, cuerpo = "", objetoTipo = null, objetoId = null }) {
-    const info = insertar.run(usuarioId, tipo, titulo, cuerpo, objetoTipo, objetoId);
+  function crear({ usuarioId, tipo, titulo, cuerpo = "", objetoTipo = null, objetoId = null, prioridad = "estandar", mensajeId = null }) {
+    const info = insertar.run(usuarioId, tipo, titulo, cuerpo, objetoTipo, objetoId, prioridad, mensajeId);
     mensajero.emitirA(usuarioId, {
       tipo: "notificacion",
       notificacion: {
@@ -50,32 +51,83 @@ export function crearNotificaciones(db, mensajero) {
         cuerpo,
         objetoTipo,
         objetoId,
+        prioridad,
+        mensajeId,
       },
     });
+    if (mensajeId != null) void enviarPush(db.prepare("SELECT * FROM notificaciones WHERE id = ?").get(info.lastInsertRowid)).catch(console.error);
     return info.lastInsertRowid;
   }
 
-  return { crear };
+  async function enviarPush(n) {
+    if (!push) return;
+    if(n.objeto_tipo==='conversacion'&&!puedeRecibirCanal(db,n.objeto_id,n.usuario_id))return;
+    // Marcar antes de esperar la red evita repetir el mismo envío simultáneamente.
+    db.prepare("UPDATE notificaciones SET ultimo_push_en = datetime('now') WHERE id = ?").run(n.id);
+    await push.enviarAUsuario(n.usuario_id, {
+      tipo: "mensaje", prioridad: n.prioridad,
+      titulo: `${n.prioridad === "urgente" ? "URGENTE · " : ""}${n.titulo}`,
+      cuerpo: n.cuerpo.slice(0, 300),
+      url: `/chat?conversacion=${n.objeto_id}`,
+      tag: `nexo-mensaje-${n.id}`,
+      notificacionId: String(n.id),
+    }, { urgencia: n.prioridad === "urgente" ? "high" : "normal", tema: `mensaje-${n.id}`, ttl: 3600 });
+  }
+  async function recordar() {
+    // Un recordatorio por destinatario y pasada. Continúa tras reiniciar el servidor.
+    const pendientes = db.prepare(`SELECT n.* FROM notificaciones n
+      JOIN usuarios u ON u.id = n.usuario_id AND u.estado = 'activo'
+      JOIN mensajes m ON m.id = n.mensaje_id AND m.eliminado_en IS NULL
+      JOIN conversacion_miembros cm ON cm.conversacion_id = m.conversacion_id AND cm.usuario_id = n.usuario_id
+      WHERE n.leida_en IS NULL AND n.prioridad = 'urgente'
+        AND (n.ultimo_push_en IS NULL OR n.ultimo_push_en <= datetime('now', '-1 minute'))
+      ORDER BY n.ultimo_push_en, n.id`).all();
+    const destinatarios = new Set();
+    await Promise.all(pendientes.filter((n) => {
+      if(!puedeRecibirCanal(db,n.objeto_id,n.usuario_id))return false;
+      if (destinatarios.has(n.usuario_id)) return false;
+      destinatarios.add(n.usuario_id); return true;
+    }).map(enviarPush));
+  }
+  function programar() {
+    const timer = setInterval(() => { void recordar().catch(console.error); }, 15000);
+    timer.unref?.();
+    return timer;
+  }
+  return { crear, recordar, programar };
 }
 
-export function registrarNotificaciones(app, db) {
+export function registrarNotificaciones(app, db, mensajero) {
   const mias = db.prepare(
-    `SELECT id, tipo, titulo, cuerpo, objeto_tipo, objeto_id, creado_en, leida_en
+    `SELECT id, tipo, titulo, cuerpo, objeto_tipo, objeto_id, creado_en, leida_en, prioridad, mensaje_id
        FROM notificaciones
       WHERE usuario_id = ?
       ORDER BY (leida_en IS NOT NULL), creado_en DESC, id DESC
       LIMIT 100`
   );
 
+  app.get("/api/notificaciones/mensajes-pendientes", ventanilla((req, res) => {
+    const usuario = exigirSesion(db, req, res);
+    if (!usuario) return;
+    const pendientes = db.prepare(`SELECT n.id, n.titulo, n.cuerpo, n.prioridad, n.objeto_id, n.creado_en, n.mensaje_id,
+      (SELECT emoji FROM mensaje_reacciones r WHERE r.mensaje_id = m.id AND r.usuario_id = n.usuario_id) AS reaccion
+      FROM notificaciones n JOIN mensajes m ON m.id = n.mensaje_id AND m.eliminado_en IS NULL
+      JOIN conversacion_miembros cm ON cm.conversacion_id = m.conversacion_id AND cm.usuario_id = n.usuario_id
+      WHERE n.usuario_id = ? AND n.leida_en IS NULL
+      ORDER BY (n.prioridad = 'urgente') DESC, n.id`).all(usuario.id).filter(n=>puedeRecibirCanal(db,n.objeto_id,usuario));
+    res.json({ pendientes: pendientes.map((n) => ({ id: String(n.id), titulo: n.titulo, cuerpo: n.cuerpo,
+      prioridad: n.prioridad, conversacionId: String(n.objeto_id), mensajeId: String(n.mensaje_id), reaccion: n.reaccion, creadoEn: n.creado_en })) });
+  }));
+
   // Cuántas notificaciones sin leer (la campana).
   const notifSinLeer = db.prepare(
-    "SELECT COUNT(*) AS n FROM notificaciones WHERE usuario_id = ? AND leida_en IS NULL"
+    "SELECT objeto_tipo, objeto_id FROM notificaciones WHERE usuario_id = ? AND leida_en IS NULL"
   );
 
   // Cuántos mensajes de chat sin leer (el globito del ítem Chat del menú). Sale
   // de la MISMA vista que usa el chat, así el número no puede contradecirse.
   const chatSinLeer = db.prepare(
-    "SELECT COALESCE(SUM(no_leidos), 0) AS n FROM v_no_leidos WHERE usuario_id = ?"
+    "SELECT conversacion_id, no_leidos FROM v_no_leidos WHERE usuario_id = ?"
   );
 
   const unaMia = db.prepare(
@@ -95,7 +147,7 @@ export function registrarNotificaciones(app, db) {
       const usuario = exigirSesion(db, req, res);
       if (!usuario) return;
 
-      const notificaciones = mias.all(usuario.id).map((f) => ({
+      const notificaciones = mias.all(usuario.id).filter(f=>f.objeto_tipo!=='conversacion'||puedeRecibirCanal(db,f.objeto_id,usuario)).map((f) => ({
         id: String(f.id),
         tipo: f.tipo,
         titulo: f.titulo,
@@ -104,6 +156,8 @@ export function registrarNotificaciones(app, db) {
         objetoId: f.objeto_id,
         creadoEn: f.creado_en,
         leida: f.leida_en !== null,
+        prioridad: f.prioridad,
+        mensajeId: f.mensaje_id,
       }));
 
       res.json({ notificaciones });
@@ -118,8 +172,8 @@ export function registrarNotificaciones(app, db) {
       if (!usuario) return;
 
       res.json({
-        notificaciones: notifSinLeer.get(usuario.id).n,
-        chat: chatSinLeer.get(usuario.id).n,
+        notificaciones: notifSinLeer.all(usuario.id).filter(n=>n.objeto_tipo!=='conversacion'||puedeRecibirCanal(db,n.objeto_id,usuario)).length,
+        chat: chatSinLeer.all(usuario.id).filter(c=>puedeRecibirCanal(db,c.conversacion_id,usuario)).reduce((total,c)=>total+c.no_leidos,0),
       });
     })
   );
@@ -138,6 +192,7 @@ export function registrarNotificaciones(app, db) {
         return res.status(404).json({ error: "Esa notificación no existe." });
       }
       marcarLeida.run(id);
+      mensajero?.emitirA(usuario.id, { tipo: "notificaciones-leidas" });
       res.json({ ok: true });
     })
   );
@@ -149,6 +204,7 @@ export function registrarNotificaciones(app, db) {
       const usuario = exigirSesion(db, req, res);
       if (!usuario) return;
       marcarTodas.run(usuario.id);
+      mensajero?.emitirA(usuario.id, { tipo: "notificaciones-leidas" });
       res.json({ ok: true });
     })
   );

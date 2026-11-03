@@ -24,6 +24,7 @@ export interface HorarioCatedra {
 export interface DetalleMateria {
   /** true si quien mira es el profesor de la cátedra (puede publicar avisos). */
   soyProfesor: boolean;
+  materiaId: string;
   materia: string;
   profesor: string;
   profesorAvatar: string | null;

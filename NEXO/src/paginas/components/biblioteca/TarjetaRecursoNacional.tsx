@@ -6,6 +6,7 @@ interface TarjetaRecursoNacionalProps {
   voto: Voto;
   onVotar: (id: string, tipo: "positivo" | "negativo") => void;
   onAbrir: (id: string) => void;
+  onLeer?: (id: string) => void;
 }
 
 // Tarjeta de recurso de la Biblioteca Nacional.
@@ -15,6 +16,7 @@ export default function TarjetaRecursoNacional({
   voto,
   onVotar,
   onAbrir,
+  onLeer,
 }: TarjetaRecursoNacionalProps) {
   // Los conteos ya son los totales reales del servidor (incluyen el voto propio);
   // `voto` solo decide el resaltado del botón, no suma ni resta al número.
@@ -77,6 +79,7 @@ export default function TarjetaRecursoNacional({
         >
           Abrir
         </button>
+        {onLeer && <button type="button" onClick={() => onLeer(recurso.id)} className="ml-3 text-fuchsia-300 text-sm">Leer y anotar</button>}
       </div>
     </div>
   );
