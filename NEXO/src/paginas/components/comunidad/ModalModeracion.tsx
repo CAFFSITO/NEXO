@@ -48,7 +48,7 @@ export default function ModalModeracion({ onCerrar }: Props) {
       onClick={onCerrar}
     >
       <div
-        className="bg-[#241338] border border-white/10 rounded-2xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl"
+        className="bg-surface-container-low border border-white/10 rounded-2xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
@@ -91,13 +91,13 @@ export default function ModalModeracion({ onCerrar }: Props) {
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => resolver(d.id, "descartada")}
-                    className="px-4 py-1.5 rounded-full text-xs font-bold text-white/60 hover:text-white hover:bg-white/5 transition-all"
+                    className="px-4 py-1.5 rounded-lg text-xs font-bold text-white/60 hover:text-white hover:bg-white/5 transition-all"
                   >
                     Descartar
                   </button>
                   <button
                     onClick={() => resolver(d.id, "contenido-eliminado")}
-                    className="px-4 py-1.5 rounded-full text-xs font-bold bg-red-500/90 text-white hover:bg-red-500 transition-all"
+                    className="px-4 py-1.5 rounded-lg text-xs font-bold bg-red-500/90 text-white hover:bg-red-500 transition-all"
                   >
                     Eliminar contenido
                   </button>

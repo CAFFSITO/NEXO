@@ -116,7 +116,7 @@ test('El genoma se aplica en el servidor: módulos ocultos y funciones apagadas 
   // San Martín no se enteró de nada: sigue con el genoma por defecto.
   await ok('/api/permisos/acceso?pagina=asistencia-ia', 'estudianteSM');
   const sm = await ok('/api/instancia', 'estudianteSM');
-  assert.equal(sm.tema.acento, '#c548f5');
+  assert.equal(sm.tema.acento, '#4f46e5');
 
   // Plazo de papelera propio de la escuela.
   assert.equal((await ok('/api/perfiles', 'direccionA')).diasPapelera, 15);

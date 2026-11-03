@@ -7,6 +7,7 @@
 //     eventos cada uno (la dirección siempre arriba).
 //   · Módulos: ocultar / desocultar (para toda la escuela o por perfil), nombre,
 //     ícono y checklist de funciones.
+//   · Colores: la paleta de toda la escuela, sacada del logo o a mano.
 //   · Algoritmos: encender, apagar y calibrar, probando cada valor sobre los
 //     datos reales de la escuela.
 // Todo se arma en un borrador (con deshacer y rehacer) y se guarda de una vez
@@ -29,9 +30,10 @@ import DialogoGuardar from "./components/edicion/DialogoGuardar";
 import PanelJerarquia from "./components/edicion/PanelJerarquia";
 import PanelPersonalizacion from "./components/shared/personalizacion/PanelPersonalizacion";
 import PanelAppsPublicas from "./components/edicion/PanelAppsPublicas";
+import PanelColores from "./components/edicion/PanelColores";
 import "./components/edicion/edicion.css";
 
-type Pestana = "jerarquia" | "perfiles" | "algoritmos" | "historial" | "personalizacion" | "apps";
+type Pestana = "jerarquia" | "perfiles" | "colores" | "algoritmos" | "historial" | "personalizacion" | "apps";
 
 interface Trabajo {
   version: number;
@@ -45,6 +47,7 @@ interface Trabajo {
 const PESTANAS: { id: Pestana; nombre: string; icono: string }[] = [
   { id: "jerarquia", nombre: "Menú y módulos", icono: "widgets" },
   { id: "perfiles", nombre: "Jerarquía de perfiles", icono: "account_tree" },
+  { id: "colores", nombre: "Colores", icono: "palette" },
   { id: "algoritmos", nombre: "Algoritmos", icono: "function" },
   { id: "historial", nombre: "Historial", icono: "history" },
   { id: "personalizacion", nombre: "Personalización", icono: "tune" },
@@ -132,8 +135,11 @@ export default function ModoEdicionPage() {
   const elegir = (id: string) => {
     setElegido(id);
     setPestana("jerarquia");
-    // En pantallas angostas el panel queda abajo: se lo trae a la vista.
-    if (window.innerWidth < 1280) window.requestAnimationFrame(() => panel.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    // Si el panel quedó fuera de la vista (pantalla angosta o con zoom), se lo trae.
+    window.requestAnimationFrame(() => {
+      const r = panel.current?.getBoundingClientRect();
+      if (r && (r.top > window.innerHeight * 0.6 || r.bottom < 80)) panel.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const totales = borrador && catalogo ? {
@@ -201,7 +207,8 @@ export default function ModoEdicionPage() {
                   </div>
 
                   {pestana === "jerarquia" && (
-                    <div id="e-panel-jerarquia" role="tabpanel" aria-labelledby="e-tab-jerarquia" className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_auto] items-start">
+                    <div id="e-panel-jerarquia" role="tabpanel" aria-labelledby="e-tab-jerarquia" className="mt-6 @container">
+                    <div className="grid grid-cols-1 items-start gap-6 @3xl:grid-cols-2 @6xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_auto]">
                       <div className="e-panel p-3">
                         <ArbolJerarquia borrador={borrador} catalogo={catalogo.modulos} elegido={moduloElegido} onElegir={elegir} onCambiar={cambiar} />
                       </div>
@@ -210,21 +217,35 @@ export default function ModoEdicionPage() {
                           <PanelModulo key={moduloElegido} moduloId={moduloElegido} borrador={borrador} guardado={base} catalogo={catalogo} onCambiar={cambiar} />
                         )}
                       </div>
-                      <VistaPreviaEscuela
-                        borrador={borrador}
-                        edicion={edicion}
-                        perfilClave={perfilVista}
-                        onPerfil={setPerfilVista}
-                        elegido={moduloElegido}
-                        onElegir={elegir}
-                        onCambiar={cambiar}
-                      />
+                      <div className="@3xl:col-span-2 @6xl:col-span-1">
+                        <VistaPreviaEscuela
+                          borrador={borrador}
+                          edicion={edicion}
+                          perfilClave={perfilVista}
+                          onPerfil={setPerfilVista}
+                          elegido={moduloElegido}
+                          onElegir={elegir}
+                          onCambiar={cambiar}
+                        />
+                      </div>
+                    </div>
                     </div>
                   )}
 
                   {pestana === "perfiles" && (
                     <div id="e-panel-perfiles" role="tabpanel" aria-labelledby="e-tab-perfiles" className="mt-6">
                       <PanelJerarquia borrador={borrador} onCambiar={cambiar} />
+                    </div>
+                  )}
+
+                  {pestana === "colores" && (
+                    <div id="e-panel-colores" role="tabpanel" aria-labelledby="e-tab-colores" className="mt-6">
+                      <PanelColores
+                        tema={borrador.tema}
+                        guardado={base.tema}
+                        escuela={edicion.escuela}
+                        onCambiar={(c, clave) => cambiar((b) => { b.tema = { ...b.tema, ...c }; }, clave)}
+                      />
                     </div>
                   )}
 
@@ -268,7 +289,7 @@ export default function ModoEdicionPage() {
                               <div className="min-w-0 flex-1">
                                 <p className="text-sm text-white">{h.nota || "Sin nota"}</p>
                                 <p className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-on-surface-variant/60">
-                                  <span className={`e-chip !py-0.5 !text-[10px] ${h.autorRol === "maestro" ? "!text-fuchsia-200" : h.autorRol === "direccion" ? "!text-primary" : ""}`}>
+                                  <span className={`e-chip !py-0.5 !text-[10px] ${h.autorRol === "maestro" ? "!text-primary" : h.autorRol === "direccion" ? "!text-primary" : ""}`}>
                                     <span className="material-symbols-outlined" aria-hidden="true">{h.autorRol === "maestro" ? "auto_awesome" : h.autorRol === "direccion" ? "badge" : "settings"}</span>{h.autor}
                                   </span>
                                   {fechaDe(h.creadoEn)}

@@ -15,7 +15,7 @@
 // la usa muchas veces es un adulto de la dirección: cada paso tiene que decir
 // con todas las letras qué pasa.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Sidebar from "./components/shared/Sidebar";
 import { ROL_LABELS } from "./components/shared/roles";
 import TopBar from "./components/shared/TopBar";
@@ -24,6 +24,7 @@ import { inicioPara } from "./components/shared/navegacionItems";
 import { useNavegacion } from "../navegacion";
 import { useInstancia } from "../servicios/instancia";
 import PreferenciasCuenta from "./components/shared/personalizacion/PreferenciasCuenta";
+import AparienciaCuenta from "./components/shared/personalizacion/AparienciaCuenta";
 import ConectoresCuenta from "./components/shared/ConectoresCuenta";
 import GestionModelosPrivados from "./components/shared/GestionModelosPrivados";
 import PasosAsignados from "./components/objetivos/PasosAsignados";
@@ -33,6 +34,8 @@ import {
   cambiarMiNombre,
   elegirContrasenaPrimerIngreso,
   seguirConContrasenaInicial,
+  subirAvatar,
+  quitarAvatar,
   type Cuenta,
 } from "../servicios/cuenta";
 
@@ -137,10 +140,10 @@ function NombreEditable({ cuenta, onCambiado }: { cuenta: Cuenta; onCambiado: (n
           }}
           className="min-w-0 flex-1 rounded-xl bg-surface-container-lowest px-4 py-3 text-white outline-none focus:ring-2 focus:ring-primary/40"
         />
-        <button type="button" onClick={() => void guardar()} disabled={guardando} className="rounded-full bg-acento px-5 py-3 font-bold text-white disabled:opacity-60">
+        <button type="button" onClick={() => void guardar()} disabled={guardando} className="rounded-lg bg-acento px-5 py-3 font-bold text-white disabled:opacity-60">
           {guardando ? "Guardando..." : "Guardar"}
         </button>
-        <button type="button" onClick={() => setEditando(false)} className="rounded-full px-4 py-3 font-semibold text-white/70 hover:bg-white/5">
+        <button type="button" onClick={() => setEditando(false)} className="rounded-lg px-4 py-3 font-semibold text-white/70 hover:bg-white/5">
           Cancelar
         </button>
       </div>
@@ -151,7 +154,7 @@ function NombreEditable({ cuenta, onCambiado }: { cuenta: Cuenta; onCambiado: (n
 
 function TarjetaMisDatos({ cuenta, cargando, onNombre }: { cuenta: Cuenta | null; cargando: boolean; onNombre: (nombre: string) => void }) {
   return (
-    <div className="bg-fondo border border-acento/20 rounded-2xl p-6">
+    <div className="nx-tarjeta p-6">
       <h2 className="font-headline text-lg font-bold text-white mb-5">
         Mis datos
       </h2>
@@ -164,20 +167,8 @@ function TarjetaMisDatos({ cuenta, cargando, onNombre }: { cuenta: Cuenta | null
         </p>
       ) : (
         <>
-          <div className="flex items-center gap-4 mb-6">
-            {cuenta.avatarUrl ? (
-              <img
-                src={cuenta.avatarUrl}
-                alt={cuenta.nombre}
-                className="w-16 h-16 rounded-full border-2 border-primary/30 object-cover"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-full border-2 border-primary/30 bg-gradient-to-br from-primary-container to-primary flex items-center justify-center">
-                <span className="text-xl font-bold text-white">
-                  {cuenta.nombre.charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
+          <div className="flex flex-wrap items-center gap-4 mb-6">
+            <FotoDePerfil cuenta={cuenta} />
             <NombreEditable cuenta={cuenta} onCambiado={onNombre} />
           </div>
 
@@ -196,6 +187,46 @@ function TarjetaMisDatos({ cuenta, cargando, onNombre }: { cuenta: Cuenta | null
           </p>
         </>
       )}
+    </div>
+  );
+}
+
+/** La foto de perfil: se cambia o se quita desde acá. Sin contorno de color. */
+function FotoDePerfil({ cuenta }: { cuenta: Cuenta }) {
+  const { usuario, actualizarUsuario } = useNavegacion();
+  const [url, setUrl] = useState<string | null>(usuario?.avatarUrl ?? cuenta.avatarUrl ?? null);
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState("");
+  const elegir = useRef<HTMLInputElement>(null);
+  const cambiar = async (archivo: File | undefined) => {
+    if (!archivo) return;
+    setOcupado(true); setError("");
+    try { const nueva = await subirAvatar(archivo); setUrl(nueva); actualizarUsuario({ avatarUrl: nueva }); }
+    catch (e) { setError(e instanceof Error ? e.message : "No se pudo guardar la foto."); }
+    finally { setOcupado(false); }
+  };
+  const quitar = async () => {
+    setOcupado(true); setError("");
+    try { await quitarAvatar(); setUrl(null); actualizarUsuario({ avatarUrl: undefined }); }
+    catch (e) { setError(e instanceof Error ? e.message : "No se pudo quitar la foto."); }
+    finally { setOcupado(false); }
+  };
+  return (
+    <div className="flex items-center gap-3">
+      <button type="button" onClick={() => elegir.current?.click()} disabled={ocupado} className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-secondary-container" aria-label="Cambiar foto de perfil" title="Cambiar foto de perfil">
+        {url ? <img src={url} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full w-full place-items-center text-xl font-semibold text-on-secondary-container">{cuenta.nombre.charAt(0).toUpperCase()}</span>}
+        <span className="absolute inset-0 grid place-items-center bg-black/50 text-blanco opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          <span className="material-symbols-outlined" aria-hidden="true">{ocupado ? "progress_activity" : "photo_camera"}</span>
+        </span>
+      </button>
+      <div className="flex flex-col items-start gap-1">
+        <button type="button" className="nx-btn nx-btn-secundario nx-btn-chico" onClick={() => elegir.current?.click()} disabled={ocupado}>
+          <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>{url ? "Cambiar foto" : "Subir foto"}
+        </button>
+        {url && <button type="button" className="nx-btn nx-btn-fantasma nx-btn-chico" onClick={() => void quitar()} disabled={ocupado}>Quitar foto</button>}
+        {error && <p role="alert" className="text-xs text-error">{error}</p>}
+      </div>
+      <input ref={elegir} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { void cambiar(e.target.files?.[0]); e.target.value = ""; }} />
     </div>
   );
 }
@@ -295,7 +326,7 @@ function BienvenidaPrimerIngreso() {
               <button
                 type="button"
                 onClick={entrar}
-                className="bg-acento text-white px-8 py-3 rounded-full font-bold text-base hover:brightness-110 transition-all shadow-lg shadow-acento/20"
+                className="bg-acento text-white px-8 py-3 rounded-lg font-bold text-base hover:brightness-110 transition-all shadow-lg"
               >
                 Entrar a NEXO
               </button>
@@ -339,7 +370,7 @@ function BienvenidaPrimerIngreso() {
                   <button
                     type="submit"
                     disabled={enviando}
-                    className="w-full bg-acento text-white px-6 py-3.5 rounded-full font-bold text-base hover:brightness-110 transition-all shadow-lg shadow-acento/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full bg-acento text-white px-6 py-3.5 rounded-lg font-bold text-base hover:brightness-110 transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {enviando ? "Guardando..." : "Guardar mi contraseña nueva"}
                   </button>
@@ -347,7 +378,7 @@ function BienvenidaPrimerIngreso() {
                     type="button"
                     onClick={() => void seguir()}
                     disabled={enviando}
-                    className="w-full px-6 py-3.5 rounded-full font-semibold text-base text-white/80 border border-white/15 hover:bg-white/5 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full px-6 py-3.5 rounded-lg font-semibold text-base text-white/80 border border-white/15 hover:bg-white/5 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     No, seguir con la contraseña que me dieron
                   </button>
@@ -448,12 +479,13 @@ function ConfiguracionHabitual() {
             {/* ── Mis datos ── */}
             <TarjetaMisDatos cuenta={cuenta} cargando={cargando} onNombre={(nombre) => setCuenta((c) => (c ? { ...c, nombre } : c))} />
 
-            {/* ── Cambiar contraseña ── */}
+            {/* ── Apariencia y lectura ── */}
+            <AparienciaCuenta />
             <PreferenciasCuenta />
             <ConectoresCuenta />
             <GestionModelosPrivados />
             <PasosAsignados />
-            <div className="bg-fondo border border-acento/20 rounded-2xl p-6">
+            <div className="nx-tarjeta p-6">
               <h2 className="font-headline text-lg font-bold text-white mb-1">
                 Cambiar mi contraseña
               </h2>
@@ -508,7 +540,7 @@ function ConfiguracionHabitual() {
                   <button
                     type="submit"
                     disabled={guardando}
-                    className="bg-acento text-white px-6 py-2.5 rounded-full font-bold hover:brightness-110 transition-all shadow-lg shadow-acento/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="bg-acento text-white px-6 py-2.5 rounded-lg font-bold hover:brightness-110 transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {guardando ? "Guardando..." : "Cambiar contraseña"}
                   </button>

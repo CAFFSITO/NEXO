@@ -1,8 +1,8 @@
 // El perfil de una persona en la comunidad: quién es, a cuántos sigue y cuántos
-// la siguen, seguir o silenciar, y sus publicaciones y reposts.
+// la siguen, silenciar, y sus publicaciones y reposts.
 
 import { createPortal } from "react-dom";
-import { seguir, silenciar, usePerfilComunidad, usePublicaciones, type Publicacion } from "../../../servicios/comunidad";
+import { silenciar, usePerfilComunidad, usePublicaciones, type Publicacion } from "../../../servicios/comunidad";
 import { useDialogo } from "../../../servicios/useDialogo";
 import { Cargando, Fallo } from "../shared/EstadoCarga";
 import { ROL_LABELS } from "../shared/roles";
@@ -30,10 +30,10 @@ export default function PerfilComunidad({ id, yo, puedeFijar, puedePublicar, onC
   const { datos: perfil, error, recargar } = usePerfilComunidad(id);
   const { publicaciones, cargando, recargar: recargarFeed } = usePublicaciones({ vista: "perfil", usuario: id });
 
-  const alternar = async (accion: "seguir" | "silenciar") => {
+  const alternarSilencio = async () => {
     try {
-      const r = accion === "seguir" ? await seguir(id) : await silenciar(id);
-      onAviso(accion === "seguir" ? (r.activo ? `Ahora seguís a @${perfil?.handle}.` : `Dejaste de seguir a @${perfil?.handle}.`) : r.activo ? `Silenciaste a @${perfil?.handle}.` : `Volviste a ver a @${perfil?.handle}.`);
+      const r = await silenciar(id);
+      onAviso(r.activo ? `Silenciaste a @${perfil?.handle}.` : `Volviste a ver a @${perfil?.handle}.`);
       recargar();
     } catch (e) {
       onAviso(e instanceof Error ? e.message : "No se pudo.", "error");
@@ -55,11 +55,8 @@ export default function PerfilComunidad({ id, yo, puedeFijar, puedePublicar, onC
                 <span className="rounded-full ring-4 ring-[var(--nexo-sup-1)]"><span className="block scale-[1.9] origin-bottom-left"><Avatar nombre={perfil.nombre} url={perfil.avatar} /></span></span>
                 {!perfil.esYo && (
                   <div className="flex gap-2 pt-12">
-                    <button type="button" className="c-boton-fantasma c-chico" onClick={() => void alternar("silenciar")}>
+                    <button type="button" className="c-boton-fantasma c-chico" onClick={() => void alternarSilencio()}>
                       <span className="material-symbols-outlined" aria-hidden="true">{perfil.silenciado ? "volume_up" : "volume_off"}</span>{perfil.silenciado ? "Dejar de silenciar" : "Silenciar"}
-                    </button>
-                    <button type="button" className={perfil.loSigo ? "c-boton-fantasma c-chico" : "c-boton c-chico"} onClick={() => void alternar("seguir")}>
-                      {perfil.loSigo ? "Siguiendo" : "Seguir"}
                     </button>
                   </div>
                 )}
@@ -70,11 +67,8 @@ export default function PerfilComunidad({ id, yo, puedeFijar, puedePublicar, onC
                 <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-semibold" style={{ background: perfil.perfil.color + "26", color: perfil.perfil.color }}>
                   <span className="material-symbols-outlined !text-[14px]" aria-hidden="true">{perfil.perfil.icono}</span>{perfil.perfil.nombre || ROL_LABELS[perfil.rol]}
                 </span>
-                {perfil.meSigue && <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px]">Te sigue</span>}
               </p>
               <div className="mt-3 flex flex-wrap gap-4 text-[13.5px]">
-                <span><b className="text-white">{numeroCorto(perfil.siguiendo)}</b> <span className="text-on-surface-variant/60">siguiendo</span></span>
-                <span><b className="text-white">{numeroCorto(perfil.seguidores)}</b> <span className="text-on-surface-variant/60">seguidores</span></span>
                 <span><b className="text-white">{numeroCorto(perfil.publicaciones)}</b> <span className="text-on-surface-variant/60">publicaciones</span></span>
                 <span><b className="text-white">{numeroCorto(perfil.debates)}</b> <span className="text-on-surface-variant/60">debates</span></span>
                 <span><b className={perfil.votosRecibidos >= 0 ? "text-emerald-300" : "text-rose-300"}>{perfil.votosRecibidos >= 0 ? "+" : ""}{perfil.votosRecibidos}</b> <span className="text-on-surface-variant/60">votos recibidos</span></span>

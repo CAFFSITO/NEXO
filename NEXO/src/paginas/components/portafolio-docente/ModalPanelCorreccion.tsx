@@ -150,7 +150,7 @@ function FilaAlumno({
             <span className="text-xs text-slate-400">/10</span>
           </span>
         )}
-        <span className={`px-3 py-1 text-[10px] font-bold rounded-full tracking-wider ${badge.clase}`}>
+        <span className={`px-3 py-1 text-[10px] font-bold rounded-lg tracking-wider ${badge.clase}`}>
           {badge.label}
         </span>
         {tieneEntrega && (
@@ -176,7 +176,7 @@ function FilaAlumno({
                 <li key={a.id}>
                   <a
                     href={urlDescarga(a.id)}
-                    className="flex items-center gap-3 bg-lienzo rounded-lg px-4 py-2.5 hover:bg-[#37205c] transition-colors group"
+                    className="flex items-center gap-3 bg-lienzo rounded-lg px-4 py-2.5 hover:bg-surface-container-high transition-colors group"
                   >
                     <span className="material-symbols-outlined text-acento">description</span>
                     <span className="text-slate-200 text-sm flex-1 truncate group-hover:text-white">
@@ -271,7 +271,7 @@ function FormularioCorreccion({
         <button
           onClick={guardar}
           disabled={guardando}
-          className="px-5 py-2 bg-acento text-black font-bold rounded-full hover:bg-white transition-colors disabled:opacity-40"
+          className="px-5 py-2 bg-acento text-white font-bold rounded-lg hover:bg-acento-vivo transition-colors disabled:opacity-40"
         >
           {guardando
             ? "Guardando…"

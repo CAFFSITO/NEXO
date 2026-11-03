@@ -155,13 +155,13 @@ export default function PanelBibliotecarioPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => navegar("/biblioteca/nacional")}
-                className="bg-surface-container-high text-primary border border-primary/20 px-6 py-2.5 rounded-full font-bold text-sm hover:bg-surface-container-high/80 transition-all"
+                className="bg-surface-container-high text-primary border border-primary/20 px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-surface-container-high/80 transition-all"
               >
                 Ver biblioteca nacional
               </button>
               <button
                 onClick={() => navegar("/biblioteca/institucional")}
-                className="bg-acento text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-xl shadow-acento/30 hover:scale-[1.02] transition-all"
+                className="bg-acento text-white px-6 py-2.5 rounded-lg font-bold text-sm shadow-xl transition-all"
               >
                 Ver biblioteca institucional
               </button>
@@ -234,7 +234,7 @@ export default function PanelBibliotecarioPage() {
                       </div>
                       <button
                         onClick={() => setRevisando(item)}
-                        className="shrink-0 bg-acento text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-[#d15aff] transition-all active:scale-95"
+                        className="shrink-0 bg-acento text-white px-5 py-2 rounded-lg font-bold text-sm hover:bg-acento-vivo transition-all"
                       >
                         Revisar
                       </button>

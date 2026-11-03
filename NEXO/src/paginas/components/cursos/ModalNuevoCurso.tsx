@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Curso } from "./TarjetaCurso";
+import type { Curso } from "../../../servicios/perfiles";
 import SelectorTurno from "./SelectorTurno";
 import SelectorEspecialidad from "./SelectorEspecialidad";
 import { useListasCurso } from "./useListasCurso";
@@ -29,6 +29,9 @@ export default function ModalNuevoCurso({ abierto, cursosExistentes, onCerrar, o
   const [turno, setTurno] = useState("");
   const [especialidad, setEspecialidad] = useState("");
   const [preceptorId, setPreceptorId] = useState("");
+  const [cupoMinimo, setCupoMinimo] = useState("");
+  const [cupoMaximo, setCupoMaximo] = useState("");
+  const [aula, setAula] = useState("");
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
   // Turnos y especialidades de la escuela, más los que se sumen desde acá.
@@ -51,38 +54,70 @@ export default function ModalNuevoCurso({ abierto, cursosExistentes, onCerrar, o
       setError("Elegí el turno del curso.");
       return;
     }
+    const minimo = cupoMinimo === "" ? null : Number(cupoMinimo);
+    const maximo = cupoMaximo === "" ? null : Number(cupoMaximo);
+    if (minimo != null && maximo != null && minimo > maximo) {
+      setError("El cupo mínimo no puede ser mayor que el máximo.");
+      return;
+    }
     setGuardando(true);
     setError("");
-    try { await onCrear({ anio, division: letra, preceptorId: preceptorId || null, turnoId: turno, especialidadId: especialidad || null }); }
+    try { await onCrear({ anio, division: letra, preceptorId: preceptorId || null, turnoId: turno, especialidadId: especialidad || null, cupoMinimo: minimo, cupoMaximo: maximo, aula: aula.trim() || null }); }
     catch (fallo) { setError(fallo instanceof Error ? fallo.message : "No se pudo crear el curso."); }
     finally { setGuardando(false); }
   };
   const cerrar = () => { if (!guardando) onCerrar(); };
-  const campo = "mt-2 block w-full bg-fondo rounded-xl px-4 py-3 text-white";
+  const campo = "nx-campo mt-1.5";
+  const etiqueta = "block text-sm font-medium text-on-surface";
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4" onClick={cerrar}>
-      <form role="dialog" aria-modal="true" aria-labelledby="nuevo-curso-titulo" onSubmit={guardar} onClick={(e) => e.stopPropagation()} className="w-full max-w-lg max-h-[92dvh] overflow-y-auto bg-lienzo rounded-2xl border border-white/10 p-7 shadow-2xl">
-        <div className="flex justify-between gap-4 mb-6">
-          <div><h2 id="nuevo-curso-titulo" className="text-2xl font-bold text-white">Crear un curso</h2><p className="text-sm text-slate-400 mt-1">{conAlumnos ? "Después podés inscribir estudiantes y asignar docentes." : "Elegí el turno y, si ya lo sabés, su preceptor."}</p></div>
-          <button type="button" onClick={cerrar} disabled={guardando} aria-label="Cerrar" className="text-slate-400"><span className="material-symbols-outlined">close</span></button>
+      <form role="dialog" aria-modal="true" aria-labelledby="nuevo-curso-titulo" onSubmit={guardar} onClick={(e) => e.stopPropagation()} className="flex max-h-[92dvh] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-low shadow-xl">
+        <header className="flex items-start justify-between gap-4 border-b border-linea px-6 py-4">
+          <div className="min-w-0">
+            <h2 id="nuevo-curso-titulo" className="text-lg font-semibold text-on-surface">Nuevo curso</h2>
+            <p className="mt-0.5 text-sm text-on-surface-variant">{conAlumnos ? "Después podés inscribir estudiantes y asignar docentes." : "Elegí el turno y, si ya lo sabés, su preceptor."}</p>
+          </div>
+          <button type="button" onClick={cerrar} disabled={guardando} aria-label="Cerrar" className="nexo-icon-button"><span className="material-symbols-outlined">close</span></button>
+        </header>
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {cargando ? <Cargando que="las opciones académicas" /> : errorCarga ? <Fallo error={errorCarga} onReintentar={recargar} /> : servidorViejo ? <ServidorDesactualizado onCerrar={cerrar} /> : <div className="flex flex-col gap-6">
+            <fieldset className="flex flex-col gap-4">
+              <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Identificación</legend>
+              <div className="grid grid-cols-2 gap-4">
+                <label className={etiqueta}>Año<Selector value={anio} onChange={(e) => setAnio(Number(e.target.value))} className={campo}>{anios.map((n) => <option key={n} value={n}>{n}° año</option>)}</Selector></label>
+                <label className={etiqueta}>División<input required maxLength={10} value={division} onChange={(e) => setDivision(e.target.value.toUpperCase())} className={campo} placeholder="A" /></label>
+              </div>
+              <div>
+                <p className={`${etiqueta} mb-1.5`}>Turno</p>
+                <SelectorTurno turnos={listas.turnos} valor={turno} onCambiar={(t) => { setTurno(t); setError(""); }} onCrear={listas.agregarTurno} disabled={guardando} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className={etiqueta}>Especialidad <span className="font-normal text-on-surface-variant">(opcional)</span></p>
+                  <SelectorEspecialidad especialidades={listas.especialidades} valor={especialidad} onCambiar={setEspecialidad} onCrear={listas.agregarEspecialidad} className={campo} disabled={guardando} />
+                </div>
+                <label className={etiqueta}>Aula <span className="font-normal text-on-surface-variant">(opcional)</span><input maxLength={40} value={aula} onChange={(e) => setAula(e.target.value)} className={campo} placeholder="Ej.: Aula 12, Laboratorio" /></label>
+              </div>
+            </fieldset>
+            {conAlumnos && <fieldset className="flex flex-col gap-3">
+              <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Cupo de estudiantes</legend>
+              <div className="grid grid-cols-2 gap-4">
+                <label className={etiqueta}>Mínimo<input type="number" min={0} max={500} inputMode="numeric" value={cupoMinimo} onChange={(e) => setCupoMinimo(e.target.value)} className={campo} placeholder="Sin mínimo" /></label>
+                <label className={etiqueta}>Máximo<input type="number" min={0} max={500} inputMode="numeric" value={cupoMaximo} onChange={(e) => setCupoMaximo(e.target.value)} className={campo} placeholder="Sin máximo" /></label>
+              </div>
+              <p className="text-[13px] text-on-surface-variant">El panel de la dirección avisa si el curso queda excedido, por debajo del mínimo o dentro del estándar.</p>
+            </fieldset>}
+            <fieldset>
+              <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Responsable</legend>
+              <label className={etiqueta}>Preceptor<Selector value={preceptorId} onChange={(e) => setPreceptorId(e.target.value)} className={campo}><option value="">Asignar más adelante</option>{datos?.preceptores.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}</Selector></label>
+            </fieldset>
+            {error && <p role="alert" className="rounded-lg bg-error-container px-3 py-2 text-sm text-on-error-container">{error}</p>}
+          </div>}
         </div>
-        {cargando ? <Cargando que="las opciones académicas" /> : errorCarga ? <Fallo error={errorCarga} onReintentar={recargar} /> : servidorViejo ? <ServidorDesactualizado onCerrar={cerrar} /> : <>
-          <div className="grid grid-cols-2 gap-4 mb-5">
-            <label className="text-sm text-slate-300">Año<Selector value={anio} onChange={(e) => setAnio(Number(e.target.value))} className={campo}>{anios.map((n) => <option key={n} value={n}>{n}° año</option>)}</Selector></label>
-            <label className="text-sm text-slate-300">División<input required maxLength={10} value={division} onChange={(e) => setDivision(e.target.value.toUpperCase())} className={campo} /></label>
-          </div>
-          <div className="mb-5">
-            <p className="text-sm text-slate-300 mb-2">Turno</p>
-            <SelectorTurno turnos={listas.turnos} valor={turno} onCambiar={(t) => { setTurno(t); setError(""); }} onCrear={listas.agregarTurno} disabled={guardando} />
-          </div>
-          <div className="mb-5">
-            <p className="text-sm text-slate-300">Especialidad <span className="text-slate-500">(opcional)</span></p>
-            <SelectorEspecialidad especialidades={listas.especialidades} valor={especialidad} onCambiar={setEspecialidad} onCrear={listas.agregarEspecialidad} className={campo} disabled={guardando} />
-          </div>
-          <label className="block text-sm text-slate-300">Preceptor<Selector value={preceptorId} onChange={(e) => setPreceptorId(e.target.value)} className={campo}><option value="">Asignar más adelante</option>{datos?.preceptores.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}</Selector></label>
-          {error && <p role="alert" className="text-rose-300 text-sm mt-4">{error}</p>}
-          <div className="flex justify-end gap-3 mt-7"><button type="button" disabled={guardando} onClick={cerrar} className="px-4 py-2 text-slate-300">Cancelar</button><button disabled={guardando || !division.trim()} className="rounded-xl bg-acento px-6 py-3 text-white font-bold disabled:opacity-40">{guardando ? "Creando…" : "Crear curso"}</button></div>
-        </>}
+        <footer className="flex justify-end gap-2 border-t border-linea bg-surface-container px-6 py-3">
+          <button type="button" disabled={guardando} onClick={cerrar} className="nx-btn nx-btn-secundario">Cancelar</button>
+          <button type="submit" disabled={guardando || !division.trim() || cargando || Boolean(errorCarga) || servidorViejo} className="nx-btn nx-btn-primario">{guardando ? "Creando…" : "Crear curso"}</button>
+        </footer>
       </form>
     </div>
   );

@@ -19,7 +19,7 @@ export default function PanelProximosEventos({ eventos, onVerCalendario }: Panel
     return (
         <div className="bg-lienzo rounded-lg p-6 border border-white/5">
             <h4 className="text-sm font-black font-headline text-white uppercase tracking-widest mb-6">
-                Próximos Eventos
+                Próximos eventos
             </h4>
             <div className="space-y-6">
                 {eventos.length === 0 && <p className="text-sm text-slate-400">No hay eventos próximos en tu calendario.</p>}

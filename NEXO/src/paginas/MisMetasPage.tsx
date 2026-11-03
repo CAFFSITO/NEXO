@@ -134,7 +134,7 @@ export default function MisMetasPage() {
       <Sidebar usuario={usuario} onNavegar={handleNavegar} onCerrarSesion={handleCerrarSesion} />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen relative">
-        <TopBar title="Objetivos Personales" pestanas={PESTANAS_OBJETIVOS} />
+        <TopBar title="Objetivos personales" pestanas={PESTANAS_OBJETIVOS} />
         {detalleId && !cargando && !error && !metaDetalle && <p role="status" className="p-4 text-amber-200">Esta meta ya no está disponible. <button type="button" className="underline" onClick={() => setDetalleId(null)}>Cerrar enlace</button></p>}
 
         <div className="flex-1 overflow-y-auto bg-background p-8">
@@ -142,7 +142,7 @@ export default function MisMetasPage() {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-3xl font-extrabold font-headline tracking-tight text-white">
-                  Gestión de Metas
+                  Gestión de metas
                 </h1>
                 <p className="text-on-surface-variant text-sm mt-1">
                   Seguí tu progreso académico y personal.
@@ -150,10 +150,10 @@ export default function MisMetasPage() {
               </div>
               <button
                 onClick={() => setModalNueva(true)}
-                className="bg-acento text-white px-6 py-2.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg shadow-purple-500/30 hover:scale-105 active:scale-95 transition-all"
+                className="bg-acento text-white px-6 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg  transition-all"
               >
                 <span className="material-symbols-outlined text-lg">add</span>
-                Nueva Meta
+                Nueva meta
               </button>
             </div>
 
@@ -176,7 +176,7 @@ export default function MisMetasPage() {
                     onClick={() => setFiltro(f.valor)}
                     className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
                       activo
-                        ? "bg-acento text-white shadow-lg shadow-purple-500/20"
+                        ? "bg-acento text-white shadow-lg "
                         : "bg-lienzo text-slate-400 hover:text-white"
                     }`}
                   >
@@ -203,7 +203,7 @@ export default function MisMetasPage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-lienzo/40 border border-white/5 rounded-[20px] p-12 text-center">
+              <div className="bg-lienzo/40 border border-white/5 rounded-xl p-12 text-center">
                 <span className="material-symbols-outlined text-4xl text-slate-500 mb-2">flag</span>
                 <p className="text-slate-400 text-sm">No tenés metas en esta categoría todavía.</p>
               </div>
@@ -211,10 +211,10 @@ export default function MisMetasPage() {
 
             {/* Analytics: resumen semanal (algoritmo del servidor) + próximo hito */}
             <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-lienzo/40 border border-white/5 rounded-[20px] p-8">
+              <div className="bg-lienzo/40 border border-white/5 rounded-xl p-8">
                 <h3 className="text-white font-bold font-headline mb-6 flex items-center gap-2">
                   <span className="material-symbols-outlined text-acento">insights</span>
-                  Resumen Semanal
+                  Resumen semanal
                 </h3>
                 <div className="flex items-center gap-8">
                   <div className="relative w-24 h-24">
@@ -253,15 +253,15 @@ export default function MisMetasPage() {
               </div>
 
               {/* Próximo hito */}
-              <div className="bg-gradient-to-br from-[#4900a6]/20 to-transparent border border-acento/10 rounded-[20px] p-8 flex flex-col justify-center">
+              <div className="bg-gradient-to-br from-primary/10 to-transparent border border-acento/10 rounded-xl p-8 flex flex-col justify-center">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-acento rounded-xl shadow-lg shadow-purple-500/40">
+                  <div className="p-3 bg-acento rounded-xl shadow-lg ">
                     <span className="material-symbols-outlined text-white" style={{ fontVariationSettings: "'FILL' 1" }}>
                       emoji_events
                     </span>
                   </div>
                   <div>
-                    <h4 className="text-white font-bold font-headline">Próximo Hito</h4>
+                    <h4 className="text-white font-bold font-headline">Próximo hito</h4>
                     <p className="text-xs text-on-surface-variant">
                       {proximoHito ? proximoHito.meta.titulo : "Sin metas pendientes 🎉"}
                     </p>

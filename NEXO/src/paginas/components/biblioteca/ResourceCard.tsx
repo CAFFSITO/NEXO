@@ -60,7 +60,7 @@ export default function ResourceCard({
     <div className="group bg-lienzo border border-lienzo hover:border-acento/50 transition-all p-6 rounded-lg flex flex-col gap-4 relative overflow-hidden">
       {estado === "verificado" && (
         <div className="absolute top-0 right-0 p-4">
-          <span className="bg-[#2e7d32]/20 text-[#4ade80] text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 uppercase tracking-wider">
+          <span className="bg-emerald-500/15 text-emerald-400 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 uppercase tracking-wider">
             <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>
               check_circle
             </span>
@@ -78,7 +78,7 @@ export default function ResourceCard({
         </div>
       )}
 
-      <div className="w-12 h-12 bg-fondo rounded-xl flex items-center justify-center text-acento group-hover:scale-110 transition-transform">
+      <div className="w-12 h-12 bg-fondo rounded-xl flex items-center justify-center text-acento transition-transform">
         <span className="material-symbols-outlined text-3xl">{icon}</span>
       </div>
 
@@ -126,7 +126,7 @@ export default function ResourceCard({
               miVoto === "a-favor"
                 ? "text-acento"
                 : miVoto === "en-contra"
-                  ? "text-[#7c8cff]"
+                  ? "text-primary"
                   : "text-gray-200"
             }`}
           >
@@ -137,7 +137,7 @@ export default function ResourceCard({
             aria-label="Votar en contra"
             aria-pressed={miVoto === "en-contra"}
             className={`flex items-center transition-colors ${
-              miVoto === "en-contra" ? "text-[#7c8cff]" : "text-gray-400 hover:text-[#7c8cff]"
+              miVoto === "en-contra" ? "text-primary" : "text-gray-400 hover:text-primary"
             }`}
           >
             <span
@@ -153,7 +153,7 @@ export default function ResourceCard({
       <div className="mt-4 pt-4 border-t border-fondo flex justify-between items-center">
         {onLeer && <button type="button" onClick={onLeer} className="text-acento text-sm">Leer y anotar</button>}
         <span className="text-xs text-gray-500">
-          {esEnlace ? "Enlace Externo" : `${fileType} • ${fileSize}`}
+          {esEnlace ? "Enlace externo" : `${fileType} • ${fileSize}`}
         </span>
         <button
           onClick={onAction}

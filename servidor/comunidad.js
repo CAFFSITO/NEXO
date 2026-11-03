@@ -20,7 +20,7 @@
 //   POST /api/comunidad/reacciones               → reaccionar con un emoji / quitarlo
 // PERSONAS
 //   GET  /api/comunidad/usuarios/:id             → perfil en la comunidad
-//   POST /api/comunidad/usuarios/:id/seguir      → seguir / dejar de seguir
+//   POST /api/comunidad/usuarios/:id/seguir      → ya no existe (410): no se sigue a personas
 //   POST /api/comunidad/usuarios/:id/silenciar   → silenciar / dejar de silenciar
 //   GET  /api/comunidad/personas?q=              → para completar @menciones
 //   GET  /api/comunidad/hashtags                 → los #temas del momento
@@ -727,7 +727,8 @@ export function registrarComunidad(app, db, notificaciones = null) {
       res.json({ activo: !previo });
     });
   }
-  app.post("/api/comunidad/usuarios/:id/seguir", relacion("seguimientos", "seguido_id", true));
+  // En NEXO no se sigue a personas: la comunidad es la escuela entera.
+  app.post("/api/comunidad/usuarios/:id/seguir", (req, res) => res.status(410).json({ error: "En NEXO no se sigue a personas." }));
   app.post("/api/comunidad/usuarios/:id/silenciar", relacion("silenciados", "silenciado_id", false));
 
   app.get(

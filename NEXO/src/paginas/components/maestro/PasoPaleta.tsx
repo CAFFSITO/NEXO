@@ -9,6 +9,7 @@ import { ARMONIAS, contraste, hexAHsl, luminancia, oscurecerHasta, paletaArmonic
 import { estiloDeTema, variablesDeTema, type Movimiento, type Tema } from "../../../servicios/tema";
 import type { Catalogo } from "../../../servicios/maestro";
 import VistaPreviaMenu from "./VistaPreviaMenu";
+import ColoresDesdeLogo from "../shared/ColoresDesdeLogo";
 
 interface Props {
   genoma: Genoma;
@@ -21,8 +22,8 @@ const COLORES: { id: keyof Pick<Tema, "acento" | "primario" | "secundario" | "te
   { id: "primario", nombre: "Primario", uso: "Textos destacados, íconos activos" },
   { id: "secundario", nombre: "Secundario", uso: "Detalles y contenedores" },
   { id: "terciario", nombre: "Terciario", uso: "Avisos, logros, contrapunto" },
-  { id: "fondo", nombre: "Fondo", uso: "La noche de la app (oscuro)" },
-  { id: "superficie", nombre: "Superficie", uso: "Tarjetas y paneles (oscuro)" },
+  { id: "fondo", nombre: "Fondo", uso: "El fondo en modo oscuro" },
+  { id: "superficie", nombre: "Superficie", uso: "Tarjetas y paneles en modo oscuro" },
 ];
 
 const RADIO_RUEDA = 110;
@@ -82,6 +83,15 @@ export default function PasoPaleta({ genoma, catalogo, onCambiar }: Props) {
 
       <div className="grid gap-8 2xl:grid-cols-[minmax(0,1fr)_auto]">
         <section className="flex flex-col gap-6">
+          <ColoresDesdeLogo
+            variante="maestro"
+            tema={tema}
+            nombre={genoma.identidad.nombre || undefined}
+            icono={genoma.identidad.icono || undefined}
+            descripcion="Tirá el logo de la escuela y la paleta sale de sus colores. Después la podés retocar con la rueda o color por color."
+            textoAplicado="Listo: la paleta salió del logo. Podés seguir ajustándola abajo."
+            onAplicar={(p) => { setAviso(null); setTono(Math.round(hexAHsl(p.acento).h)); cambiarTema(p); }}
+          />
           <div className="m-cristal p-6 flex flex-wrap gap-8 items-center m-aparecer">
             <div
               className="m-rueda"

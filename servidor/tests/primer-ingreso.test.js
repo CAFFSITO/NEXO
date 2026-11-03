@@ -2,7 +2,7 @@
 // y la bienvenida, donde cambiarla es opcional y no pide la actual.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { crearEntorno } from './entorno.js';
+import { crearEntorno, asegurarCurso } from './entorno.js';
 import { generarContrasenaInicial } from '../contrasenas.js';
 
 let entorno, request, ok, entrar;
@@ -34,6 +34,13 @@ test('Una cuenta nueva entra con su contraseña sencilla y marcada como primer i
   const creada = await ok('/api/perfiles', 'direccion', 'POST', { nombre: 'Rosa Martínez', email: 'rosa@sanmartin.nexo.edu', rol: 'profesor' }, 201);
   assert.match(creada.contrasenaInicial, /^rosa\d{4}$/);
 
+  // Sin curso asignado, una profesora no puede entrar (y se le dice por qué).
+  const sinCurso = await request('/api/sesion', null, 'POST', { email: 'rosa@sanmartin.nexo.edu', contrasena: creada.contrasenaInicial });
+  assert.equal(sinCurso.status, 403);
+  assert.equal(sinCurso.data.motivo, 'sin-curso');
+  assert.equal(sinCurso.response.headers.get('set-cookie'), null);
+  // Con una cátedra, sí.
+  asegurarCurso(entorno.db, 'rosa@sanmartin.nexo.edu');
   const ingreso = await request('/api/sesion', null, 'POST', { email: 'rosa@sanmartin.nexo.edu', contrasena: creada.contrasenaInicial });
   assert.equal(ingreso.status, 200);
   assert.equal(ingreso.data.usuario.primerIngreso, true);

@@ -40,7 +40,7 @@ export default function TarjetaRegistro({ registro, destacado = false, onEditar,
         <div>
           <h4 className="text-2xl font-bold text-white font-headline">{registro.titulo}</h4>
           <div className="flex items-center gap-3 mt-1">
-            <span className="bg-fondo text-acento text-xs font-bold px-3 py-1 rounded-full">
+            <span className="bg-fondo text-acento text-xs font-bold px-3 py-1 rounded-lg">
               {formatearFechaCorta(registro.fecha)}
             </span>
             <span className="text-slate-400 text-sm font-medium">{registro.materiaCurso}</span>
@@ -50,7 +50,7 @@ export default function TarjetaRegistro({ registro, destacado = false, onEditar,
           {onEditar && (
             <button
               onClick={() => onEditar(registro.id)}
-              className="flex items-center gap-1 text-slate-400 font-bold hover:text-acento px-3 py-2 rounded-full transition-colors font-label"
+              className="flex items-center gap-1 text-slate-400 font-bold hover:text-acento px-3 py-2 rounded-lg transition-colors font-label"
               title="Editar registro"
             >
               <span className="material-symbols-outlined text-sm">edit</span>
@@ -59,7 +59,7 @@ export default function TarjetaRegistro({ registro, destacado = false, onEditar,
           {onEliminar && (
             <button
               onClick={() => onEliminar(registro.id)}
-              className="flex items-center gap-1 text-slate-400 font-bold hover:text-[#EF4444] px-3 py-2 rounded-full transition-colors font-label"
+              className="flex items-center gap-1 text-slate-400 font-bold hover:text-[#EF4444] px-3 py-2 rounded-lg transition-colors font-label"
               title="Borrar registro"
             >
               <span className="material-symbols-outlined text-sm">delete</span>
@@ -67,7 +67,7 @@ export default function TarjetaRegistro({ registro, destacado = false, onEditar,
           )}
           <button
             onClick={() => setExpandido((v) => !v)}
-            className="flex items-center gap-2 text-acento font-bold hover:bg-acento/10 px-4 py-2 rounded-full transition-colors font-label"
+            className="flex items-center gap-2 text-acento font-bold hover:bg-acento/10 px-4 py-2 rounded-lg transition-colors font-label"
           >
             {expandido ? "Ocultar" : "Ver completo"}
             <span

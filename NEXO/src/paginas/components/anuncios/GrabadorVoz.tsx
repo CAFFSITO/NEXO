@@ -26,6 +26,8 @@ interface Props {
   /** Avisa si está grabando: mientras tanto no se puede enviar el aviso. */
   onGrabando?: (grabando: boolean) => void;
   disabled?: boolean;
+  /** Solo el micrófono (como en un chat): las indicaciones aparecen al grabar. */
+  compacto?: boolean;
 }
 
 type Estado = "listo" | "pidiendo" | "grabando" | "bloqueado";
@@ -35,7 +37,7 @@ const MINIMO_MS = 800; // un toque no es un audio
 const MAXIMO_MS = 10 * 60 * 1000; // el mismo tope que el servidor
 const FORMATOS = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
 
-export default function GrabadorVoz({ onGrabado, onGrabando, disabled = false }: Props) {
+export default function GrabadorVoz({ onGrabado, onGrabando, disabled = false, compacto = false }: Props) {
   const [estado, setEstado] = useState<Estado>("listo");
   const [ms, setMs] = useState(0);
   const [arrastre, setArrastre] = useState(0);
@@ -195,7 +197,7 @@ export default function GrabadorVoz({ onGrabado, onGrabando, disabled = false }:
 
   if (estado === "bloqueado") {
     return (
-      <div className={`av-grabador is-grabando is-bloqueado ${pausado ? "is-pausado" : ""}`} role="status">
+      <div className={`av-grabador is-grabando is-bloqueado ${pausado ? "is-pausado" : ""} ${compacto ? "compacto" : ""}`} role="status">
         <span className="av-grabador-punto" aria-hidden="true" />
         <span className="av-grabador-tiempo">{duracionLegible(ms)}</span>
         <span className="av-grabador-texto">{pausado ? "En pausa" : "Grabando sin apretar…"}</span>
@@ -223,7 +225,7 @@ export default function GrabadorVoz({ onGrabado, onGrabando, disabled = false }:
   }
 
   return (
-    <div className={`av-grabador ${grabando ? "is-grabando" : ""}`}>
+    <div className={`av-grabador ${grabando ? "is-grabando" : ""} ${compacto ? "compacto" : ""}`}>
       {/* El texto va a la izquierda del micrófono: arriba del micrófono queda
           libre para el candado que aparece al deslizar. */}
       <div className="av-grabador-info">

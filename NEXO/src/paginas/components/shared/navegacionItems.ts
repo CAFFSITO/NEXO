@@ -25,7 +25,6 @@ export const NAV_POR_ROL: Record<Rol, NavItem[]> = {
   secretaria: [
     { label: "Mensajes", icono: "chat_bubble", ruta: "/chat" },
     { label: "Documentos y formularios", icono: "edit_document", ruta: "/documentos" },
-    { label: "Proyectos compartidos", icono: "workspaces", ruta: "/proyectos" },
     { label: "Anuncios", icono: "notifications_active", ruta: "/anuncios" },
     { label: "Calendario", icono: "calendar_today", ruta: "/comunidad/calendario" },
   ],
@@ -36,7 +35,6 @@ export const NAV_POR_ROL: Record<Rol, NavItem[]> = {
     { label: "Objetivos personales", icono: "track_changes", ruta: "/objetivos" },
     { label: "Biblioteca", icono: "local_library", ruta: "/biblioteca/institucional" },
     { label: "Documentos y formularios", icono: "edit_document", ruta: "/documentos" },
-    { label: "Proyectos compartidos", icono: "workspaces", ruta: "/proyectos" },
     { label: "Calendario", icono: "calendar_today", ruta: "/comunidad/calendario" },
     { label: "Mensajes", icono: "chat_bubble", ruta: "/chat" },
     { label: "Asistencia académica", icono: "auto_awesome", ruta: "/asistencia-academica" },
@@ -50,7 +48,6 @@ export const NAV_POR_ROL: Record<Rol, NavItem[]> = {
     { label: "Métodos de estudio", icono: "psychology", ruta: "/estudio/metodos" },
     { label: "Biblioteca", icono: "local_library", ruta: "/biblioteca/institucional" },
     { label: "Documentos y formularios", icono: "edit_document", ruta: "/documentos" },
-    { label: "Proyectos compartidos", icono: "workspaces", ruta: "/proyectos" },
     { label: "Calendario", icono: "calendar_today", ruta: "/comunidad/calendario" },
     { label: "Mensajes", icono: "chat_bubble", ruta: "/chat" },
   ],
@@ -62,7 +59,6 @@ export const NAV_POR_ROL: Record<Rol, NavItem[]> = {
     { label: "Cursos y materias", icono: "school", ruta: "/admin/cursos" },
     { label: "Biblioteca", icono: "local_library", ruta: "/biblioteca/institucional" },
     { label: "Documentos y formularios", icono: "edit_document", ruta: "/documentos" },
-    { label: "Proyectos compartidos", icono: "workspaces", ruta: "/proyectos" },
     { label: "Calendario", icono: "calendar_today", ruta: "/comunidad/calendario" },
     { label: "Reportes", icono: "assessment", ruta: "/reportes" },
     { label: "Mensajes", icono: "chat_bubble", ruta: "/chat" },
@@ -70,31 +66,28 @@ export const NAV_POR_ROL: Record<Rol, NavItem[]> = {
     { label: "Modo edición", icono: "edit_square", ruta: "/admin/edicion" },
   ],
   preceptor: [
-    { label: "Documentos y formularios", icono: "edit_document", ruta: "/documentos" },
-    { label: "Proyectos compartidos", icono: "workspaces", ruta: "/proyectos" },
     { label: "Mis cursos", icono: "school", ruta: "/comunidad/curso" },
     { label: "Anuncios", icono: "notifications_active", ruta: "/anuncios" },
     { label: "Comunidad", icono: "group", ruta: "/comunidad" },
     { label: "Mensajes", icono: "chat_bubble", ruta: "/chat" },
     { label: "Calendario", icono: "calendar_today", ruta: "/comunidad/calendario" },
+    { label: "Documentos y formularios", icono: "edit_document", ruta: "/documentos" },
   ],
   "centro-estudiantes": [
-    { label: "Documentos y formularios", icono: "edit_document", ruta: "/documentos" },
-    { label: "Proyectos compartidos", icono: "workspaces", ruta: "/proyectos" },
     { label: "Nuestro portal", icono: "campaign", ruta: "/centro-estudiantes" },
     { label: "Comunidad", icono: "group", ruta: "/comunidad" },
     { label: "Buzón estudiantil", icono: "inbox", ruta: "/centro-estudiantes/quejas" },
     { label: "Calendario", icono: "calendar_today", ruta: "/comunidad/calendario" },
+    { label: "Documentos y formularios", icono: "edit_document", ruta: "/documentos" },
   ],
   bibliotecario: [
-    { label: "Documentos y formularios", icono: "edit_document", ruta: "/documentos" },
-    { label: "Proyectos compartidos", icono: "workspaces", ruta: "/proyectos" },
     { label: "Mi biblioteca", icono: "space_dashboard", ruta: "/biblioteca/panel" },
     { label: "Revisión de recursos", icono: "fact_check", ruta: "/biblioteca/cola-revision" },
     { label: "Catálogo", icono: "local_library", ruta: "/biblioteca/institucional" },
     { label: "Comunidad", icono: "group", ruta: "/comunidad" },
     { label: "Calendario", icono: "calendar_today", ruta: "/comunidad/calendario" },
     { label: "Mensajes", icono: "chat_bubble", ruta: "/chat" },
+    { label: "Documentos y formularios", icono: "edit_document", ruta: "/documentos" },
   ],
   administrador: [
     { label: "Estudio del Maestro", icono: "auto_awesome", ruta: "/maestro" },
@@ -104,11 +97,10 @@ export const NAV_POR_ROL: Record<Rol, NavItem[]> = {
     { label: "Estado del sistema", icono: "monitor_heart", ruta: "/admin/salud" },
   ],
   familia: [
-    { label: "Documentos y formularios", icono: "edit_document", ruta: "/documentos" },
-    { label: "Proyectos compartidos", icono: "workspaces", ruta: "/proyectos" },
     { label: "Comunicados", icono: "campaign", ruta: "/comunicados" },
     { label: "Calendario familiar", icono: "calendar_today", ruta: "/familia/calendario" },
     { label: "Mensajes", icono: "chat_bubble", ruta: "/chat" },
+    { label: "Documentos y formularios", icono: "edit_document", ruta: "/documentos" },
   ],
 };
 
@@ -168,6 +160,109 @@ export function menuPorSecciones(rol: Rol, instancia: Instancia | null): GrupoMe
   return agruparMenu(navDeInstancia(rol, instancia), instancia?.secciones ?? []);
 }
 
+// ── Organización visual del menú ─────────────────────────
+// Un menú de diez o más ítems en una sola lista no se recorre de un vistazo.
+// Como en cualquier aplicación grande, lo que no está en una sección propia de
+// la escuela se ordena en categorías fijas. Solo afecta cómo se dibuja: el
+// orden dentro de cada categoría sigue siendo el del genoma.
+export type Categoria = "principal" | "comunicacion" | "recursos" | "gestion";
+
+export const NOMBRE_CATEGORIA: Record<Categoria, string> = {
+  principal: "General",
+  comunicacion: "Comunicación",
+  recursos: "Recursos",
+  gestion: "Gestión",
+};
+
+const CATEGORIA_DE_RUTA: Partial<Record<RutaPrivada, Categoria>> = {
+  "/chat": "comunicacion",
+  "/anuncios": "comunicacion",
+  "/comunidad/calendario": "comunicacion",
+  "/familia/calendario": "comunicacion",
+  "/comunicados": "comunicacion",
+  "/quejas/enviar": "comunicacion",
+  "/centro-estudiantes/quejas": "comunicacion",
+  "/maestro/anuncios": "comunicacion",
+  "/biblioteca/institucional": "recursos",
+  "/biblioteca/nacional": "recursos",
+  "/documentos": "recursos",
+  "/estudio/metodos": "recursos",
+  "/asistencia-academica": "recursos",
+  "/admin/perfiles": "gestion",
+  "/admin/cursos": "gestion",
+  "/reportes": "gestion",
+  "/admin/edicion": "gestion",
+  "/admin/instituciones": "gestion",
+  "/admin/salud": "gestion",
+};
+
+export const categoriaDeRuta = (ruta: RutaPrivada): Categoria => CATEGORIA_DE_RUTA[ruta] ?? "principal";
+
+/** Los ítems de un grupo en categorías (solo si el grupo es largo; si no, uno solo sin título). */
+export function categorizar(items: NavItem[], minimo = 8): { categoria: Categoria | null; items: NavItem[] }[] {
+  if (items.length < minimo) return [{ categoria: null, items }];
+  const orden: Categoria[] = ["principal", "comunicacion", "recursos", "gestion"];
+  return orden
+    .map((categoria) => ({ categoria, items: items.filter((i) => categoriaDeRuta(i.ruta) === categoria) }))
+    .filter((g) => g.items.length > 0);
+}
+
+/** Nombres cortos para la barra inferior del celular (si la escuela no lo renombró). */
+const ETIQUETA_CORTA: Partial<Record<RutaPrivada, string>> = {
+  "/portafolio/mis-cursos": "Aprendizaje",
+  "/portafolio-docente": "Portafolio",
+  "/portafolio-docente/aula-virtual": "Aula",
+  "/portafolio/gestion": "Tareas",
+  "/admin/panel": "Panel",
+  "/comunidad/curso": "Mis cursos",
+  "/comunidad/calendario": "Calendario",
+  "/familia/calendario": "Calendario",
+  "/documentos": "Documentos",
+  "/centro-estudiantes": "Portal",
+  "/centro-estudiantes/quejas": "Buzón",
+  "/quejas/enviar": "Buzón",
+  "/biblioteca/panel": "Biblioteca",
+  "/biblioteca/cola-revision": "Revisión",
+  "/biblioteca/institucional": "Biblioteca",
+  "/maestro": "Estudio",
+  "/maestro/forja": "Forja",
+  "/maestro/anuncios": "Anuncios",
+  "/admin/instituciones": "Escuelas",
+  "/admin/salud": "Sistema",
+  "/objetivos": "Objetivos",
+  "/asistencia-academica": "Asistente",
+  "/estudio/metodos": "Métodos",
+};
+
+/** Lo primero que usa cada perfil, en orden: va a la barra inferior del celular. */
+const PRIORIDAD_INFERIOR: Record<Rol, RutaPrivada[]> = {
+  estudiante: ["/comunidad", "/portafolio/mis-cursos", "/chat", "/comunidad/calendario"],
+  profesor: ["/portafolio-docente", "/portafolio/gestion", "/chat", "/comunidad"],
+  "admin-academico": ["/admin/panel", "/anuncios", "/chat", "/comunidad"],
+  preceptor: ["/comunidad/curso", "/anuncios", "/chat", "/comunidad"],
+  secretaria: ["/chat", "/anuncios", "/documentos", "/comunidad/calendario"],
+  "centro-estudiantes": ["/centro-estudiantes", "/comunidad", "/centro-estudiantes/quejas", "/comunidad/calendario"],
+  bibliotecario: ["/biblioteca/panel", "/biblioteca/cola-revision", "/biblioteca/institucional", "/chat"],
+  administrador: ["/maestro", "/maestro/forja", "/admin/instituciones", "/admin/salud"],
+  familia: ["/comunicados", "/familia/calendario", "/chat", "/documentos"],
+};
+
+/** Las (hasta) cuatro secciones de la barra inferior: las prioritarias visibles, completadas con el menú. */
+export function pestanasInferiores(rol: Rol, instancia: Instancia | null, cantidad = 4): NavItem[] {
+  const menu = navDeInstancia(rol, instancia);
+  const elegidas: NavItem[] = [];
+  for (const ruta of PRIORIDAD_INFERIOR[rol]) {
+    const item = menu.find((i) => i.ruta === ruta);
+    if (item && elegidas.length < cantidad) elegidas.push(item);
+  }
+  for (const item of menu) if (elegidas.length < cantidad && !elegidas.includes(item)) elegidas.push(item);
+  const base = NAV_POR_ROL[rol];
+  return elegidas.map((item) => {
+    const renombrado = base.find((b) => b.ruta === item.ruta)?.label !== item.label;
+    return { ...item, label: renombrado ? item.label : ETIQUETA_CORTA[item.ruta] ?? item.label };
+  });
+}
+
 /**
  * Dónde está parada la persona en su menú: el ítem que el lateral enciende y la
  * sección que lo contiene. Gana la dirección exacta; si no, el primer ítem de la
@@ -214,8 +309,10 @@ export function accesosDeRol(rol: Rol, instancia: Instancia | null = null): NavI
   );
   if (["estudiante", "profesor", "admin-academico", "bibliotecario"].includes(rol))
     extras.push({ label: "Biblioteca nacional", icono: "public", ruta: "/biblioteca/nacional" });
-  return [...navDeInstancia(rol, instancia), ...extras.filter((i) => rutaVisible(instancia, i.ruta)),
+  const vistos = new Set<string>();
+  const todos: NavItem[] = [...navDeInstancia(rol, instancia), ...extras.filter((i) => rutaVisible(instancia, i.ruta)),
     { label: "Notificaciones", icono: "notifications", ruta: "/notificaciones" },
     { label: "Configuración de mi cuenta", icono: "settings", ruta: "/configuracion" },
   ];
+  return todos.filter((i) => !vistos.has(i.ruta) && vistos.add(i.ruta));
 }

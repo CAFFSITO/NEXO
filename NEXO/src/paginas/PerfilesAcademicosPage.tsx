@@ -28,7 +28,7 @@ export default function PerfilesAcademicosPage() {
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         {/* Decía "Colegio San Martín — Ciclo 2025" escrito a mano, y el ciclo de
             la base es 2026 (Error 13.7). */}
-        <TopBar title="Gestión Institucional" subtitle={subtituloInstitucional(institucion)} />
+        <TopBar title="Gestión institucional" subtitle={subtituloInstitucional(institucion)} />
 
         <section className="p-8 flex-1 overflow-y-auto bg-background">
           <div className="max-w-7xl mx-auto">

@@ -52,7 +52,7 @@ export default function Universo({ catalogo, onForjar, onAbrir }: Props) {
       </section>
 
       <button type="button" className="m-cta-forja p-8 text-left flex flex-wrap items-center gap-6 group m-aparecer" onClick={onForjar}>
-        <span className="material-symbols-outlined text-6xl text-[color:var(--m-oro)] group-hover:scale-110 transition-transform" style={{ textShadow: "0 0 40px rgba(251,191,36,.8)" }} aria-hidden="true">local_fire_department</span>
+        <span className="material-symbols-outlined text-6xl text-[color:var(--m-oro)] group-hover:scale-110 transition-transform" aria-hidden="true">local_fire_department</span>
         <span className="flex-1 min-w-[220px]">
           <span className="block m-titulo text-3xl">Forjar una nueva instancia</span>
           <span className="block text-sm text-[color:var(--m-suave)] mt-1">Una escuela entera, con su genoma y sus cuentas, de un solo golpe. Con intro de película incluida.</span>
@@ -82,7 +82,7 @@ function Planeta({ instancia: i, onAbrir }: { instancia: InstanciaResumen; onAbr
   const estilo = { ["--planeta-brillo" as string]: t.acento + "66", ["--orbe-a" as string]: t.acento, ["--orbe-b" as string]: t.secundario } as React.CSSProperties;
   return (
     <article className="m-planeta m-cristal p-6 flex flex-col gap-5" style={estilo}>
-      <span aria-hidden="true" className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl opacity-25" style={{ background: t.acento }} />
+      <span aria-hidden="true" className="absolute -right-16 -top-16 w-56 h-56 rounded-full hidden opacity-25" style={{ background: t.acento }} />
       <div className="relative flex items-center gap-5">
         <div className="m-orbe">
           <span className="m-orbe-anillo" style={{ animationDuration: `${12 + (Number(i.id) % 9)}s` }}>

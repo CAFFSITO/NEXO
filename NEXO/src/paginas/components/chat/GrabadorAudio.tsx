@@ -74,10 +74,10 @@ export default function GrabadorAudio({ onArchivo, onOcupado, onError, disabled 
       onError("No se pudo acceder al micrófono. Revisá el permiso del navegador o adjuntá un audio guardado.");
     }
   };
-  if (estado !== "listo") return <div className="flex flex-wrap items-center gap-2 text-sm text-rose-300" role="status">
-    <span>{estado === "permiso" ? "Esperando micrófono…" : `Grabando ${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, "0")} · máximo 5 min`}</span>
-    {estado === "grabando" && <button type="button" className="px-3 py-2 rounded-lg bg-white/10" onClick={() => terminar()}>Terminar audio</button>}
-    <button type="button" className="px-3 py-2" onClick={() => terminar(true)}>Cancelar</button>
+  if (estado !== "listo") return <div className="flex flex-1 flex-wrap items-center justify-end gap-2 text-sm" role="status">
+    <span className="flex items-center gap-2 font-medium text-on-surface"><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rose-500" aria-hidden="true" />{estado === "permiso" ? "Esperando micrófono…" : `Grabando ${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, "0")} · máximo 5 min`}</span>
+    <button type="button" className="av-boton suave chico" onClick={() => terminar(true)}>Cancelar</button>
+    {estado === "grabando" && <button type="button" className="av-boton chico" onClick={() => terminar()}>Terminar audio</button>}
   </div>;
-  return <button type="button" disabled={disabled} onClick={() => void iniciar()} className="flex items-center gap-1 px-2 py-2 rounded-lg text-slate-300 hover:bg-white/10 disabled:opacity-40"><span className="material-symbols-outlined">mic</span>Grabar audio</button>;
+  return <button type="button" disabled={disabled} onClick={() => void iniciar()} className="wa-enviar" aria-label="Grabar audio" title="Grabar audio"><span className="material-symbols-outlined" aria-hidden="true">mic</span></button>;
 }

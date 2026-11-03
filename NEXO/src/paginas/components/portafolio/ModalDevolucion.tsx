@@ -54,7 +54,7 @@ export default function ModalDevolucion({
                 )}
               </h3>
               <span
-                className={`inline-block mt-1 px-3 py-0.5 rounded-full text-xs font-bold border ${estadoMeta.badge}`}
+                className={`inline-block mt-1 px-3 py-0.5 rounded-lg text-xs font-bold border ${estadoMeta.badge}`}
               >
                 {estadoMeta.label}
               </span>
@@ -91,7 +91,7 @@ export default function ModalDevolucion({
         <div className="mt-8 flex justify-end">
           <button
             onClick={onCerrar}
-            className="bg-primary text-on-primary px-6 py-2.5 rounded-full font-headline font-bold text-sm active:scale-95 transition-transform"
+            className="bg-primary text-on-primary px-6 py-2.5 rounded-lg font-headline font-bold text-sm transition-transform"
           >
             Entendido
           </button>

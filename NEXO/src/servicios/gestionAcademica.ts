@@ -17,7 +17,30 @@ export interface OpcionesGestionAcademica {
  * Al crear, el turno es obligatorio. Al editar, lo que no se manda (turno,
  * especialidad) queda como estaba: así guardar el preceptor no los toca.
  */
-export interface DatosCurso { anio: number; division: string; preceptorId: string | null; turnoId?: string; especialidadId?: string | null }
+export interface DatosCurso { anio: number; division: string; preceptorId: string | null; turnoId?: string; especialidadId?: string | null; cupoMinimo?: number | null; cupoMaximo?: number | null; aula?: string | null }
+
+// ── Cupo de un curso ─────────────────────────────────────
+// Con un mínimo y un máximo de estudiantes, el panel avisa qué cursos están
+// excedidos, cuáles tienen menos de lo previsto y cuáles están dentro.
+export type EstadoCupo = "excedido" | "faltan" | "ok" | "libre";
+export function estadoCupo(c: { estudiantes: number; cupoMinimo: number | null; cupoMaximo: number | null }): EstadoCupo {
+  if (c.cupoMaximo != null && c.estudiantes > c.cupoMaximo) return "excedido";
+  if (c.cupoMinimo != null && c.estudiantes < c.cupoMinimo) return "faltan";
+  if (c.cupoMinimo == null && c.cupoMaximo == null) return "libre";
+  return "ok";
+}
+export const ESTADOS_CUPO: Record<EstadoCupo, { etiqueta: string; icono: string; clase: string }> = {
+  excedido: { etiqueta: "Excedido", icono: "arrow_upward", clase: "bg-rose-500/10 text-rose-300" },
+  faltan: { etiqueta: "Debajo del mínimo", icono: "arrow_downward", clase: "bg-amber-500/15 text-amber-300" },
+  ok: { etiqueta: "Dentro del cupo", icono: "check", clase: "bg-emerald-500/10 text-emerald-300" },
+  libre: { etiqueta: "Sin cupo definido", icono: "remove", clase: "bg-white/5 text-on-surface-variant" },
+};
+/** "24 / 30", "24 (mín. 15)" o "24". */
+export function textoCupo(c: { estudiantes: number; cupoMinimo: number | null; cupoMaximo: number | null }): string {
+  if (c.cupoMaximo != null) return `${c.estudiantes} / ${c.cupoMaximo}`;
+  if (c.cupoMinimo != null) return `${c.estudiantes} (mín. ${c.cupoMinimo})`;
+  return String(c.estudiantes);
+}
 export function useOpcionesGestionAcademica() {
   return useDatos<OpcionesGestionAcademica>("/api/gestion-academica/opciones");
 }

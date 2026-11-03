@@ -129,7 +129,7 @@ export default function GestionTareasProfesorPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        <TopBar title="Portafolio Docente" pestanas={PESTANAS_PORTAFOLIO_DOCENTE} />
+        <TopBar title="Portafolio docente" pestanas={PESTANAS_PORTAFOLIO_DOCENTE} />
         {detalleId && !cargando && !error && !tareas.some(t => t.id === detalleId) && <p role="status" className="p-4 text-amber-200">Esta tarea ya no está disponible. <button type="button" className="underline" onClick={() => setDetalleId(null)}>Cerrar enlace</button></p>}
 
         <div className="p-8 max-w-5xl mx-auto w-full space-y-6">
@@ -137,7 +137,7 @@ export default function GestionTareasProfesorPage() {
           <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-2">
             <div>
               <h2 className="text-3xl font-black font-headline text-white tracking-tight">
-                Mis Tareas Creadas
+                Mis tareas creadas
               </h2>
               <p className="text-on-surface-variant font-body mt-1">
                 Supervisión del progreso y entregas de los estudiantes.
@@ -145,10 +145,10 @@ export default function GestionTareasProfesorPage() {
             </div>
             <button
               onClick={abrirCreacion}
-              className="bg-primary text-on-primary font-bold px-6 py-2.5 rounded-full flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all self-start md:self-auto"
+              className="bg-primary text-on-primary font-bold px-6 py-2.5 rounded-lg flex items-center gap-2 hover:opacity-90 transition-all self-start md:self-auto"
             >
               <span className="material-symbols-outlined">add</span>
-              Nueva Tarea
+              Nueva tarea
             </button>
           </header>
 
@@ -214,10 +214,10 @@ export default function GestionTareasProfesorPage() {
               <div className="grid grid-cols-1 gap-4">
                 {tareasVisibles.length === 0 ? (
                   <div className="text-center py-16 text-slate-400">
-                    <span className="material-symbols-outlined text-5xl mb-2 block">assignment</span>
+                    <span className="material-symbols-outlined text-5xl mb-2 block mx-auto">assignment</span>
                     {busqueda
                       ? "No hay tareas que coincidan con la búsqueda."
-                      : "Todavía no creaste ninguna tarea. Empezá con “Nueva Tarea”."}
+                      : "Todavía no creaste ninguna tarea. Empezá con “Nueva tarea”."}
                   </div>
                 ) : (
                   tareasVisibles.map((tarea) => {
@@ -238,7 +238,7 @@ export default function GestionTareasProfesorPage() {
                             >
                               {tarea.materia.toUpperCase()}
                             </span>
-                            <span className="px-3 py-1 text-[10px] font-bold rounded-full tracking-wider bg-fondo text-slate-300">
+                            <span className="px-3 py-1 text-[10px] font-bold rounded-lg tracking-wider bg-fondo text-slate-300">
                               {entregadas}/{total} ENTREGADAS
                             </span>
                           </div>
@@ -285,7 +285,7 @@ export default function GestionTareasProfesorPage() {
                             </button>
                             <button
                               onClick={() => setCorreccionId(tarea.id)}
-                              className="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold hover:opacity-90 transition-opacity active:scale-95"
+                              className="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-lg font-bold hover:opacity-90 transition-opacity"
                             >
                               <span className="material-symbols-outlined text-lg">grading</span>
                               <span>Corregir</span>
@@ -293,14 +293,14 @@ export default function GestionTareasProfesorPage() {
                             <button
                               onClick={() => abrirEdicion(tarea.id)}
                               aria-label="Editar tarea"
-                              className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-white hover:bg-surface-bright transition-colors active:scale-95"
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-white hover:bg-surface-bright transition-colors"
                             >
                               <span className="material-symbols-outlined text-lg">edit</span>
                             </button>
                             <button
                               onClick={() => borrarTarea(tarea.id)}
                               aria-label="Eliminar tarea"
-                              className="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-rose-400 hover:bg-rose-500/10 transition-colors active:scale-95"
+                              className="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                             >
                               <span className="material-symbols-outlined text-lg">delete</span>
                             </button>
@@ -316,7 +316,7 @@ export default function GestionTareasProfesorPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
                 <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-lienzo to-surface-container-lowest p-6 rounded-xl border border-outline-variant/20 relative overflow-hidden">
                   <div className="relative z-10">
-                    <h4 className="font-headline font-bold text-tertiary">Resumen Semanal</h4>
+                    <h4 className="font-headline font-bold text-tertiary">Resumen semanal</h4>
                     <p className="text-3xl font-black text-white mt-2">
                       {porcentaje}%{" "}
                       <span className="text-sm font-medium text-emerald-400">
@@ -358,7 +358,7 @@ export default function GestionTareasProfesorPage() {
         <button
           onClick={abrirCreacion}
           aria-label="Nueva tarea"
-          className="fixed bottom-8 right-8 z-[70] w-16 h-16 bg-acento text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-transform"
+          className="fixed bottom-8 right-8 z-[70] w-16 h-16 bg-acento text-white rounded-full shadow-2xl flex items-center justify-center transition-transform"
         >
           <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
             add
@@ -392,7 +392,7 @@ export default function GestionTareasProfesorPage() {
                     setDetalleId(null);
                     abrirEdicion(tarea.id);
                   }}
-                  className="flex items-center gap-2 bg-surface-container-high text-white px-5 py-2.5 rounded-full font-bold hover:bg-surface-bright transition-colors active:scale-95"
+                  className="flex items-center gap-2 bg-surface-container-high text-white px-5 py-2.5 rounded-lg font-bold hover:bg-surface-bright transition-colors"
                 >
                   <span className="material-symbols-outlined text-lg">edit</span>
                   Editar tarea
@@ -402,7 +402,7 @@ export default function GestionTareasProfesorPage() {
                     setDetalleId(null);
                     setCorreccionId(tarea.id);
                   }}
-                  className="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold hover:opacity-90 transition-opacity active:scale-95"
+                  className="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-lg font-bold hover:opacity-90 transition-opacity"
                 >
                   <span className="material-symbols-outlined text-lg">grading</span>
                   Corregir entregas

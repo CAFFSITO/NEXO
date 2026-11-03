@@ -145,7 +145,7 @@ export default function BibliotecaNacionalPage() {
   };
 
   return (
-    <div className="bg-fondo min-h-screen text-[#ecdcff] font-body">
+    <div className="bg-fondo min-h-screen text-on-surface font-body">
       <Sidebar
         usuario={usuario ?? { nombre: "", rol }}
         onNavegar={handleNavegar}
@@ -182,7 +182,7 @@ export default function BibliotecaNacionalPage() {
                 ))
               ) : (
                 <div className="text-center py-16 text-slate-400">
-                  <span className="material-symbols-outlined text-4xl block mb-3">search_off</span>
+                  <span className="material-symbols-outlined text-4xl block mx-auto mb-3">search_off</span>
                   <p>No se encontraron recursos con esos filtros.</p>
                 </div>
               )}

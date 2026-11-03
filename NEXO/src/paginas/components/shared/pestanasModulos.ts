@@ -7,8 +7,8 @@ import type { PestanaTopBar } from "./TopBar";
 
 /** Portafolio del estudiante: las tres son la misma sección del menú. */
 export const PESTANAS_PORTAFOLIO: PestanaTopBar[] = [
-  { label: "Mis Cursos", ruta: "/portafolio/mis-cursos" },
-  { label: "Mis Tareas", ruta: "/portafolio/mis-tareas" },
+  { label: "Mis cursos", ruta: "/portafolio/mis-cursos" },
+  { label: "Mis tareas", ruta: "/portafolio/mis-tareas" },
   { label: "Calificaciones", ruta: "/portafolio/calificaciones" },
 ];
 
@@ -21,9 +21,9 @@ export const PESTANAS_OBJETIVOS: PestanaTopBar[] = [
 
 export const PESTANAS_PORTAFOLIO_DOCENTE: PestanaTopBar[] = [
   { label: "Dashboard", ruta: "/portafolio-docente" },
-  { label: "Gestión de Tareas", ruta: "/portafolio/gestion" },
-  { label: "Diario Reflexivo", ruta: "/portafolio-docente/diario" },
-  { label: "Aula Virtual", ruta: "/portafolio-docente/aula-virtual" },
+  { label: "Gestión de tareas", ruta: "/portafolio/gestion" },
+  { label: "Diario reflexivo", ruta: "/portafolio-docente/diario" },
+  { label: "Aula virtual", ruta: "/portafolio-docente/aula-virtual" },
 ];
 
 export const PESTANAS_BIBLIOTECA: PestanaTopBar[] = [

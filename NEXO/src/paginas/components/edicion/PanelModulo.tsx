@@ -47,7 +47,7 @@ export default function PanelModulo({ moduloId, borrador, guardado, catalogo, on
   return (
     <div className="flex flex-col gap-5 e-aparecer">
       <header className="e-panel relative overflow-hidden p-5">
-        <span aria-hidden="true" className="absolute -right-10 -top-10 h-36 w-36 rounded-full opacity-30 blur-3xl" style={{ background: modulo.color }} />
+        <span aria-hidden="true" className="absolute -right-10 -top-10 h-36 w-36 rounded-full opacity-30 hidden" style={{ background: modulo.color }} />
         <div className="relative flex items-start gap-4">
           <span className="e-modulo-icono !h-14 !w-14 !rounded-2xl" style={{ background: modulo.color + "2e", color: modulo.color }} aria-hidden="true">
             <span className="material-symbols-outlined !text-[28px]">{estado.icono || modulo.icono}</span>

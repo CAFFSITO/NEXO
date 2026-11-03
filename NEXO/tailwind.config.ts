@@ -5,7 +5,7 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
-  darkMode: "class",
+  darkMode: ["selector", '[data-modo="oscuro"]'],
   theme: {
     extend: {
       colors: {
@@ -15,6 +15,8 @@ const config: Config = {
         // paleta original como valor por defecto) y que servicios/tema.ts
         // reemplaza al entrar a una escuela con otra paleta.
         acento: "var(--nexo-acento)",
+        "acento-vivo": "var(--nexo-acento-vivo)",
+        "acento-oscuro": "var(--nexo-acento-oscuro)",
         fondo: "var(--nexo-fondo-pagina)",
         lienzo: "var(--nexo-lienzo)",
 
@@ -46,7 +48,7 @@ const config: Config = {
         "secondary-container": "var(--nexo-secundario-contenedor)",
         "secondary-fixed": "#ebddff",
         "secondary-fixed-dim": "var(--nexo-secundario)",
-        "on-secondary": "#38265a",
+        "on-secondary": "var(--nexo-sobre-secundario)",
         "on-secondary-container": "var(--nexo-sobre-secundario)",
         "on-secondary-fixed": "#231043",
         "on-secondary-fixed-variant": "#4f3d72",
@@ -70,10 +72,17 @@ const config: Config = {
         "inverse-on-surface": "#372a4c",
 
         // === ERROR ===
-        error: "#ffb4ab",
-        "error-container": "#93000a",
-        "on-error": "#690005",
-        "on-error-container": "#ffdad6",
+        error: "var(--nexo-error)",
+        "error-container": "var(--nexo-error-contenedor)",
+        "on-error": "#ffffff",
+        "on-error-container": "var(--nexo-sobre-error-contenedor)",
+
+        // === NEUTROS DEL TEMA ===
+        // "white" es la tinta del tema (ver estilos/paleta-modos.css); "blanco" es
+        // blanco de verdad en los dos modos (texto sobre fotos, botones de color).
+        blanco: "#ffffff",
+        tinta: "var(--nexo-tinta)",
+        linea: "var(--nexo-linea)",
 
         // === BORDES ===
         outline: "var(--nexo-borde)",
@@ -105,8 +114,8 @@ const config: Config = {
         full: "9999px",
       },
       fontFamily: {
-        headline: ["Plus Jakarta Sans", "sans-serif"],
-        body: ["Inter", "sans-serif"],
+        headline: ["Inter", "system-ui", "sans-serif"],
+        body: ["Inter", "system-ui", "sans-serif"],
         label: ["Inter", "sans-serif"],
       },
     },

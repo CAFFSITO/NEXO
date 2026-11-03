@@ -8,7 +8,7 @@ export default function QuickActionChip({ label, icon, onClick }: QuickActionChi
   return (
     <button
       onClick={onClick}
-      className="px-4 py-2 bg-secondary-container hover:bg-secondary-container/80 text-primary-fixed text-xs font-medium rounded-full transition-all border border-primary/10 flex items-center gap-2"
+      className="px-4 py-2 bg-secondary-container hover:bg-secondary-container/80 text-on-secondary-container text-xs font-medium rounded-lg transition-all border border-primary/10 flex items-center gap-2"
     >
       <span className="material-symbols-outlined text-sm">{icon}</span>
       {label}

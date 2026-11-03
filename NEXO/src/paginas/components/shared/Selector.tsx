@@ -295,7 +295,7 @@ export default function Selector({
           role="listbox"
           aria-label={ariaLabel}
           aria-labelledby={ariaLabel ? undefined : ariaLabelledby}
-          className="nexo-selector-lista fixed z-[1100] overflow-y-auto rounded-xl border border-white/10 bg-surface-container-high p-1.5 shadow-2xl shadow-black/60"
+          className="nexo-selector-lista fixed z-[1100] overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-low p-1.5 shadow-xl"
           style={{ ...posicion, maxWidth: Math.min(440, window.innerWidth - 16) }}
           // Que tocar la lista no le saque el foco al botón.
           onMouseDown={(e) => e.preventDefault()}
@@ -319,7 +319,7 @@ export default function Selector({
                   onClick={() => elegir(i)}
                   className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-[15px] leading-snug transition-colors ${
                     o.deshabilitada ? "cursor-not-allowed opacity-40" : ""
-                  } ${i === activo ? "bg-white/8" : ""} ${esElegida ? "font-semibold text-primary" : "text-on-surface"}`}
+                  } ${i === activo ? "bg-white/5" : ""} ${esElegida ? "font-semibold text-primary" : "text-on-surface"}`}
                 >
                   <span className={o.etiqueta ? "" : "opacity-50"}>{o.etiqueta || "—"}</span>
                   {esElegida && (

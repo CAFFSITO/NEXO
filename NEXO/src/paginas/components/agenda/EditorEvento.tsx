@@ -176,7 +176,7 @@ export default function EditorEvento({ pedido, categorias, onCerrar, onGuardado 
               <div className="mt-2 flex flex-wrap items-center gap-1.5" role="group" aria-label="Color">
                 {COLORES_EVENTO.map((c) => (
                   <button key={c} type="button" aria-label={`Color ${c}`} aria-pressed={color === c}
-                    className={`h-6 w-6 rounded-full border-2 transition ${color === c ? "scale-110 border-white" : "border-transparent hover:scale-110"}`}
+                    className={`h-6 w-6 rounded-full border-2 transition ${color === c ? "scale-110 border-blanco" : "border-transparent"}`}
                     style={{ background: c }} onClick={() => set("color", c === categoria?.color ? null : c)} />
                 ))}
               </div>

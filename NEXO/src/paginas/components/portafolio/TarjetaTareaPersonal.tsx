@@ -15,7 +15,7 @@ export default function TarjetaTareaPersonal({
   onEliminar,
 }: TarjetaTareaPersonalProps) {
   return (
-    <div className="bg-lienzo rounded-[14px] p-6 hover:shadow-xl transition-all border border-transparent hover:border-[#4900a6]/50">
+    <div className="bg-lienzo rounded-[14px] p-6 hover:shadow-xl transition-all border border-transparent hover:border-acento/50">
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <div className="flex items-center gap-4 min-w-0">
           {/* Checkbox */}

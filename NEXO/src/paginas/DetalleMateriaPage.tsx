@@ -89,7 +89,7 @@ export default function DetalleMateriaPage() {
               className="flex items-center gap-1 text-sm text-slate-400 hover:text-white transition-colors mb-6"
             >
               <span className="material-symbols-outlined text-lg">arrow_back</span>
-              {esProfesor ? "Gestión de Tareas" : "Mis Cursos"}
+              {esProfesor ? "Gestión de tareas" : "Mis cursos"}
             </button>
 
             {cargando ? (
@@ -271,7 +271,7 @@ function CompositorAviso({
         <button
           onClick={publicar}
           disabled={!contenido.trim() || enviando}
-          className="px-6 py-2 bg-acento text-white rounded-full text-sm font-bold hover:bg-[#d15aff] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2 bg-acento text-white rounded-lg text-sm font-bold hover:bg-acento-vivo disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {enviando ? "Publicando…" : "Publicar aviso"}
         </button>
@@ -417,7 +417,7 @@ function TarjetaAviso({
             <button
               onClick={guardarEdicion}
               disabled={!editContenido.trim()}
-              className="px-4 py-1.5 bg-acento text-white rounded-full text-sm font-bold hover:bg-[#d15aff] disabled:opacity-40"
+              className="px-4 py-1.5 bg-acento text-white rounded-lg text-sm font-bold hover:bg-acento-vivo disabled:opacity-40"
             >
               Guardar
             </button>
@@ -504,12 +504,12 @@ function TarjetaAviso({
             if (e.key === "Enter") enviar();
           }}
           placeholder="Escribí una respuesta…"
-          className="flex-1 bg-fondo text-white text-sm rounded-full px-4 py-2 border border-white/5 focus:ring-1 focus:ring-acento placeholder-white/30"
+          className="flex-1 bg-fondo text-white text-sm rounded-lg px-4 py-2 border border-white/5 focus:ring-1 focus:ring-acento placeholder-white/30"
         />
         <button
           onClick={enviar}
           disabled={!respuesta.trim() || enviando}
-          className="px-4 py-2 bg-acento text-white rounded-full text-sm font-bold hover:bg-[#d15aff] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 bg-acento text-white rounded-lg text-sm font-bold hover:bg-acento-vivo disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Responder
         </button>

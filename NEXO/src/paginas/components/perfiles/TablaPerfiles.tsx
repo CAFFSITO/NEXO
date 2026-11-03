@@ -28,9 +28,9 @@ const BOTON_FILA =
   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-2 text-sm font-semibold transition-colors";
 
 const PUNTO_ESTADO: Record<EstadoPerfil, { color: string; label: string }> = {
-  activo: { color: "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]", label: "Activo" },
+  activo: { color: "bg-green-500", label: "Activo" },
   inactivo: { color: "bg-slate-500", label: "Inactivo" },
-  papelera: { color: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]", label: "En papelera" },
+  papelera: { color: "bg-amber-500", label: "En papelera" },
 };
 
 // Cuántos días le quedan a un perfil en la papelera antes del borrado definitivo
@@ -66,13 +66,13 @@ export default function TablaPerfiles({
   perfilesEscuela,
 }: TablaPerfilesProps) {
   return (
-    <div className="bg-surface-container-lowest rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl">
+    <div className="nx-tarjeta overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full min-w-[760px] text-left border-collapse">
           <thead>
             <tr className="bg-white/5 text-slate-400 text-[11px] uppercase tracking-[0.2em] font-black">
-              <th className="px-8 py-5">Perfil Académico</th>
-              <th className="px-6 py-5">Rol Institucional</th>
+              <th className="px-8 py-5">Perfil académico</th>
+              <th className="px-6 py-5">Rol institucional</th>
               <th className="px-6 py-5">Asignación / Curso</th>
               <th className="px-6 py-5">Estado</th>
               <th className="px-8 py-5 text-right">Acciones</th>
@@ -82,7 +82,7 @@ export default function TablaPerfiles({
             {perfiles.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-8 py-16 text-center text-slate-400">
-                  <span className="material-symbols-outlined text-4xl block mb-2 opacity-50">
+                  <span className="material-symbols-outlined text-4xl block mx-auto mb-2 opacity-50">
                     person_search
                   </span>
                   No se encontraron perfiles con los filtros aplicados.

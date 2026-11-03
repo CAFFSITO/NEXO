@@ -96,12 +96,12 @@ export default function ChatClase({ conversacionId }: ChatClaseProps) {
           aria-label="Mensaje a la clase"
           onChange={(e) => setTexto(e.target.value)}
           placeholder="Escribí a la clase…"
-          className="flex-1 bg-white/5 rounded-full px-3 py-1.5 text-sm text-white placeholder:text-slate-500 outline-none focus:ring-1 focus:ring-primary"
+          className="flex-1 bg-white/5 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-slate-500 outline-none focus:ring-1 focus:ring-primary"
         />
         <button
           type="submit"
           disabled={enviando || !texto.trim()}
-          className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center hover:opacity-90 active:scale-95"
+          className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center hover:opacity-90"
           aria-label="Enviar"
         >
           <span className="material-symbols-outlined text-lg">send</span>

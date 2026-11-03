@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 // src/servicios/edicion.ts
 // El MODO EDICIÓN de la dirección: la jerarquía del menú (secciones y orden),
 // los módulos (ocultar, desocultar, nombre, ícono y checklist de funciones) y
@@ -6,7 +7,7 @@
 // dirección; acá se arma el borrador y se lo manda.
 
 import { enviar, useDatos } from "./api";
-import type { AlgoritmoCatalogo, ModuloCatalogo, SeccionMenu } from "./maestro";
+import { MODULOS_RETIRADOS, type AlgoritmoCatalogo, type ModuloCatalogo, type SeccionMenu } from "./maestro";
 import type { Tema } from "./tema";
 import type { Personalizacion } from "./personalizacion";
 
@@ -82,7 +83,7 @@ export interface Edicion {
 }
 
 /** Lo que la dirección puede cambiar: el borrador sobre el que trabaja la pantalla. */
-export type Borrador = Pick<Edicion, "secciones" | "modulos" | "perfiles" | "algoritmos" | "jerarquia" | "capacidades" | "personalizacion">;
+export type Borrador = Pick<Edicion, "secciones" | "modulos" | "perfiles" | "algoritmos" | "jerarquia" | "capacidades" | "personalizacion" | "tema">;
 
 /** Lo que solo algunos perfiles pueden hacer; la dirección elige cuáles. */
 export interface CapacidadCatalogo { id: string; modulo: string; nombre: string; descripcion: string; arquetipos: string[]; porDefecto: string[] }
@@ -90,7 +91,10 @@ export interface CapacidadCatalogo { id: string; modulo: string; nombre: string;
 export interface Cambio { icono: string; texto: string }
 
 export function useEdicion() {
-  return useDatos<Edicion>("/api/instancia/edicion");
+  const r = useDatos<Edicion>("/api/instancia/edicion");
+  // Los módulos retirados de la interfaz (ver servicios/maestro.ts) no se ofrecen para mostrar.
+  const datos = useMemo(() => (r.datos ? { ...r.datos, catalogo: { ...r.datos.catalogo, modulos: r.datos.catalogo.modulos.filter((m) => !MODULOS_RETIRADOS.has(m.id)) } } : null), [r.datos]);
+  return { ...r, datos };
 }
 
 function cuerpoDe(borrador: Borrador) {
@@ -102,6 +106,8 @@ function cuerpoDe(borrador: Borrador) {
     jerarquia: borrador.jerarquia,
     capacidades: borrador.capacidades,
     personalizacion: borrador.personalizacion,
+    // Solo los colores: la redondez y el movimiento son del Maestro.
+    tema: { acento: borrador.tema.acento, primario: borrador.tema.primario, secundario: borrador.tema.secundario, terciario: borrador.tema.terciario, fondo: borrador.tema.fondo, superficie: borrador.tema.superficie },
   };
 }
 

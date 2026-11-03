@@ -34,7 +34,7 @@ export default function ResumenQuejasCard({
       </div>
       <h3 className="text-lg font-bold mb-6 font-headline text-white flex items-center gap-2">
         <span className="material-symbols-outlined text-primary">data_usage</span>
-        Resumen Semanal
+        Resumen semanal
       </h3>
 
       <div className="grid grid-cols-2 gap-4 mb-8">

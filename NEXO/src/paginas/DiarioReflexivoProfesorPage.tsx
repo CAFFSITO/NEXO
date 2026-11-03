@@ -206,13 +206,13 @@ export default function DiarioReflexivoProfesorPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        <TopBar title="Portafolio Docente" pestanas={PESTANAS_PORTAFOLIO_DOCENTE} />
+        <TopBar title="Portafolio docente" pestanas={PESTANAS_PORTAFOLIO_DOCENTE} />
 
         <div className="p-8 max-w-6xl mx-auto w-full">
           {/* Header vista + buscador */}
           <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
             <h2 className="text-4xl font-extrabold text-white font-headline border-b-4 border-acento inline-block pb-1">
-              Diario Reflexivo
+              Diario reflexivo
             </h2>
             <div className="relative w-full md:w-80">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
@@ -253,7 +253,7 @@ export default function DiarioReflexivoProfesorPage() {
               <div className="text-center py-16 text-slate-400">Cargando el diario…</div>
             ) : error ? (
               <div className="text-center py-16 text-[#EF4444]">
-                <span className="material-symbols-outlined text-5xl mb-2 block">error</span>
+                <span className="material-symbols-outlined text-5xl mb-2 block mx-auto">error</span>
                 {error}
                 <div className="mt-4">
                   <button
@@ -266,7 +266,7 @@ export default function DiarioReflexivoProfesorPage() {
               </div>
             ) : registrosVisibles.length === 0 ? (
               <div className="text-center py-16 text-slate-400">
-                <span className="material-symbols-outlined text-5xl mb-2 block">
+                <span className="material-symbols-outlined text-5xl mb-2 block mx-auto">
                   menu_book
                 </span>
                 {busqueda
@@ -288,7 +288,7 @@ export default function DiarioReflexivoProfesorPage() {
         </div>
 
         <footer className="mt-auto py-8 text-center text-slate-500 text-xs tracking-widest uppercase font-label">
-          © 2026 Portafolio Docente • Sistema de Reflexión Continua
+          © 2026 Portafolio docente • Sistema de reflexión continua
         </footer>
       </main>
     </div>

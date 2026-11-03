@@ -28,9 +28,9 @@ export default function ResumenCalificaciones({
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
       {/* Promedio general */}
       <div className="bg-lienzo rounded-xl p-8 border border-white/5 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl -mr-10 -mt-10" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 hidden -mr-10 -mt-10" />
         <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest">
-          Promedio General
+          Promedio general
         </p>
         {/* "—" cuando no hay ninguna nota todavía: un promedio de cero sería
             una acusación falsa. */}

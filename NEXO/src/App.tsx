@@ -1,5 +1,6 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useTransition, type ComponentType } from "react";
 import ErrorBoundary from "./paginas/components/shared/ErrorBoundary";
+import Sidebar from "./paginas/components/shared/Sidebar";
 import EstadoConexion from "./paginas/components/shared/EstadoConexion";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -13,62 +14,76 @@ import {
   type Usuario,
 } from "./navegacion";
 import { iniciarSesion, sesionActual, cerrarSesionEnServidor } from "./servicios/sesion";
-import { consultarAcceso, olvidarPermisos, type ResultadoAcceso } from "./servicios/permisos";
+import { accesoRecordado, consultarAcceso, olvidarPermisos, type ResultadoAcceso } from "./servicios/permisos";
 import { InstanciaContext, pedirInstancia, useInstancia, type Instancia } from "./servicios/instancia";
 import { aplicarTema } from "./servicios/tema";
 import { aplicarPreferencias } from "./servicios/aplicarPreferencias";
 import { olvidarPush } from "./servicios/push";
-import { inicioPara } from "./paginas/components/shared/navegacionItems";
-const LoginPage = lazy(() => import("./paginas/LoginPage.tsx"));
-const ConfiguracionCuentaPage = lazy(() => import("./paginas/ConfiguracionCuentaPage.tsx"));
-const RecuperarContrasenaPage = lazy(() => import("./paginas/RecuperarContrasenaPage.tsx"));
-const AyudaDeAccesoPage = lazy(() => import("./paginas/AyudaDeAccesoPage.tsx"));
-const AsistenciaIAPage = lazy(() => import("./paginas/AsistenciaIAPage.tsx"));
-const BibliotecaPage = lazy(() => import("./paginas/BibliotecaPage.tsx"));
-const DocumentosPage = lazy(() => import("./paginas/DocumentosPage.tsx"));
-const ProyectosPage = lazy(() => import("./paginas/ProyectosPage.tsx"));
-const MetodosEstudioPage = lazy(() => import("./paginas/MetodosEstudioPage.tsx"));
-const BibliotecaNacionalPage = lazy(() => import("./paginas/BibliotecaNacionalPage.tsx"));
-const ComunidadPage = lazy(() => import("./paginas/ComunidadPage.tsx"));
-const DebatesPage = lazy(() => import("./paginas/DebatesPage.tsx"));
-const ChatPage = lazy(() => import("./paginas/ChatPage.tsx"));
-const NotificacionesPage = lazy(() => import("./paginas/NotificacionesPage.tsx"));
-const DashboardProfesorPage = lazy(() => import("./paginas/DashboardProfesorPage.tsx"));
-const PanelBibliotecarioPage = lazy(() => import("./paginas/PanelBibliotecarioPage.tsx"));
-const PortalCentroEstudiantesPage = lazy(() => import("./paginas/PortalCentroEstudiantesPage.tsx"));
-const GestionQuejasPage = lazy(() => import("./paginas/GestionQuejasPage.tsx"));
-const CalendarioInstitucionalPage = lazy(() => import("./paginas/CalendarioInstitucionalPage.tsx"));
-const CursosActivosPage = lazy(() => import("./paginas/CursosActivosPage.tsx"));
-const PerfilesAcademicosPage = lazy(() => import("./paginas/PerfilesAcademicosPage.tsx"));
-const PanelInstitucionalPage = lazy(() => import("./paginas/PanelInstitucionalPage.tsx"));
-const ReportesPage = lazy(() => import("./paginas/ReportesPage.tsx"));
-const GestionInstitucionesPage = lazy(() => import("./paginas/GestionInstitucionesPage.tsx"));
-const SaludSistemaPage = lazy(() => import("./paginas/SaludSistemaPage.tsx"));
-const TendenciasPage = lazy(() => import("./paginas/TendenciasPage.tsx"));
-const CompetenciasPage = lazy(() => import("./paginas/CompetenciasPage.tsx"));
-const DashboardObjetivosPage = lazy(() => import("./paginas/DashboardObjetivosPage.tsx"));
-const HabitosPage = lazy(() => import("./paginas/HabitosPage.tsx"));
-const MisMetasPage = lazy(() => import("./paginas/MisMetasPage.tsx"));
-const CalificacionesPage = lazy(() => import("./paginas/CalificacionesPage.tsx"));
-const AulaVirtualEstudiantePage = lazy(() => import("./paginas/AulaVirtualEstudiantePage.tsx"));
-const AulaVirtualProfesorPage = lazy(() => import("./paginas/AulaVirtualProfesorPage.tsx"));
-const MisCursosEstudiantePage = lazy(() => import("./paginas/MisCursosEstudiantePage.tsx"));
-const MisTareasEstudiantePage = lazy(() => import("./paginas/MisTareasEstudiantePage.tsx"));
-const DetalleMateriaPage = lazy(() => import("./paginas/DetalleMateriaPage.tsx"));
-const FamiliaCalendarioPage = lazy(() => import("./paginas/FamiliaCalendarioPage.tsx"));
-const FamiliaComunicadosPage = lazy(() => import("./paginas/FamiliaComunicadosPage.tsx"));
-const MisCursosPreceptorPage = lazy(() => import("./paginas/MisCursosPreceptorPage.tsx"));
-const DiarioReflexivoProfesorPage = lazy(() => import("./paginas/DiarioReflexivoProfesorPage.tsx"));
-const GestionTareasProfesorPage = lazy(() => import("./paginas/GestionTareasProfesorPage.tsx"));
-const EnviarQuejaPage = lazy(() => import("./paginas/EnviarQuejaPage.tsx"));
-const MaestroEstudioPage = lazy(() => import("./paginas/MaestroEstudioPage.tsx"));
-const ModoEdicionPage = lazy(() => import("./paginas/ModoEdicionPage.tsx"));
-const AnunciosPage = lazy(() => import("./paginas/AnunciosPage.tsx"));
-const AnunciosMaestroPage = lazy(() => import("./paginas/AnunciosMaestroPage.tsx"));
+import { accesosDeRol, inicioPara } from "./paginas/components/shared/navegacionItems";
+
+// Cada pantalla se descarga recién cuando hace falta (lazy), pero se puede
+// pedir antes: después de entrar, en los ratos libres, NEXO trae las pantallas
+// del menú de esa persona para que tocar un ítem sea instantáneo.
+const cargadores = new WeakMap<object, () => Promise<unknown>>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- el mismo tipo que pide React.lazy
+function diferida<T extends ComponentType<any>>(cargar: () => Promise<{ default: T }>) {
+  let promesa: Promise<{ default: T }> | null = null;
+  // Si falla (sin conexión), se puede volver a intentar: no queda guardado el error.
+  const una = () => (promesa ??= cargar().catch((e) => { promesa = null; throw e; }));
+  const componente = lazy(una);
+  cargadores.set(componente, una);
+  return componente;
+}
+
+const LoginPage = diferida(() => import("./paginas/LoginPage.tsx"));
+const ConfiguracionCuentaPage = diferida(() => import("./paginas/ConfiguracionCuentaPage.tsx"));
+const RecuperarContrasenaPage = diferida(() => import("./paginas/RecuperarContrasenaPage.tsx"));
+const AyudaDeAccesoPage = diferida(() => import("./paginas/AyudaDeAccesoPage.tsx"));
+const AsistenciaIAPage = diferida(() => import("./paginas/AsistenciaIAPage.tsx"));
+const BibliotecaPage = diferida(() => import("./paginas/BibliotecaPage.tsx"));
+const DocumentosPage = diferida(() => import("./paginas/DocumentosPage.tsx"));
+const MetodosEstudioPage = diferida(() => import("./paginas/MetodosEstudioPage.tsx"));
+const BibliotecaNacionalPage = diferida(() => import("./paginas/BibliotecaNacionalPage.tsx"));
+const ComunidadPage = diferida(() => import("./paginas/ComunidadPage.tsx"));
+const DebatesPage = diferida(() => import("./paginas/DebatesPage.tsx"));
+const ChatPage = diferida(() => import("./paginas/ChatPage.tsx"));
+const NotificacionesPage = diferida(() => import("./paginas/NotificacionesPage.tsx"));
+const DashboardProfesorPage = diferida(() => import("./paginas/DashboardProfesorPage.tsx"));
+const PanelBibliotecarioPage = diferida(() => import("./paginas/PanelBibliotecarioPage.tsx"));
+const PortalCentroEstudiantesPage = diferida(() => import("./paginas/PortalCentroEstudiantesPage.tsx"));
+const GestionQuejasPage = diferida(() => import("./paginas/GestionQuejasPage.tsx"));
+const CalendarioInstitucionalPage = diferida(() => import("./paginas/CalendarioInstitucionalPage.tsx"));
+const CursosActivosPage = diferida(() => import("./paginas/CursosActivosPage.tsx"));
+const PerfilesAcademicosPage = diferida(() => import("./paginas/PerfilesAcademicosPage.tsx"));
+const PanelInstitucionalPage = diferida(() => import("./paginas/PanelInstitucionalPage.tsx"));
+const ReportesPage = diferida(() => import("./paginas/ReportesPage.tsx"));
+const GestionInstitucionesPage = diferida(() => import("./paginas/GestionInstitucionesPage.tsx"));
+const SaludSistemaPage = diferida(() => import("./paginas/SaludSistemaPage.tsx"));
+const TendenciasPage = diferida(() => import("./paginas/TendenciasPage.tsx"));
+const CompetenciasPage = diferida(() => import("./paginas/CompetenciasPage.tsx"));
+const DashboardObjetivosPage = diferida(() => import("./paginas/DashboardObjetivosPage.tsx"));
+const HabitosPage = diferida(() => import("./paginas/HabitosPage.tsx"));
+const MisMetasPage = diferida(() => import("./paginas/MisMetasPage.tsx"));
+const CalificacionesPage = diferida(() => import("./paginas/CalificacionesPage.tsx"));
+const AulaVirtualEstudiantePage = diferida(() => import("./paginas/AulaVirtualEstudiantePage.tsx"));
+const AulaVirtualProfesorPage = diferida(() => import("./paginas/AulaVirtualProfesorPage.tsx"));
+const MisCursosEstudiantePage = diferida(() => import("./paginas/MisCursosEstudiantePage.tsx"));
+const MisTareasEstudiantePage = diferida(() => import("./paginas/MisTareasEstudiantePage.tsx"));
+const DetalleMateriaPage = diferida(() => import("./paginas/DetalleMateriaPage.tsx"));
+const FamiliaCalendarioPage = diferida(() => import("./paginas/FamiliaCalendarioPage.tsx"));
+const FamiliaComunicadosPage = diferida(() => import("./paginas/FamiliaComunicadosPage.tsx"));
+const MisCursosPreceptorPage = diferida(() => import("./paginas/MisCursosPreceptorPage.tsx"));
+const DiarioReflexivoProfesorPage = diferida(() => import("./paginas/DiarioReflexivoProfesorPage.tsx"));
+const GestionTareasProfesorPage = diferida(() => import("./paginas/GestionTareasProfesorPage.tsx"));
+const EnviarQuejaPage = diferida(() => import("./paginas/EnviarQuejaPage.tsx"));
+const MaestroEstudioPage = diferida(() => import("./paginas/MaestroEstudioPage.tsx"));
+const ModoEdicionPage = diferida(() => import("./paginas/ModoEdicionPage.tsx"));
+const AnunciosPage = diferida(() => import("./paginas/AnunciosPage.tsx"));
+const AnunciosMaestroPage = diferida(() => import("./paginas/AnunciosMaestroPage.tsx"));
 // La capa de avisos obligatorios: se monta en toda la app (fuera de las rutas)
 // y tapa cualquier pantalla mientras haya avisos sin leer.
-const AvisosObligatorios = lazy(() => import("./paginas/components/anuncios/BandejaObligatoria.tsx"));
-const AlertasMensajes = lazy(() => import("./paginas/components/chat/AlertasMensajes.tsx"));
+const AvisosObligatorios = diferida(() => import("./paginas/components/anuncios/BandejaObligatoria.tsx"));
+const AlertasMensajes = diferida(() => import("./paginas/components/chat/AlertasMensajes.tsx"));
 
 // Registro central: qué componente concreto dibuja cada página.
 const PAGINAS: Record<Exclude<Page, "login">, () => React.ReactElement> = {
@@ -79,7 +94,6 @@ const PAGINAS: Record<Exclude<Page, "login">, () => React.ReactElement> = {
   "asistencia-ia": () => <AsistenciaIAPage />,
   biblioteca: () => <BibliotecaPage />,
   documentos: () => <DocumentosPage />,
-  proyectos: () => <ProyectosPage />,
   "metodos-estudio": () => <MetodosEstudioPage />,
   "biblioteca-nacional": () => <BibliotecaNacionalPage />,
   comunidad: () => <ComunidadPage />,
@@ -138,8 +152,34 @@ const RUTAS_PUBLICAS = Object.entries(MAPA_RUTAS_PUBLICAS).map(
 /** Pantalla de espera mientras el servidor dice si la sesión guardada sigue viva. */
 function Cargando() {
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-background">
-      <p className="text-sm font-medium text-on-surface-variant/60">Abriendo NEXO...</p>
+    <div className="min-h-dvh flex flex-col items-center justify-center gap-5 bg-background" role="status">
+      <span className="grid h-12 w-12 place-items-center rounded-xl" style={{ background: "var(--nexo-acento)", color: "var(--nexo-sobre-acento)" }} aria-hidden="true">
+        <span className="material-symbols-outlined relleno" style={{ fontSize: 28 }}>hub</span>
+      </span>
+      <span className="nx-barra-carga w-32" aria-hidden="true" />
+      <p className="sr-only">Abriendo NEXO…</p>
+    </div>
+  );
+}
+
+/**
+ * Espera entre una pantalla y otra (el permiso o la pantalla todavía no
+ * llegaron): el menú queda donde estaba y arriba corre una barra, como en
+ * cualquier aplicación. Antes se tapaba todo con el logo.
+ */
+function CargandoPantalla() {
+  const { usuario, navegar, cerrarSesion } = useNavegacion();
+  if (!usuario || usuario.primerIngreso) return <Cargando />;
+  return (
+    <div className="flex bg-fondo min-h-screen">
+      <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
+      <main className="app-content flex min-h-screen flex-col" aria-busy="true">
+        <span className="nx-progreso-ruta" role="progressbar" aria-label="Abriendo la pantalla" />
+        <div className="nx-esperando mx-auto mt-[30vh] flex flex-col items-center gap-3 text-sm text-on-surface-variant" role="status">
+          <span className="material-symbols-outlined nx-giro" style={{ fontSize: 28 }} aria-hidden="true">progress_activity</span>
+          Abriendo…
+        </div>
+      </main>
     </div>
   );
 }
@@ -156,17 +196,17 @@ function SinPermiso({ motivo, temporal }: { motivo?: string; temporal?: boolean 
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center gap-4 bg-background px-6 text-center">
-      <span className="material-symbols-outlined text-4xl text-on-surface-variant/40">lock</span>
-      <p className="text-lg font-bold text-on-surface-variant">
+      <span className="material-symbols-outlined grid h-14 w-14 place-items-center rounded-full bg-surface-container-high text-on-surface-variant" aria-hidden="true">lock</span>
+      <p className="text-xl font-semibold text-on-surface">
         {motivo ?? "No tenés permiso para ver esta sección."}
       </p>
-      <p className="text-sm text-on-surface-variant/60">
+      <p className="max-w-sm text-sm text-on-surface-variant">
         {temporal ? "No pudimos comprobar el acceso. Volvé a intentarlo cuando se restablezca la conexión." : "Tu perfil no tiene acceso a esta parte de NEXO."}
       </p>
-      {temporal && <button onClick={() => window.location.reload()} className="px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold">Reintentar</button>}
+      {temporal && <button onClick={() => window.location.reload()} className="nx-btn nx-btn-primario">Reintentar</button>}
       <button
         onClick={() => navegar(usuario ? inicioPara(usuario.rol, instancia) : "/login")}
-        className="px-4 py-2 rounded-lg bg-primary/20 text-sm font-medium text-primary hover:bg-primary/30 transition"
+        className="nx-btn nx-btn-secundario"
       >
         Volver a mi inicio
       </button>
@@ -186,9 +226,13 @@ function SinPermiso({ motivo, temporal }: { motivo?: string; temporal?: boolean 
  */
 function Pantalla({ pagina }: { pagina: Exclude<Page, "login"> }) {
   const { usuario, revisandoSesion, sesionFinalizada } = useNavegacion();
+  const { instancia } = useInstancia();
   const location = useLocation();
   const [consulta, setConsulta] = useState<{ pagina: Page; usuarioId: number; acceso: ResultadoAcceso } | null>(null);
-  const acceso = consulta?.pagina === pagina && consulta?.usuarioId === usuario?.id ? consulta.acceso : null;
+  // Si cambia la configuración de la escuela se vuelve a preguntar en segundo
+  // plano: la pantalla sigue a la vista mientras tanto (no parpadea ni se pierde lo escrito).
+  // Lo ya permitido se usa al instante (sin esperar al servidor).
+  const acceso = (consulta?.pagina === pagina && consulta?.usuarioId === usuario?.id ? consulta.acceso : null) ?? accesoRecordado(pagina);
 
   useEffect(() => {
     if (!usuario) return;
@@ -201,7 +245,7 @@ function Pantalla({ pagina }: { pagina: Exclude<Page, "login"> }) {
     return () => {
       vigente = false;
     };
-  }, [usuario, pagina]);
+  }, [usuario, pagina, instancia]);
 
   if (revisandoSesion) return <Cargando />;
 
@@ -216,7 +260,7 @@ function Pantalla({ pagina }: { pagina: Exclude<Page, "login"> }) {
     return <Navigate to={RUTA_PRIMER_INGRESO} replace />;
   }
 
-  if (!acceso) return <Cargando />;
+  if (!acceso) return <CargandoPantalla />;
   if (!acceso.permitido) return <SinPermiso motivo={acceso.error} temporal={acceso.temporal} />;
 
   return PAGINAS[pagina]();
@@ -263,14 +307,14 @@ function EnConstruccion() {
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center gap-4 bg-background px-6 text-center">
-      <span className="material-symbols-outlined text-4xl text-primary">explore_off</span>
-      <p className="text-lg font-bold text-on-surface-variant">No encontramos esta página</p>
-      <p className="text-sm text-on-surface-variant/60">
+      <span className="material-symbols-outlined grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary" aria-hidden="true">explore_off</span>
+      <p className="text-xl font-semibold text-on-surface">No encontramos esta página</p>
+      <p className="text-sm text-on-surface-variant">
         Revisá la dirección o volvé a tu espacio para continuar.
       </p>
       <button
         onClick={() => navegar(usuario ? inicioPara(usuario.rol, instancia) : "/login")}
-        className="px-4 py-2 rounded-lg bg-primary/20 text-sm font-medium text-primary hover:bg-primary/30 transition"
+        className="nx-btn nx-btn-secundario"
       >
         Volver al inicio
       </button>
@@ -300,6 +344,9 @@ export default function App() {
     pedirInstancia(controlador.signal)
       .then((instancia) => {
         if (controlador.signal.aborted) return;
+        // Cambió la configuración de la escuela (o es la primera vez): los permisos
+        // recordados pueden ya no valer (un módulo que se mostró o se ocultó).
+        olvidarPermisos();
         aplicarTema(instancia.tema);
         aplicarPreferencias(instancia.personalizacion ?? null);
         setEstadoInstancia({ usuarioId: usuario.id, instancia });
@@ -315,6 +362,27 @@ export default function App() {
   }, [usuario]);
   const instanciaVigente = usuario && estadoInstancia?.usuarioId === usuario.id ? estadoInstancia.instancia : null;
   const instanciaLista = !usuario || estadoInstancia?.usuarioId === usuario.id;
+
+  // En los ratos libres después de entrar: las pantallas del menú de esta
+  // persona (el código y el permiso) quedan listas, así tocar un ítem es
+  // instantáneo. Se saltea si el dispositivo pide ahorrar datos.
+  const rolPrecarga = usuario && !usuario.primerIngreso && instanciaLista ? usuario.rol : null;
+  useEffect(() => {
+    if (!rolPrecarga) return;
+    if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
+    const paginas = [...new Set(accesosDeRol(rolPrecarga, instanciaVigente).map((i) => MAPA_RUTAS[i.ruta]?.pagina as Exclude<Page, "login"> | undefined).filter((p) => p !== undefined))];
+    let cancelado = false;
+    const libre = (f: () => void) => (typeof window.requestIdleCallback === "function" ? window.requestIdleCallback(f, { timeout: 3000 }) : window.setTimeout(f, 300));
+    const siguiente = (i: number) => {
+      if (cancelado || i >= paginas.length) return;
+      const pagina = paginas[i];
+      const elemento = PAGINAS[pagina]?.();
+      const cargar = elemento ? cargadores.get(elemento.type as object) : undefined;
+      Promise.allSettled([cargar?.(), consultarAcceso(pagina)]).then(() => libre(() => siguiente(i + 1)));
+    };
+    const espera = window.setTimeout(() => libre(() => siguiente(0)), 1200);
+    return () => { cancelado = true; window.clearTimeout(espera); };
+  }, [rolPrecarga, instanciaVigente]);
   const valorInstancia = useMemo(
     () => ({ instancia: instanciaVigente, recargar: recargarInstancia, lista: instanciaLista }),
     [instanciaVigente, recargarInstancia, instanciaLista]
@@ -358,7 +426,10 @@ export default function App() {
   // el historial, y "Atrás"/"Adelante" funcionan solos (Error 12.2). El control
   // de permisos ya no vive acá sino en <Pantalla>, para que también proteja a
   // quien escribe la dirección a mano.
-  const navegar = useCallback((ruta: string) => navigate(ruta), [navigate]);
+  // Va en una transición: si la pantalla nueva todavía no llegó, la anterior
+  // queda a la vista (con una barra arriba) en vez de un cartel de "cargando".
+  const [cambiandoPantalla, iniciarCambio] = useTransition();
+  const navegar = useCallback((ruta: string) => iniciarCambio(() => { void navigate(ruta); }), [navigate]);
 
   // El servidor valida las credenciales contra la tabla `usuarios`; la pantalla
   // ya no sabe ninguna contraseña. No se navega desde acá: al aparecer el
@@ -422,8 +493,9 @@ export default function App() {
         <AvisosObligatorios />
         {usuario && !usuario.primerIngreso && <AlertasMensajes key={usuario.id} />}
       </Suspense>
-      <ErrorBoundary key={location.pathname}>
-      <Suspense fallback={<Cargando />}>
+      {cambiandoPantalla && <span className="nx-progreso-ruta" role="progressbar" aria-label="Abriendo la pantalla" />}
+      <ErrorBoundary ruta={location.pathname}>
+      <Suspense fallback={<CargandoPantalla />}>
       <Routes>
         <Route path="/login" element={<PantallaLogin />} />
         {RUTAS_PUBLICAS.map(([ruta, pagina]) => (

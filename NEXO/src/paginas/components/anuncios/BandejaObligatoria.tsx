@@ -23,6 +23,7 @@ import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { useNavegacion } from "../../../navegacion";
 import { useInstancia } from "../../../servicios/instancia";
+import { inicioPara } from "../shared/navegacionItems";
 import { useTiempoReal, type EventoVivo } from "../../../servicios/tiempoReal";
 import { estiloAviso, marcarAvisoLeido, pedirPendientes, reaccionarAviso, type Aviso } from "../../../servicios/anuncios";
 import { activarPush, ayudaDesbloqueo, cerrarNotificacionesDeAvisos, estadoPush, type EstadoPush } from "../../../servicios/push";
@@ -67,6 +68,8 @@ function fusionar(actual: Aviso[], servidor: Aviso[], estados: Record<string, Es
 
 function Bandeja() {
   const { pathname } = useLocation();
+  const { usuario } = useNavegacion();
+  const { instancia } = useInstancia();
   const [cola, setCola] = useState<Aviso[]>([]);
   const [emojis, setEmojis] = useState<string[]>([]);
   const [estados, setEstados] = useState<Record<string, EstadoTarjeta>>({});
@@ -78,7 +81,8 @@ function Bandeja() {
   const [alDia, setAlDia] = useState(0);
   const [push, setPush] = useState<EstadoPush | null>(null);
   const [ocultarBanner, setOcultarBanner] = useState(() => {
-    try { return window.sessionStorage.getItem(CLAVE_BANNER) === "1"; } catch { return false; }
+    // "Ahora no" vale por 7 días en este dispositivo (antes volvía en cada sesión).
+    try { return Date.now() - Number(window.localStorage.getItem(CLAVE_BANNER) ?? 0) < 7 * 86_400_000; } catch { return false; }
   });
 
   const estadosRef = useRef(estados);
@@ -408,7 +412,10 @@ function Bandeja() {
     </div>
   );
 
-  const banner = !hayAvisos && !ocultarBanner && pathname !== "/anuncios" && (push === "inactivo" || push === "bloqueado") && (
+  // La invitación a activar las alertas aparece solo en la pantalla de inicio de
+  // cada persona: en las demás tapaba contenido (Anuncios y Mensajes tienen la suya).
+  const enInicio = usuario !== null && pathname === inicioPara(usuario.rol, instancia);
+  const banner = enInicio && !hayAvisos && !ocultarBanner && (push === "inactivo" || push === "bloqueado") && (
     <aside className="av-banner" role="status">
       <span className="material-symbols-outlined" aria-hidden="true">notifications_active</span>
       <div className="min-w-0 flex-1">
@@ -430,7 +437,7 @@ function Bandeja() {
             className="av-boton suave chico"
             onClick={() => {
               setOcultarBanner(true);
-              try { window.sessionStorage.setItem(CLAVE_BANNER, "1"); } catch { /* sin almacenamiento */ }
+              try { window.localStorage.setItem(CLAVE_BANNER, String(Date.now())); } catch { /* sin almacenamiento */ }
             }}
           >
             Ahora no

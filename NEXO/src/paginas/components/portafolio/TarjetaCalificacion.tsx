@@ -51,7 +51,7 @@ export default function TarjetaCalificacion({
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-4">
           <span
-            className={`px-4 py-1.5 rounded-full text-xs font-bold border ${estadoMeta.badge}`}
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold border ${estadoMeta.badge}`}
           >
             {estadoMeta.label}
           </span>

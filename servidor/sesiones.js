@@ -48,10 +48,36 @@ const OPCIONES_COOKIE = {
   httpOnly: true,   // el JavaScript de la página no puede leerla
   sameSite: "lax",  // no se manda desde otros sitios: frena ataques CSRF
   path: "/",
-  // secure exigiría HTTPS y en desarrollo la app corre en http://localhost.
-  // Al publicar de verdad, esto tiene que pasar a true.
-  secure: false,
+  // Con HTTPS, la cookie solo viaja cifrada. Se enciende sola si NEXO sirve
+  // HTTPS directo (NEXO_TLS_CERT) o con NEXO_COOKIE_SEGURA=1 cuando el HTTPS lo
+  // pone otro servidor adelante (Apache de XAMPP, por ejemplo). En desarrollo
+  // (http://localhost) queda apagada.
+  secure: process.env.NEXO_COOKIE_SEGURA === "1" || Boolean(process.env.NEXO_TLS_CERT),
 };
+
+// ── Freno a quien prueba contraseñas ────────────────────────────────────────
+// Sin esto, alguien podría probar miles de claves seguidas contra una cuenta
+// (las contraseñas iniciales son un nombre y unos números). Se cuentan los
+// intentos fallidos de los últimos 15 minutos por cuenta y por dirección IP;
+// al pasar el tope, el ingreso se frena hasta que se vacía la ventana. Entrar
+// bien borra los fallos de esa cuenta. Vive en memoria: reiniciar el servidor
+// lo limpia (no hace falta guardarlo).
+const VENTANA_MS = 15 * 60 * 1000;
+const TOPE_POR_CUENTA = 10;
+const TOPE_POR_IP = 50;
+const fallos = new Map();
+
+function fallosRecientes(clave, ahora) {
+  const lista = (fallos.get(clave) ?? []).filter((t) => ahora - t < VENTANA_MS);
+  if (lista.length) fallos.set(clave, lista);
+  else fallos.delete(clave);
+  return lista;
+}
+function anotarFallo(clave, ahora) {
+  fallos.set(clave, [...fallosRecientes(clave, ahora), ahora]);
+  // Higiene: que el mapa no crezca sin límite.
+  if (fallos.size > 20000) for (const k of fallos.keys()) { fallosRecientes(k, ahora); if (fallos.size <= 10000) break; }
+}
 
 // ── Armado del usuario que ve la aplicación ─────────────────────────────────
 
@@ -100,6 +126,14 @@ function describirUsuario(db, fila) {
   return usuario;
 }
 
+// ── Asignación mínima para entrar ───────────────────────────────────────────
+// Qué tiene que existir para que cada perfil "de curso" pueda iniciar sesión.
+const CONSULTA_ASIGNACION = {
+  estudiante: "SELECT 1 FROM inscripciones WHERE estudiante_id = ? LIMIT 1",
+  profesor: "SELECT 1 FROM catedras WHERE profesor_id = ? LIMIT 1",
+  preceptor: "SELECT 1 FROM cursos WHERE preceptor_id = ? LIMIT 1",
+};
+
 // ── Registro de las ventanillas ─────────────────────────────────────────────
 
 export function registrarSesiones(app, db) {
@@ -133,6 +167,14 @@ export function registrarSesiones(app, db) {
       return res.status(400).json({ error: "Falta el correo o la contraseña." });
     }
 
+    const ahora = Date.now();
+    const claveCuenta = "cuenta:" + email;
+    const claveIp = "ip:" + (req.ip ?? "");
+    if (fallosRecientes(claveCuenta, ahora).length >= TOPE_POR_CUENTA || fallosRecientes(claveIp, ahora).length >= TOPE_POR_IP) {
+      res.setHeader("Retry-After", String(VENTANA_MS / 1000));
+      return res.status(429).json({ error: "Hubo demasiados intentos fallidos. Esperá 15 minutos y probá de nuevo, o pedile ayuda a la dirección." });
+    }
+
     const fila = buscarPorEmail.get(email);
 
     // Correo inexistente, cuenta dada de baja y contraseña equivocada devuelven
@@ -142,7 +184,21 @@ export function registrarSesiones(app, db) {
     const coincide = await verificarContrasena(contrasena, hashAComparar);
 
     if (!fila || !coincide || fila.estado !== "activo") {
+      anotarFallo(claveCuenta, ahora);
+      anotarFallo(claveIp, ahora);
       return res.status(401).json({ error: "Correo o contraseña incorrectos." });
+    }
+    fallos.delete(claveCuenta);
+
+    // Estudiantes, docentes y preceptores trabajan siempre sobre un curso: sin
+    // ninguno asignado, adentro no tendrían nada que hacer (y verían pantallas
+    // vacías). La contraseña ya se verificó, así que se puede decir el motivo.
+    const asignacion = CONSULTA_ASIGNACION[fila.rol];
+    if (asignacion && !db.prepare(asignacion).get(fila.id)) {
+      return res.status(403).json({
+        error: "Tu cuenta todavía no tiene un curso asignado. Pedile a la dirección de tu escuela que te asigne a un curso para poder ingresar.",
+        motivo: "sin-curso",
+      });
     }
 
     limpiarVencidas.run(); // higiene: no acumular sesiones muertas

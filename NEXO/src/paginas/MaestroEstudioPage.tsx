@@ -42,9 +42,10 @@ export default function MaestroEstudioPage() {
   }
 
   return (
-    <div className="flex min-h-screen maestro maestro-fondo">
+    <div className="flex min-h-screen bg-fondo">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
-      <main id="contenido-principal" tabIndex={-1} className="app-content min-h-screen">
+      {/* El estudio del Maestro es un espacio de creación: siempre oscuro, como un editor. */}
+      <main id="contenido-principal" tabIndex={-1} className="app-content min-h-screen maestro maestro-fondo">
         <Universo catalogo={catalogo} onForjar={() => navegar("/maestro/forja")} onAbrir={(i) => navegar(`/maestro/instancia?id=${encodeURIComponent(i)}`)} />
         <div className="mx-auto max-w-6xl px-4 pb-12"><AppsPublicasMaestro /></div>
       </main>

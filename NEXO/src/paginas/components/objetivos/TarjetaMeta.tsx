@@ -60,7 +60,7 @@ export default function TarjetaMeta({ meta, onAbrir }: TarjetaMetaProps) {
         </div>
         <div className="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
           <div
-            className="bg-acento h-full rounded-full shadow-[0_0_8px_rgba(197,72,245,0.5)] transition-all"
+            className="bg-acento h-full rounded-full transition-all"
             style={{ width: `${progreso}%` }}
           />
         </div>

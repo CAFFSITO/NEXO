@@ -164,7 +164,7 @@ export default function ReportesPage() {
               <button
                 onClick={handleGenerar}
                 disabled={!puedeGenerar || generando}
-                className="w-full sm:w-auto px-6 py-3 bg-acento hover:bg-[#d15aff] text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-6 py-3 bg-acento hover:bg-acento-vivo text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="material-symbols-outlined">
                   {generando ? "progress_activity" : "download"}
@@ -199,7 +199,7 @@ export default function ReportesPage() {
                                 () => setAvisoError("No se pudo descargar el archivo.")
                               )
                             }
-                            className="shrink-0 text-fuchsia-400 hover:text-fuchsia-300 flex items-center gap-1 text-sm"
+                            className="shrink-0 text-primary hover:text-primary flex items-center gap-1 text-sm"
                           >
                             <span className="material-symbols-outlined text-base">download</span>
                             Bajar

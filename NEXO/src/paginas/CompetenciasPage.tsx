@@ -111,12 +111,12 @@ export default function CompetenciasPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        <TopBar title="Objetivos Personales" pestanas={PESTANAS_OBJETIVOS} />
+        <TopBar title="Objetivos personales" pestanas={PESTANAS_OBJETIVOS} />
 
         <div className="flex-1 overflow-y-auto px-10 pt-8 pb-12 bg-background">
           {/* Encabezado */}
           <div className="mb-10">
-            <h1 className="text-4xl font-bold font-headline text-white mb-2">Mis Competencias</h1>
+            <h1 className="text-4xl font-bold font-headline text-white mb-2">Mis competencias</h1>
             <p className="text-slate-400 font-medium">
               Registrá y evidenciá tu desarrollo académico y personal
             </p>
@@ -136,7 +136,7 @@ export default function CompetenciasPage() {
           ) : competencias.length === 0 ? (
             <Vacio icono="verified" mensaje="Tu institución todavía no definió competencias para trabajar." />
           ) : competencias.length === 0 ? (
-            <div className="bg-lienzo/40 border border-white/5 rounded-[20px] p-12 text-center">
+            <div className="bg-lienzo/40 border border-white/5 rounded-xl p-12 text-center">
               <span className="material-symbols-outlined text-4xl text-slate-500 mb-2">
                 workspace_premium
               </span>

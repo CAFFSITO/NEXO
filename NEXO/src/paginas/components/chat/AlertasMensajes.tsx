@@ -107,7 +107,7 @@ export default function AlertasMensajes() {
     <div className="flex justify-between gap-1 mt-3" role="group" aria-label="Reaccionar al mensaje">{EMOJIS_MENSAJE.map((emoji) => <button key={emoji} type="button" disabled={reaccionando || ocupado} aria-label={`Reaccionar con ${emoji}`} aria-pressed={(actual.mensajeId in reacciones ? reacciones[actual.mensajeId] : actual.reaccion) === emoji} className="rounded-lg p-1 text-xl bg-white/10 aria-pressed:bg-primary" onClick={() => void reaccionar(emoji)}>{emoji}</button>)}</div>
     <div className="flex flex-wrap gap-2 mt-3 text-xs">
       <button disabled={ocupado} className="rounded-lg px-3 py-2 bg-white/10" onClick={() => navigate(`/chat?conversacion=${actual.conversacionId}`)}>Abrir conversación</button>
-      <button className="rounded-lg px-3 py-2 bg-white text-slate-900 font-bold disabled:opacity-50" disabled={marcando || ocupado} onClick={() => void confirmar()}>{marcando ? "Confirmando…" : "Marcar como leído"}</button>
+      <button className="rounded-lg px-3 py-2 bg-blanco text-slate-900 font-bold disabled:opacity-50" disabled={marcando || ocupado} onClick={() => void confirmar()}>{marcando ? "Confirmando…" : "Marcar como leído"}</button>
       {!urgente && <button disabled={ocupado} className="px-2 py-2" onClick={() => { setOcultos((v) => new Set([...v, actual.id])); setRespondiendo(null); }}>Cerrar aviso</button>}
     </div>
     {error && <p className="mt-2 text-xs text-rose-200">{error}</p>}

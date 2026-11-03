@@ -52,20 +52,20 @@ export default function ModalDenuncia({ onEnviar, onCerrar }: ModalDenunciaProps
           autoFocus
           rows={4}
           placeholder="Motivo de la denuncia…"
-          className="w-full bg-fondo text-white rounded-lg px-4 py-3 text-sm border border-[#3b2f50] focus:ring-1 focus:ring-orange-400 placeholder-white/30 resize-none"
+          className="w-full bg-fondo text-white rounded-lg px-4 py-3 text-sm border border-linea focus:ring-1 focus:ring-orange-400 placeholder-white/30 resize-none"
         />
         {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
         <div className="flex justify-end gap-3 mt-5">
           <button
             onClick={onCerrar}
-            className="px-5 py-2 rounded-full text-sm font-bold text-white/60 hover:text-white transition-colors"
+            className="px-5 py-2 rounded-lg text-sm font-bold text-white/60 hover:text-white transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={enviar}
             disabled={!motivo.trim() || enviando}
-            className="bg-orange-500 text-white px-6 py-2 rounded-full text-sm font-bold hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
             {enviando ? "Enviando…" : "Enviar denuncia"}
           </button>

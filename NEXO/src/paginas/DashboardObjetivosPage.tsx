@@ -83,7 +83,7 @@ export default function DashboardObjetivosPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen relative">
-        <TopBar title="Objetivos Personales" pestanas={PESTANAS_OBJETIVOS} />
+        <TopBar title="Objetivos personales" pestanas={PESTANAS_OBJETIVOS} />
 
         <div className="flex-1 overflow-y-auto bg-background p-8">
           <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
@@ -91,7 +91,7 @@ export default function DashboardObjetivosPage() {
             <div className="flex-1 space-y-8">
               {/* Panel diario */}
               <section className="relative overflow-hidden rounded-lg p-8 bg-gradient-to-br from-lienzo to-fondo border border-acento/20">
-                <div className="absolute -right-12 -top-12 w-64 h-64 bg-acento/10 rounded-full blur-3xl" />
+                <div className="absolute -right-12 -top-12 w-64 h-64 bg-acento/10 rounded-full hidden" />
                 <div className="relative z-10">
                   <div className="flex items-center space-x-3 mb-4">
                     <span
@@ -109,7 +109,7 @@ export default function DashboardObjetivosPage() {
                       tareas pendientes" eran un 3 escrito a mano (Error
                       2.D.13). Ahora las cuatro cosas son ciertas: el saludo
                       mira la hora, el día es el día, y las tareas se cuentan
-                      del portafolio — el mismo que muestra Mis Tareas. */}
+                      del portafolio — el mismo que muestra Mis tareas. */}
                   <h2 className="text-2xl font-headline font-bold mb-4">
                     {saludoSegunLaHora()}, {usuario.nombre.split(" ")[0]} 👋
                   </h2>
@@ -127,13 +127,13 @@ export default function DashboardObjetivosPage() {
                   <div className="flex flex-wrap gap-3">
                     <button
                       onClick={registrarHabitosHoy}
-                      className="px-5 py-2.5 border border-acento text-acento rounded-full text-sm font-bold hover:bg-acento/10 transition-colors"
+                      className="px-5 py-2.5 border border-acento text-acento rounded-lg text-sm font-bold hover:bg-acento/10 transition-colors"
                     >
                       Registrar hábitos de hoy
                     </button>
                     <button
                       onClick={verTareasPendientes}
-                      className="px-5 py-2.5 border border-slate-600 text-slate-300 rounded-full text-sm font-bold hover:bg-slate-800 transition-colors"
+                      className="px-5 py-2.5 border border-slate-600 text-slate-300 rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors"
                     >
                       Ver tareas pendientes
                     </button>

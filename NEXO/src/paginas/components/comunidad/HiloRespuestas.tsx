@@ -146,7 +146,7 @@ function Nodo({ nodo, profundidad, ctx }: { nodo: NodoRespuesta; profundidad: nu
             {nodo.hijos.length > 0 && (
               profundidad >= PROFUNDIDAD_MAXIMA ? (
                 <button type="button" className="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-primary hover:underline" onClick={() => ctx.seguir(c.id)}>
-                  Seguir el hilo ({nodo.total} {nodo.total === 1 ? "respuesta" : "respuestas"}) <span className="material-symbols-outlined !text-[16px]" aria-hidden="true">arrow_forward</span>
+                  Ver el hilo ({nodo.total} {nodo.total === 1 ? "respuesta" : "respuestas"}) <span className="material-symbols-outlined !text-[16px]" aria-hidden="true">arrow_forward</span>
                 </button>
               ) : (
                 <div className="c-hijos">

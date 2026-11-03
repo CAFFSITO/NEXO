@@ -1,7 +1,7 @@
 import Selector from "../Selector";
 import type { Preferencias } from "../../../../servicios/personalizacion";
 
-export const campo = "w-full rounded-lg border border-white/20 bg-[#211633] p-2 text-white";
+export const campo = "w-full rounded-lg border border-white/20 bg-surface-container-low p-2 text-white";
 export default function EditorPreferencias({ valor, onCambiar }: { valor: Preferencias; onCambiar: (p: Preferencias) => void }) {
   const cambiar = (clave: keyof Preferencias, dato: string) => {
     const siguiente = { ...valor };

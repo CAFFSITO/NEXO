@@ -161,7 +161,7 @@ export default function Calendario({ titulo }: { titulo: string }) {
             <button type="button" className="a-boton-fantasma a-boton-chico" onClick={() => setAncla(HOY)}>Hoy</button>
             <button type="button" className="a-icono-boton" onClick={() => mover(1)} aria-label="Siguiente"><span className="material-symbols-outlined">chevron_right</span></button>
           </div>
-          <h2 className="min-w-0 flex-1 font-headline text-xl font-bold text-white" aria-live="polite">{periodo}</h2>
+          <h2 className="min-w-[10rem] flex-1 font-headline text-xl font-bold text-white" aria-live="polite">{periodo}</h2>
           <div className="relative w-full sm:w-56">
             <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-on-surface-variant/50" aria-hidden="true">search</span>
             <input className="a-input !py-2 !pl-10 !text-[13px]" value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar eventos…" aria-label="Buscar eventos" />

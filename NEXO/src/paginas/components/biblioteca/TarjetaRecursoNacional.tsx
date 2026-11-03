@@ -24,8 +24,8 @@ export default function TarjetaRecursoNacional({
   const negativos = recurso.votosNegativos;
 
   return (
-    <div className="bg-lienzo rounded-[16px] p-5 flex items-start gap-5 hover:bg-[#341f5a] transition-all border border-transparent hover:border-fuchsia-500/20 group">
-      <div className="w-12 h-12 bg-fuchsia-500/10 rounded-xl flex items-center justify-center text-fuchsia-400 group-hover:bg-fuchsia-500 group-hover:text-white transition-all">
+    <div className="bg-lienzo rounded-xl p-5 flex items-start gap-5 hover:bg-surface-container-high transition-all border border-transparent hover:border-primary/20 group">
+      <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary group-hover:bg-acento group-hover:text-white transition-all">
         <span className="material-symbols-outlined text-3xl">{ICONO_POR_TIPO[recurso.tipo]}</span>
       </div>
 
@@ -39,7 +39,7 @@ export default function TarjetaRecursoNacional({
               onClick={() => onVotar(recurso.id, "positivo")}
               aria-pressed={voto === "positivo"}
               className={`flex items-center gap-1 transition-colors ${
-                voto === "positivo" ? "text-fuchsia-400" : "text-slate-400 hover:text-fuchsia-400"
+                voto === "positivo" ? "text-primary" : "text-slate-400 hover:text-primary"
               }`}
             >
               <span
@@ -56,7 +56,7 @@ export default function TarjetaRecursoNacional({
               onClick={() => onVotar(recurso.id, "negativo")}
               aria-pressed={voto === "negativo"}
               className={`flex items-center gap-1 transition-colors ${
-                voto === "negativo" ? "text-fuchsia-400" : "text-slate-400 hover:text-fuchsia-400"
+                voto === "negativo" ? "text-primary" : "text-slate-400 hover:text-primary"
               }`}
             >
               <span
@@ -70,16 +70,16 @@ export default function TarjetaRecursoNacional({
           </div>
         </div>
 
-        <p className="text-fuchsia-500 font-bold text-xs uppercase tracking-wider mb-1">{recurso.materia}</p>
+        <p className="text-primary font-bold text-xs uppercase tracking-wider mb-1">{recurso.materia}</p>
         <p className="text-slate-400 text-sm mb-4">{recurso.escuela}</p>
 
         <button
           onClick={() => onAbrir(recurso.id)}
-          className="px-6 py-2 border-2 border-fuchsia-500/30 text-fuchsia-300 rounded-full text-sm font-bold hover:bg-fuchsia-500 hover:text-white transition-all active:scale-95"
+          className="px-6 py-2 border-2 border-primary/30 text-primary rounded-lg text-sm font-bold hover:bg-acento hover:text-white transition-all"
         >
           Abrir
         </button>
-        {onLeer && <button type="button" onClick={() => onLeer(recurso.id)} className="ml-3 text-fuchsia-300 text-sm">Leer y anotar</button>}
+        {onLeer && <button type="button" onClick={() => onLeer(recurso.id)} className="ml-3 text-primary text-sm">Leer y anotar</button>}
       </div>
     </div>
   );

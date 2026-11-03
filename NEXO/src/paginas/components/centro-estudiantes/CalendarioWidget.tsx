@@ -107,7 +107,7 @@ export default function CalendarioWidget({
         {eventosDelMes.length === 0 && <li className="text-xs text-slate-400">No hay eventos este mes.</li>}
         {eventosDelMes.map((evento) => (
           <li key={`${evento.dia}-${evento.titulo}`} className="flex gap-3 items-start group">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#F97316] mt-2 group-hover:scale-125 transition-transform" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#F97316] mt-2 transition-transform" />
             <div>
               <p className="text-xs font-bold text-white">{evento.titulo}</p>
               <p className="text-[10px] text-on-surface-variant font-medium">{evento.detalle}</p>

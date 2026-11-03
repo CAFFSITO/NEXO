@@ -11,7 +11,7 @@ import { agruparMenu, SECCION_BASE, type GrupoMenu } from "../shared/navegacionI
 import { clonar, claveUnica, menuDePerfil, modulosDePerfil } from "../maestro/genomaUtil";
 
 export function borradorDe(e: Edicion): Borrador {
-  return clonar({ secciones: e.secciones, modulos: e.modulos, perfiles: e.perfiles, algoritmos: e.algoritmos, jerarquia: e.jerarquia, capacidades: e.capacidades ?? {}, personalizacion: completarPersonalizacion(e.personalizacion) });
+  return clonar({ secciones: e.secciones, modulos: e.modulos, perfiles: e.perfiles, algoritmos: e.algoritmos, jerarquia: e.jerarquia, capacidades: e.capacidades ?? {}, personalizacion: completarPersonalizacion(e.personalizacion), tema: e.tema });
 }
 
 /** Un grupo de la jerarquía: "Mi espacio" o una sección, con sus módulos de primer nivel en orden. */
@@ -88,6 +88,7 @@ const igual = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b
 export function contarCambios(base: Borrador, b: Borrador, catalogo: ModuloCatalogo[]): number {
   let n = 0;
   if (!igual(base.personalizacion, b.personalizacion)) n++;
+  if (!igual(base.tema, b.tema)) n++;
   if (!igual(base.secciones, b.secciones)) n++;
   const orden = (x: Borrador) => jerarquia(x, catalogo).map((g) => g.seccion.id + ":" + g.ids.join(",")).join("|");
   if (orden(base) !== orden(b)) n++;

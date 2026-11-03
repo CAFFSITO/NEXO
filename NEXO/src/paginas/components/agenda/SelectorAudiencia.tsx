@@ -147,7 +147,7 @@ export default function SelectorAudiencia({ destinos, valor, onCambiar }: Props)
                 <li key={p.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-white/5">
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm text-white">{p.nombre}</span>
-                    <span className="block truncate text-[11px] text-on-surface-variant/55">{p.detalle || p.perfil}</span>
+                    <span className="block text-[11.5px] leading-snug text-on-surface-variant">{p.detalle || p.perfil}</span>
                   </span>
                   <button type="button" className="a-chip a-chip-boton !text-[11px]" aria-pressed={tiene({ tipo: "persona", usuarioId: p.id })} onClick={() => alternar({ tipo: "persona", usuarioId: p.id })}>
                     <span className="material-symbols-outlined" aria-hidden="true">person_add</span>Invitar

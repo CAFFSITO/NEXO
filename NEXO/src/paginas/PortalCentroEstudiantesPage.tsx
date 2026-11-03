@@ -96,7 +96,7 @@ export default function PortalCentroEstudiantesPage() {
         <TopBar title="Centro de Estudiantes" subtitle={institucion?.nombre} />
         <div className="flex-1 p-8">
           {/* Header Banner */}
-          <header className="relative overflow-hidden rounded-lg mb-8 bg-gradient-to-r from-lienzo to-[#3D2A6B] p-6 lg:p-10 flex flex-col xl:flex-row gap-6 justify-between items-start xl:items-center shadow-lg border border-white/5">
+          <header className="relative overflow-hidden rounded-lg mb-8 bg-gradient-to-r from-lienzo to-primary/10 p-6 lg:p-10 flex flex-col xl:flex-row gap-6 justify-between items-start xl:items-center shadow-lg border border-white/5">
             <div className="z-10">
               <h1 className="text-3xl font-headline font-extrabold text-white mb-2 tracking-tight">
                 {["Centro de Estudiantes", institucion?.nombre].filter(Boolean).join(" — ")}
@@ -110,20 +110,20 @@ export default function PortalCentroEstudiantesPage() {
                   desde el compositor del Feed, que guarda en `publicaciones`. */}
               <button
                 onClick={() => handleNavegar("/comunidad")}
-                className="bg-acento hover:bg-[#d15aff] text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 transition-all hover:shadow-[0_0_20px_rgba(197,72,245,0.4)]"
+                className="bg-acento hover:bg-acento-vivo text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all"
               >
                 <span className="material-symbols-outlined text-xl">add_circle</span>
                 Nuevo artículo
               </button>
               <button
                 onClick={() => handleNavegar("/comunidad/calendario")}
-                className="bg-lienzo border border-white/10 hover:bg-[#3D2A6B] text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 transition-all"
+                className="bg-lienzo border border-white/10 hover:bg-surface-container-high text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all"
               >
                 <span className="material-symbols-outlined text-xl">event</span>
                 Crear evento
               </button>
             </div>
-            <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-acento opacity-10 rounded-full blur-[100px]" />
+            <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-acento opacity-10 rounded-full hidden" />
           </header>
 
           {errorAccion && <p role="alert" className="text-red-300 text-sm mb-4">{errorAccion}</p>}
@@ -133,7 +133,7 @@ export default function PortalCentroEstudiantesPage() {
               <div className="flex flex-wrap gap-3 justify-between items-center mb-4">
                 <h2 className="text-2xl font-headline font-bold text-white flex items-center gap-3">
                   <span className="material-symbols-outlined text-acento">article</span>
-                  Nuestros Artículos
+                  Nuestros artículos
                 </h2>
                 <button
                   onClick={() => handleNavegar("/comunidad")}

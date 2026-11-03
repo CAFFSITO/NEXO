@@ -213,7 +213,7 @@ export default function MisTareasEstudiantePage() {
             <div className="flex flex-wrap gap-4 justify-between items-end mb-8">
               <div>
                 <h1 className="text-[30px] font-extrabold text-white font-headline leading-tight">
-                  Mis Tareas
+                  Mis tareas
                 </h1>
                 {/* Decía "Ciclo 2025" escrito a mano (Error 13.7). El curso ya
                     salía de la sesión; el ciclo ahora sale de la base. */}
@@ -228,7 +228,7 @@ export default function MisTareasEstudiantePage() {
                   setPersonalEditando(null);
                   setModalAbierto(true);
                 }}
-                className="px-6 py-2.5 border-2 border-acento text-acento font-bold rounded-full hover:bg-acento/10 transition-colors flex items-center gap-2"
+                className="px-6 py-2.5 border-2 border-acento text-acento font-bold rounded-lg hover:bg-acento/10 transition-colors flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-sm">add</span>
                 Nueva tarea personal
@@ -260,7 +260,7 @@ export default function MisTareasEstudiantePage() {
                         className={`px-5 py-2 rounded-full text-sm transition-colors ${
                           activo
                             ? "bg-acento text-white font-bold"
-                            : "bg-lienzo text-slate-300 font-medium hover:bg-[#3d2568]"
+                            : "bg-lienzo text-slate-300 font-medium hover:bg-surface-container-high"
                         }`}
                       >
                         {f.label} ({conteos[f.valor]})
@@ -271,7 +271,7 @@ export default function MisTareasEstudiantePage() {
               </div>
               <button
                 onClick={() => setOrden((o) => (o === "fecha" ? "materia" : "fecha"))}
-                className="flex items-center gap-2 text-slate-300 hover:text-white bg-lienzo px-4 py-2 rounded-full transition-colors"
+                className="flex items-center gap-2 text-slate-300 hover:text-white bg-lienzo px-4 py-2 rounded-lg transition-colors"
               >
                 <span className="text-sm font-medium">
                   Ordenar por {orden === "fecha" ? "fecha" : "materia"}
@@ -324,8 +324,8 @@ export default function MisTareasEstudiantePage() {
 
       {/* Fondo decorativo */}
       <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute -top-[20%] -right-[10%] w-[600px] h-[600px] bg-acento rounded-full blur-[150px] opacity-[0.03]" />
-        <div className="absolute -bottom-[20%] -left-[10%] w-[500px] h-[500px] bg-[#4900a6] rounded-full blur-[120px] opacity-[0.05]" />
+        <div className="absolute -top-[20%] -right-[10%] w-[600px] h-[600px] bg-acento rounded-full hidden opacity-[0.03]" />
+        <div className="absolute -bottom-[20%] -left-[10%] w-[500px] h-[500px] bg-acento-oscuro rounded-full hidden opacity-[0.05]" />
       </div>
 
       {modalAbierto && (

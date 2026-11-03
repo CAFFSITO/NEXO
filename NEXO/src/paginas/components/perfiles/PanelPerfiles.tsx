@@ -199,7 +199,7 @@ export default function PanelPerfiles() {
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
           <h2 className="text-3xl font-black text-white font-headline tracking-tight">
-            Perfiles Académicos
+            Perfiles académicos
           </h2>
           <p className="text-slate-400 mt-1">
             Administra el acceso y roles de toda la comunidad educativa.
@@ -207,7 +207,7 @@ export default function PanelPerfiles() {
         </div>
         <button
           onClick={abrirAlta}
-          className="flex items-center gap-2 bg-acento hover:opacity-90 active:scale-95 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-acento/20 transition-all self-start"
+          className="flex items-center gap-2 bg-acento hover:opacity-90 text-white px-5 py-2.5 rounded-lg font-bold shadow-lg transition-all self-start"
         >
           <span className="material-symbols-outlined text-xl">person_add</span>
           <span>Nuevo perfil</span>

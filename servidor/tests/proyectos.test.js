@@ -39,12 +39,12 @@ test('pasos: jerarquía y dependencias sin ciclos, responsables y evidencias pri
     assert.equal((await e.request(`${base}/pasos/${hijo.id}`,'docente','PUT',{version:1,dependeDeId:padre.id})).status,400,'No permite padre→hijo→padre');
     assert.equal((await e.request(`${base}/pasos/${hijo.id}`,'martin','PUT',{version:1,completada:true})).status,403);
     const archivo=await e.crudo('/api/archivos','alumna',{method:'POST',headers:{'Content-Type':'text/plain','X-Nombre-Archivo':'fuentes.txt'},body:Buffer.from('Fuentes del proyecto')});assert.equal(archivo.status,201);
-    await e.ok(`${base}/pasos/${hijo.id}`,'alumna','PUT',{version:1,evidencia:'Fuentes comprobadas',archivoId:archivo.datos.id,completada:true});
-    assert.equal((await e.crudo(`/api/archivos/${archivo.datos.id}`,'martin')).status,200);
+    await e.ok(`${base}/pasos/${hijo.id}`,'alumna','PUT',{version:1,evidencia:'Fuentes comprobadas',archivoId:archivo.datos.archivo.id,completada:true});
+    assert.equal((await e.crudo(`/api/archivos/${archivo.datos.archivo.id}`,'martin')).status,200);
     await e.ok(`${base}/pasos/${padre.id}`,'docente','PUT',{version:1,completada:true});await e.ok(`${base}/pasos/${dependiente.id}`,'docente','PUT',{version:1,completada:true});
     assert.equal((await e.request(`${base}/pasos/${padre.id}`,'docente','PUT',{version:2,completada:false})).status,400);
     assert.equal((await e.request(`${base}/pasos/${hijo.id}`,'alumna','PUT',{version:1,evidencia:'Versión vieja'})).status,409);
-    await e.ok(`${base}/miembros/${martin}`,'docente','DELETE');assert.equal((await e.crudo(`/api/archivos/${archivo.datos.id}`,'martin')).status,403);
+    await e.ok(`${base}/miembros/${martin}`,'docente','DELETE');assert.equal((await e.crudo(`/api/archivos/${archivo.datos.archivo.id}`,'martin')).status,403);
   }finally{await e.cerrar();}
 });
 
@@ -53,8 +53,8 @@ test('producciones conservan versiones, feedback accionable y permisos de archiv
   try{
     await sesiones(e);const p=await e.ok('/api/proyectos','docente','POST',nuevo(),201),base=`/api/proyectos/${p.id}`,alumna=persona(e,'julieta@sanmartin.nexo.edu');await e.ok(`${base}/miembros/${alumna}`,'docente','PUT',{rol:'participante'});
     const archivo=await e.crudo('/api/archivos','alumna',{method:'POST',headers:{'Content-Type':'text/plain','X-Nombre-Archivo':'guia.txt'},body:Buffer.from('Guía de prueba')});
-    const primera=await e.ok(`${base}/entregas`,'alumna','POST',{texto:'Borrador de producción',archivos:[archivo.datos.id]},201);assert.equal(primera.numero,1);
-    assert.equal((await e.crudo(`/api/archivos/${archivo.datos.id}`,'docente')).status,200);assert.equal((await e.crudo(`/api/archivos/${archivo.datos.id}`,'martin')).status,403);
+    const primera=await e.ok(`${base}/entregas`,'alumna','POST',{texto:'Borrador de producción',archivos:[archivo.datos.archivo.id]},201);assert.equal(primera.numero,1);
+    assert.equal((await e.crudo(`/api/archivos/${archivo.datos.archivo.id}`,'docente')).status,200);assert.equal((await e.crudo(`/api/archivos/${archivo.datos.archivo.id}`,'martin')).status,403);
     assert.equal((await e.request(`${base}/entregas/${primera.id}/devoluciones`,'alumna','POST',{criterio:'C',comentario:'C',siguienteAccion:'C'})).status,409);
     await e.ok(`${base}/entregas/${primera.id}/devoluciones`,'docente','POST',{criterio:'Resolver un caso real',comentario:'Falta una prueba externa',siguienteAccion:'Probar con otra persona'},201);
     const segunda=await e.ok(`${base}/entregas`,'alumna','POST',{texto:'Mejoré con la prueba externa',archivos:[]},201);assert.equal(segunda.numero,2);

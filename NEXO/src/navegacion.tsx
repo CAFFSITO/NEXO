@@ -16,7 +16,6 @@ export type Page =
     | "asistencia-ia"
     | "biblioteca"
     | "documentos"
-    | "proyectos"
     | "metodos-estudio"
     | "biblioteca-nacional"
     | "comunidad"
@@ -74,7 +73,6 @@ export type Page =
 // Acá se declara una sola vez, al lado de la ruta, y el menú la lee.
 export type Seccion =
     | "configuracion"
-    | "proyectos"
     | "comunidad"
     | "calendario"
     | "reportes"
@@ -167,7 +165,6 @@ export const MAPA_RUTAS = {
     // dos ítems distintos del menú del bibliotecario: dos secciones distintas.
     "/biblioteca/institucional": { pagina: "biblioteca", seccion: "biblioteca" },
     "/documentos": { pagina: "documentos", seccion: "biblioteca" },
-    "/proyectos": { pagina: "proyectos", seccion: "proyectos" },
     "/estudio/metodos": { pagina: "metodos-estudio", seccion: "portafolio-estudiante" },
     "/biblioteca/nacional": { pagina: "biblioteca-nacional", seccion: "biblioteca" },
     "/biblioteca/panel": { pagina: "panel-bibliotecario", seccion: "biblioteca-panel" },

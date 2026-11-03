@@ -140,7 +140,7 @@ export default function SalaClase({ claseId, onSalir }: SalaClaseProps) {
                 .then(recargarDetalle)
                 .catch((e: unknown) => setError(e instanceof Error ? e.message : "No se pudo iniciar."))
             }
-            className="px-6 py-2.5 bg-primary text-white rounded-full font-bold flex items-center gap-2 hover:opacity-90 active:scale-95"
+            className="px-6 py-2.5 bg-primary text-white rounded-lg font-bold flex items-center gap-2 hover:opacity-90"
           >
             <span className="material-symbols-outlined">play_circle</span>
             Iniciar la clase
@@ -393,7 +393,7 @@ function PanelDocente({
             void ejecutar(async () => { await finalizarClase(claseId); onFinalizar(); });
           }
         }}
-        className="px-4 py-2.5 bg-error/20 text-error rounded-full font-bold flex items-center justify-center gap-2 hover:bg-error/30"
+        className="px-4 py-2.5 bg-error/20 text-error rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-error/30"
         disabled={ocupado}
       >
         <span className="material-symbols-outlined">call_end</span>
@@ -498,7 +498,7 @@ function PanelEstudiante({ claseId, onSalir }: { claseId: string; onSalir: () =>
           placeholder="Escribí tu pregunta…"
           className="bg-white/5 rounded-xl px-3 py-2 text-sm text-white placeholder:text-slate-500 outline-none resize-none focus:ring-1 focus:ring-primary"
         />
-        <button type="submit" disabled={enviando || !pregunta.trim()} className="self-end px-4 py-1.5 rounded-full bg-primary text-white text-sm font-bold hover:opacity-90 disabled:opacity-50">
+        <button type="submit" disabled={enviando || !pregunta.trim()} className="self-end px-4 py-1.5 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 disabled:opacity-50">
           {enviando ? "Enviando…" : "Enviar"}
         </button>
         {aviso && <p className="text-[11px] text-green-400">{aviso}</p>}
@@ -509,7 +509,7 @@ function PanelEstudiante({ claseId, onSalir }: { claseId: string; onSalir: () =>
           salirDeSala(claseId).catch(() => {});
           onSalir();
         }}
-        className="px-4 py-2.5 bg-white/5 text-slate-300 rounded-full font-bold flex items-center justify-center gap-2 hover:bg-white/10"
+        className="px-4 py-2.5 bg-white/5 text-slate-300 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-white/10"
       >
         <span className="material-symbols-outlined">logout</span>
         Salir de la clase

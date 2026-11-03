@@ -27,7 +27,7 @@ export default function PanelActividadReciente({ actividades }: PanelActividadRe
     return (
         <div className="bg-lienzo rounded-lg p-6 border border-white/5">
             <h4 className="text-sm font-black font-headline text-white uppercase tracking-widest mb-6">
-                Actividad Reciente
+                Actividad reciente
             </h4>
             <div className="space-y-6">
                 {actividades.length === 0 && <p className="text-sm text-slate-400">Todavía no hay mensajes en las comunidades de tus cursos.</p>}
@@ -38,7 +38,7 @@ export default function PanelActividadReciente({ actividades }: PanelActividadRe
                         <div key={act.id} className="flex gap-3 relative">
                             {/* Conector vertical entre ítems */}
                             {!esUltima && (
-                                <div className="absolute left-[9px] top-6 bottom-[-24px] w-[1px] bg-[#3b2f50]" />
+                                <div className="absolute left-[9px] top-6 bottom-[-24px] w-[1px] bg-surface-container-high" />
                             )}
                             <div
                                 className={`w-5 h-5 rounded-full ${cfg.bg} flex-shrink-0 flex items-center justify-center z-10`}

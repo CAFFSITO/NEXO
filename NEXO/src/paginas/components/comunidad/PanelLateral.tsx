@@ -1,9 +1,8 @@
-// La columna de la derecha, estilo X: buscar, los #temas del momento, a quién
-// seguir y las tendencias de la escuela.
+// La columna de la derecha: buscar, los #temas del momento y las tendencias de
+// la escuela. (En NEXO no se sigue a personas: la comunidad es la escuela.)
 
 import { useState } from "react";
-import { seguir, useHashtags, useSugerencias } from "../../../servicios/comunidad";
-import { Avatar } from "./piezas";
+import { useHashtags } from "../../../servicios/comunidad";
 import SidebarTendencias from "./SidebarTendencias";
 
 interface Props {
@@ -14,10 +13,9 @@ interface Props {
   onAviso: (texto: string, tipo?: "ok" | "error") => void;
 }
 
-export default function PanelLateral({ onBuscar, onTag, onPerfil, onVerTendencias, onAviso }: Props) {
+export default function PanelLateral({ onBuscar, onTag, onVerTendencias }: Props) {
   const [q, setQ] = useState("");
   const { datos: temas } = useHashtags();
-  const { datos: sugerencias, recargar } = useSugerencias();
 
   return (
     <aside className="flex flex-col gap-4" aria-label="Explorar la comunidad">
@@ -44,26 +42,6 @@ export default function PanelLateral({ onBuscar, onTag, onPerfil, onVerTendencia
           </ul>
         )}
       </section>
-
-      {sugerencias && sugerencias.personas.length > 0 && (
-        <section className="c-panel overflow-hidden" aria-label="A quién seguir">
-          <h3 className="px-4 pt-4 font-headline text-lg font-bold text-white">A quién seguir</h3>
-          <ul className="py-2">
-            {sugerencias.personas.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 px-4 py-2">
-                <Avatar nombre={p.nombre} url={p.avatar} onClick={() => onPerfil(p.id)} />
-                <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onPerfil(p.id)}>
-                  <span className="block truncate text-sm font-bold text-white">{p.nombre}</span>
-                  <span className="block truncate text-[12px] text-on-surface-variant/55">@{p.handle}</span>
-                </button>
-                <button type="button" className="c-boton c-chico" onClick={async () => {
-                  try { await seguir(p.id); onAviso(`Ahora seguís a @${p.handle}.`); recargar(); } catch (e) { onAviso(e instanceof Error ? e.message : "No se pudo.", "error"); }
-                }}>Seguir</button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       {onVerTendencias && <SidebarTendencias onVer={onVerTendencias} />}
     </aside>

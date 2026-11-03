@@ -28,7 +28,7 @@ export default function LoginForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <InputField
         label="Correo institucional"
         required
@@ -53,17 +53,17 @@ export default function LoginForm({
 
       {/* Mensaje de error */}
       {error && (
-        <p role="alert" className="text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+        <p role="alert" className="text-sm font-medium text-error bg-error-container/60 border border-error/20 rounded-lg px-4 py-3">
           {error}
         </p>
       )}
 
       {/* Olvidé mi contraseña */}
-      <div className="flex justify-end">
+      <div className="flex justify-end -mt-2">
         <button
           type="button"
           onClick={onForgotPassword}
-          className="text-sm font-medium text-primary hover:text-primary-container transition-colors duration-200"
+          className="text-sm font-medium text-primary hover:underline"
         >
           Olvidé mi contraseña
         </button>
@@ -73,7 +73,7 @@ export default function LoginForm({
       <button
         type="submit"
         disabled={ingresando}
-        className="w-full bg-primary hover:bg-primary-container text-surface-container-lowest font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
+        className="nx-btn nx-btn-primario w-full h-11 text-[15px]"
       >
         {ingresando ? "Ingresando..." : "Ingresar"}
       </button>

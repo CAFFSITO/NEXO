@@ -135,7 +135,7 @@ function CrearPerfil({ catalogo, onCrear, onCancelar }: {
               type="button"
               onClick={() => setArquetipo(a.id)}
               className={`rounded-2xl border p-4 text-left transition ${arquetipo === a.id ? "border-white/40 bg-white/[0.08]" : "border-white/10 hover:bg-white/[0.04]"}`}
-              style={arquetipo === a.id ? { boxShadow: `0 0 30px ${a.color}40` } : undefined}
+              style={arquetipo === a.id ? { borderColor: a.color } : undefined}
             >
               <span className="material-symbols-outlined text-2xl" style={{ color: a.color }} aria-hidden="true">{a.icono}</span>
               <span className="block font-bold mt-2">{a.nombre}</span>

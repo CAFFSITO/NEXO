@@ -117,15 +117,15 @@ export default function CalificacionesPage() {
         <div className="flex-1 overflow-y-auto px-10 pt-8 pb-12 bg-background relative">
           {/* Decoración de fondo */}
           <div className="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none opacity-40">
-            <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px]" />
-            <div className="absolute bottom-[-10%] left-[10%] w-[400px] h-[400px] bg-tertiary/20 rounded-full blur-[100px]" />
+            <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/20 rounded-full hidden" />
+            <div className="absolute bottom-[-10%] left-[10%] w-[400px] h-[400px] bg-tertiary/20 rounded-full hidden" />
           </div>
 
           <div className="max-w-5xl mx-auto">
             {/* Encabezado */}
             <header className="mb-8">
               <h1 className="text-4xl font-headline font-extrabold text-white tracking-tight">
-                Mis Calificaciones
+                Mis calificaciones
               </h1>
               <p className="text-on-surface-variant mt-2 text-sm">
                 Resumen del rendimiento académico en el portafolio actual.

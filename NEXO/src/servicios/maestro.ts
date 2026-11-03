@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 // src/servicios/maestro.ts
 // Puerta del estudio del Maestro hacia el servidor. Los tipos reflejan el
 // genoma tal como lo valida servidor/genoma.js: lo que se arma acá es un
@@ -183,8 +184,13 @@ export interface Catalogo {
   genomaPorDefecto: Genoma;
 }
 
+/** Módulos que siguen en el servidor pero que NEXO ya no ofrece en la interfaz. */
+export const MODULOS_RETIRADOS = new Set(["proyectos"]);
+
 export function useCatalogo() {
-  return useDatos<Catalogo>("/api/maestro/catalogo");
+  const r = useDatos<Catalogo>("/api/maestro/catalogo");
+  const datos = useMemo(() => (r.datos ? { ...r.datos, modulos: r.datos.modulos.filter((m) => !MODULOS_RETIRADOS.has(m.id)) } : null), [r.datos]);
+  return { ...r, datos };
 }
 
 // ── Instancias ──────────────────────────────────────────

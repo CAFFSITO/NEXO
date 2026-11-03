@@ -26,6 +26,8 @@ base-de-datos/nexo.db-shm
 .env
 .env.*
 !.env.ejemplo
+# La configuración del servidor de la escuela (ver servidor/nexo.env.ejemplo).
+servidor/nexo.env
 
 # ── Archivos que suben los usuarios (etapa 4 en adelante) ───────────────────
 servidor/archivos-subidos/

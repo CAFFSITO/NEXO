@@ -1,5 +1,11 @@
 // Actualizaciones aditivas: conservar siempre las bases existentes.
 export function migrarBase(db) {
+  // Cupo de cada curso (mínimo y máximo de estudiantes) y su aula: el panel de
+  // la dirección avisa si un curso está excedido o le faltan estudiantes.
+  const columnasCurso = db.prepare("PRAGMA table_info(cursos)").all().map((c) => c.name);
+  if (!columnasCurso.includes("cupo_minimo")) db.exec("ALTER TABLE cursos ADD COLUMN cupo_minimo INTEGER");
+  if (!columnasCurso.includes("cupo_maximo")) db.exec("ALTER TABLE cursos ADD COLUMN cupo_maximo INTEGER");
+  if (!columnasCurso.includes("aula")) db.exec("ALTER TABLE cursos ADD COLUMN aula TEXT");
   db.exec(`CREATE TABLE IF NOT EXISTS usuario_preferencias (
     usuario_id INTEGER PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE,
     preferencias TEXT NOT NULL DEFAULT '{}',

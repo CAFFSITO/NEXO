@@ -26,7 +26,7 @@ export default function EstadoCicloLectivo({
     <div className="lg:col-span-2 bg-lienzo/40 backdrop-blur-sm p-8 rounded-lg border border-surface-variant">
       <h3 className="text-xl font-bold text-white font-headline mb-6 flex items-center gap-2">
         <span className="material-symbols-outlined text-primary">trending_up</span>
-        Estado del Ciclo Lectivo
+        Estado del ciclo lectivo
       </h3>
 
       <div className="mb-8">

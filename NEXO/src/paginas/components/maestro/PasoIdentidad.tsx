@@ -122,10 +122,10 @@ export default function PasoIdentidad({ genoma, onCambiar, creacion, onCambiarCr
       </section>
 
       <aside className="m-cristal p-8 relative overflow-hidden h-fit m-aparecer" style={{ boxShadow: `0 40px 120px -40px ${genoma.tema.acento}` }}>
-        <span aria-hidden="true" className="absolute -top-24 -right-24 w-72 h-72 rounded-full blur-3xl opacity-40" style={{ background: genoma.tema.acento }} />
-        <span aria-hidden="true" className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full blur-3xl opacity-25" style={{ background: genoma.tema.secundario }} />
+        <span aria-hidden="true" className="absolute -top-24 -right-24 w-72 h-72 rounded-full hidden opacity-40" style={{ background: genoma.tema.acento }} />
+        <span aria-hidden="true" className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full hidden opacity-25" style={{ background: genoma.tema.secundario }} />
         <div className="relative text-center">
-          <span className="material-symbols-outlined text-7xl" style={{ color: genoma.tema.acento, textShadow: `0 0 40px ${genoma.tema.acento}` }} aria-hidden="true">{id.icono || "hub"}</span>
+          <span className="material-symbols-outlined text-7xl" style={{ color: genoma.tema.acento }} aria-hidden="true">{id.icono || "hub"}</span>
           <p className="m-titulo text-3xl mt-4 break-words">{id.nombre || "Tu instancia"}</p>
           <p className="text-sm text-[color:var(--m-suave)] mt-2 italic">{id.lema || "Un lema que la defina"}</p>
           {id.dominio && <p className="m-chip mt-5 mx-auto w-fit"><span className="material-symbols-outlined" aria-hidden="true">alternate_email</span>{id.dominio}</p>}

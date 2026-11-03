@@ -181,7 +181,7 @@ export default function ModalPresentarRecurso({ onPresentado, onCerrar }: ModalP
               id="archivo"
               type="file"
               onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
-              className="w-full text-sm text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-acento/20 file:text-acento hover:file:bg-acento/30 file:cursor-pointer"
+              className="w-full text-sm text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-acento/20 file:text-acento hover:file:bg-acento/30 file:cursor-pointer"
             />
           </div>
 
@@ -198,7 +198,7 @@ export default function ModalPresentarRecurso({ onPresentado, onCerrar }: ModalP
             <button
               type="submit"
               disabled={enviando}
-              className="flex-1 py-3 bg-acento hover:bg-[#d15aff] text-white font-bold rounded-full transition-all active:scale-95 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex-1 py-3 bg-acento hover:bg-acento-vivo text-white font-bold rounded-full transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {enviando ? "Presentando…" : "Presentar"}
             </button>

@@ -58,7 +58,7 @@ export default function TarjetaCursoPreceptor({ curso, onModerar }: TarjetaCurso
                         </span>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 rounded-full text-right">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 rounded-lg text-right">
                         <span className="w-2 h-2 rounded-full bg-amber-500" />
                         <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">
                             Comunidad bloqueada

@@ -449,6 +449,8 @@ Tiene que decir `nothing to commit, working tree clean` (no hay nada pendiente).
 
 ## Poner NEXO en producción (HTTPS y la cámara del aula virtual)
 
+> **¿Lo van a instalar en el servidor de la escuela con XAMPP?** Seguí [INSTALAR_EN_XAMPP.md](INSTALAR_EN_XAMPP.md): base vacía (sin los datos de prueba), Apache como puerta de entrada con HTTPS, arranque automático y respaldos.
+
 En desarrollo alcanza con lo de arriba (servidor en `localhost:3000`, Vite en
 `localhost:5173`). Pero la **videollamada del aula virtual** usa la cámara del
 navegador, y **los navegadores sólo dan acceso a la cámara en `https` o en

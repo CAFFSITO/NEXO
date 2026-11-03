@@ -191,7 +191,7 @@ function Grupo({ grupo, indice, totalSecciones, autoFoco, destino, onArrastrarSo
             Arrastrá módulos hasta acá (o usá las flechas de cada módulo).
           </p>
         )}
-        {destino === ids.length && ids.length > 0 && <span className="mx-3 h-[3px] rounded bg-acento shadow-[0_0_10px_var(--nexo-acento)]" aria-hidden="true" />}
+        {destino === ids.length && ids.length > 0 && <span className="mx-3 h-[3px] rounded bg-acento" aria-hidden="true" />}
       </div>
     </section>
   );
@@ -232,21 +232,21 @@ function FilaModulo({ modulo, borrador, elegido, hija, padreOculto, arrastrada, 
       <span className="e-modulo-icono" style={{ background: modulo.color + "26", color: modulo.color }} aria-hidden="true">
         <span className="material-symbols-outlined">{estado.icono || modulo.icono}</span>
       </span>
-      <button type="button" className="min-w-0 flex-1 text-left" onClick={(e) => { e.stopPropagation(); onElegir(); }} aria-pressed={elegido} aria-label={`Editar ${nombre}`}>
-        <span className="e-fila-nombre block truncate text-sm font-semibold text-white">{nombre}</span>
-        <span className="block truncate text-[11px] text-on-surface-variant/55">
-          {estado.etiqueta ? `Módulo «${modulo.nombre}»` : hija ? "Dentro de su módulo padre" : modulo.descripcion}
-        </span>
+      <button type="button" className="e-fila-texto text-left" onClick={(e) => { e.stopPropagation(); onElegir(); }} aria-pressed={elegido} aria-label={`Editar ${nombre}`}>
+        <span className="e-fila-nombre block text-sm font-semibold text-white">{nombre}</span>
+        {/* El estado va en el renglón de abajo (no en una etiqueta al costado): así el nombre nunca se aplasta. */}
+        {estado.oculto ? (
+          <span className="block text-[11.5px] font-medium leading-snug text-rose-400">Oculto para toda la escuela</span>
+        ) : padreOculto ? (
+          <span className="block text-[11.5px] font-medium leading-snug text-rose-400">Oculto porque su módulo padre está oculto</span>
+        ) : (
+          <span className="block text-[11.5px] leading-snug text-on-surface-variant">
+            {ocultoEnPerfiles > 0 && <span className="font-medium text-amber-400">Oculto para {ocultoEnPerfiles} {ocultoEnPerfiles === 1 ? "perfil" : "perfiles"} · </span>}
+            {estado.etiqueta ? `Módulo «${modulo.nombre}»` : hija ? "Dentro de su módulo padre" : modulo.descripcion}
+          </span>
+        )}
       </button>
-      {estado.oculto ? (
-        <span className="e-chip !text-[10px] !py-0.5 hidden sm:inline-flex"><span className="material-symbols-outlined" aria-hidden="true">visibility_off</span>Oculto</span>
-      ) : padreOculto ? (
-        <span className="e-chip !text-[10px] !py-0.5 hidden sm:inline-flex" title="Su módulo padre está oculto">Por su padre</span>
-      ) : ocultoEnPerfiles > 0 ? (
-        <span className="e-chip !text-[10px] !py-0.5 hidden sm:inline-flex" title="Oculto para algunos perfiles">
-          <span className="material-symbols-outlined" aria-hidden="true">person_off</span>{ocultoEnPerfiles}
-        </span>
-      ) : null}
+      <span className="e-fila-acciones">
       <button
         type="button"
         className={`e-icono-boton ${estado.oculto ? "!text-rose-300" : ""}`}
@@ -262,6 +262,7 @@ function FilaModulo({ modulo, borrador, elegido, hija, padreOculto, arrastrada, 
           <button type="button" className="e-icono-boton !w-7" onClick={(e) => { e.stopPropagation(); onBajar?.(); }} disabled={!onBajar} aria-label={`Bajar ${nombre}`} title="Bajar"><span className="material-symbols-outlined">keyboard_arrow_down</span></button>
         </span>
       )}
+      </span>
     </div>
   );
 }

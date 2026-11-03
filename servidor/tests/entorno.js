@@ -11,6 +11,29 @@ import { spawn } from 'node:child_process';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 
+// Estudiantes, docentes y preceptores sin curso no pueden iniciar sesión
+// (servidor/sesiones.js). Muchas pruebas crean cuentas de otras escuelas o
+// cuentas nuevas para probar OTRA cosa: antes de entrar, se les da un curso
+// propio de prueba. La regla en sí se prueba en sesion-curso.test.js.
+const CONSULTA_CURSO = {
+  estudiante: 'SELECT 1 FROM inscripciones WHERE estudiante_id = ?',
+  profesor: 'SELECT 1 FROM catedras WHERE profesor_id = ?',
+  preceptor: 'SELECT 1 FROM cursos WHERE preceptor_id = ?',
+};
+export function asegurarCurso(db, email) {
+  const u = db.prepare('SELECT id, rol, institucion_id FROM usuarios WHERE email = ?').get(String(email).trim().toLowerCase());
+  if (!u || u.institucion_id == null || !CONSULTA_CURSO[u.rol] || db.prepare(CONSULTA_CURSO[u.rol]).get(u.id)) return;
+  const division = 'Prueba ' + u.id;
+  db.prepare('INSERT OR IGNORE INTO cursos (institucion_id, anio, division) VALUES (?, 1, ?)').run(u.institucion_id, division);
+  const curso = db.prepare('SELECT id FROM cursos WHERE institucion_id = ? AND anio = 1 AND division = ?').get(u.institucion_id, division).id;
+  if (u.rol === 'estudiante') db.prepare('INSERT OR IGNORE INTO inscripciones (curso_id, estudiante_id) VALUES (?, ?)').run(curso, u.id);
+  if (u.rol === 'preceptor') db.prepare('UPDATE cursos SET preceptor_id = ? WHERE id = ?').run(u.id, curso);
+  if (u.rol === 'profesor') {
+    const materia = db.prepare('INSERT INTO materias (institucion_id, nombre) VALUES (?, ?)').run(u.institucion_id, 'Materia de prueba ' + u.id).lastInsertRowid;
+    db.prepare('INSERT INTO catedras (materia_id, curso_id, profesor_id) VALUES (?, ?, ?)').run(materia, curso, u.id);
+  }
+}
+
 export async function crearEntorno(prefijo, prepararBase = () => {}, extraEnv = {}) {
   const tempRoot = realpathSync(tmpdir());
   const temp = mkdtempSync(join(tempRoot, prefijo));
@@ -67,6 +90,7 @@ export async function crearEntorno(prefijo, prepararBase = () => {}, extraEnv = 
     return { status: response.status, tipo, datos, cabeceras: response.headers };
   }
   async function entrar(quien, email, contrasena = 'nexo1234') {
+    asegurarCurso(db, email);
     const r = await request('/api/sesion', null, 'POST', { email, contrasena });
     assert.equal(r.status, 200, JSON.stringify(r.data));
     cookies[quien] = r.response.headers.get('set-cookie').split(';')[0];

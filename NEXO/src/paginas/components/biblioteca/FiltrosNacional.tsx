@@ -20,7 +20,7 @@ interface FiltrosNacionalProps {
 }
 
 const SELECT_CLASS =
-  "bg-[#25193a] border border-fuchsia-900/20 rounded-full py-2 pl-4 pr-3 text-sm text-slate-300 focus:outline-none hover:border-fuchsia-500/30 transition-all cursor-pointer";
+  "bg-surface-container-low border border-linea rounded-full py-2 pl-4 pr-3 text-sm text-slate-300 focus:outline-none hover:border-primary/30 transition-all cursor-pointer";
 
 export default function FiltrosNacional({ filtros, materias, escuelas, onChange }: FiltrosNacionalProps) {
   // Helper genérico para actualizar un solo campo del estado de filtros
@@ -41,7 +41,7 @@ export default function FiltrosNacional({ filtros, materias, escuelas, onChange 
           value={filtros.query}
           onChange={(e) => set("query", e.target.value)}
           placeholder="Buscar recursos educativos..."
-          className="w-full bg-[#25193a] border border-fuchsia-900/20 rounded-full py-3 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 transition-all"
+          className="w-full bg-surface-container-low border border-linea rounded-full py-3 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
         />
       </div>
 

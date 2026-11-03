@@ -23,34 +23,28 @@ export default function LoginPage() {
     } finally { setIngresando(false); }
   };
   return <div className="nexo-login">
-    <section className="nexo-login-story" aria-label="Bienvenida a NEXO">
-      <div className="nexo-brand-row" style={{ padding: 0 }}><span className="nexo-brand-icon material-symbols-outlined" aria-hidden="true">hub</span><span className="nexo-wordmark">nexo<span>.</span></span></div>
-      <div className="nexo-login-heading">
-        <span className="nexo-eyebrow">Aprender nos conecta</span>
-        <h1>Tu comunidad.<br />Tu camino.<br /><span>Todo en un lugar.</span></h1>
-        <p>Un espacio para aprender, compartir ideas y acompañar cada paso de tu vida educativa.</p>
-        <div className="nexo-login-features">
-          <div className="nexo-login-feature"><span className="material-symbols-outlined" aria-hidden="true">school</span><div><h2>El aprendizaje, conectado</h2><p>Cursos, tareas y progreso en tu propio espacio.</p></div></div>
-          <div className="nexo-login-feature"><span className="material-symbols-outlined" aria-hidden="true">forum</span><div><h2>Una comunidad cerca tuyo</h2><p>Conversaciones que continúan fuera del aula.</p></div></div>
-          <div className="nexo-login-feature"><span className="material-symbols-outlined" aria-hidden="true">auto_stories</span><div><h2>Más oportunidades para crecer</h2><p>Recursos, objetivos e ideas para seguir aprendiendo.</p></div></div>
-        </div>
-      </div>
-      <p className="text-xs text-on-surface-variant/50">Un lugar para cada persona de tu institución.</p>
-    </section>
     <section className="nexo-login-form-panel">
+      <div className="nexo-login-marca"><span className="material-symbols-outlined" aria-hidden="true">hub</span>NEXO</div>
       <main>
-        <p className="nexo-eyebrow mb-5">Acceso institucional</p>
-        <h2 className="font-headline text-3xl font-bold tracking-tight mb-3">Qué bueno verte.</h2>
-        <p className="text-sm leading-relaxed text-on-surface-variant/70 mb-9">Ingresá a tu cuenta para continuar donde lo dejaste.</p>
-        {sesionVencida && <p role="status" className="mb-5 rounded-xl border border-primary/30 bg-primary/10 p-4 text-sm text-primary">Tu sesión venció. Ingresá de nuevo para continuar.</p>}
+        <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Iniciá sesión</h1>
+        <p className="mt-2 mb-8 text-[15px] text-on-surface-variant">Usá el correo y la contraseña que te dio tu institución.</p>
+        {sesionVencida && <p role="status" className="mb-5 rounded-lg border border-primary/25 bg-primary/10 px-4 py-3 text-sm text-primary">Tu sesión venció. Ingresá de nuevo para continuar.</p>}
         <LoginForm onSubmit={handleLogin} onForgotPassword={() => navigate("/recuperar-contrasena")} error={error} ingresando={ingresando} />
-        <div className="mt-8 border-t border-outline-variant/40 pt-6 flex items-start gap-3">
-          <span className="material-symbols-outlined text-primary/70 text-xl" aria-hidden="true">verified_user</span>
-          <p className="text-xs leading-relaxed text-on-surface-variant/65">Tu institución administra el acceso. Usá el correo y la contraseña que te compartieron.</p>
-        </div>
-        <button onClick={() => navigate("/ayuda-de-acceso")} className="mt-6 text-sm text-primary hover:underline">¿Necesitás ayuda para ingresar? <span aria-hidden="true">↗</span></button>
+        <p className="mt-8 text-sm text-on-surface-variant">
+          ¿Problemas para entrar?{" "}
+          <button type="button" onClick={() => navigate("/ayuda-de-acceso")} className="font-semibold text-primary hover:underline">Pedí ayuda</button>
+        </p>
       </main>
       <LoginFooter />
+    </section>
+    <section className="nexo-login-story" aria-label="Qué es NEXO">
+      <h2>Toda tu escuela, en un solo lugar.</h2>
+      <p>Clases, tareas, mensajes, avisos y calendario: la comunidad educativa conectada, desde la computadora o el celular.</p>
+      <div className="nexo-login-features">
+        <div className="nexo-login-feature"><span className="material-symbols-outlined" aria-hidden="true">school</span><h3>Aprendizaje</h3><p>Cursos, tareas y progreso en tu espacio.</p></div>
+        <div className="nexo-login-feature"><span className="material-symbols-outlined" aria-hidden="true">forum</span><h3>Comunicación</h3><p>Mensajes y avisos que llegan a tiempo.</p></div>
+        <div className="nexo-login-feature"><span className="material-symbols-outlined" aria-hidden="true">verified_user</span><h3>Institucional</h3><p>Tu escuela administra quién accede.</p></div>
+      </div>
     </section>
   </div>;
 }

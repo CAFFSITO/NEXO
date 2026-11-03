@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" class="dark">
+<html lang="es">
 
 <head>
   <meta charset="UTF-8" />
@@ -9,11 +9,27 @@
        con NEXO cerrado (ver public/sw.js). -->
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/icono-192.png" />
-  <meta name="theme-color" content="#190d2d" />
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-    rel="stylesheet" />
+  <meta name="theme-color" content="#ffffff" />
+  <!-- El modo (claro / oscuro / automático) se fija antes de dibujar nada, para
+       que la página no parpadee. La misma regla vive en servicios/tema.ts. -->
+  <script>
+    (function () {
+      var p = "claro";
+      try { p = localStorage.getItem("nexo:tema") || "claro"; } catch (e) {}
+      var oscuro = p === "oscuro" || (p === "sistema" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.setAttribute("data-modo", oscuro ? "oscuro" : "claro");
+      // El menú lateral: cerrado o con el ancho que eligió la persona (servicios/menuLateral.ts).
+      try {
+        if (localStorage.getItem("nexo:menu-cerrado") === "1") document.documentElement.setAttribute("data-menu-cerrado", "");
+        var ancho = Number(localStorage.getItem("nexo:menu-ancho"));
+        if (ancho >= 200 && ancho <= 420) document.documentElement.style.setProperty("--menu-ancho", ancho + "px");
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preload" href="/fuentes/material-symbols-outlined.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fuentes/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
 
-  <title>Nexo</title>
+  <title>NEXO</title>
 </head>
 
 <body>

@@ -41,7 +41,7 @@ export default function AulaVirtualProfesorPage() {
     <div className="flex bg-fondo min-h-screen">
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        <TopBar title="Aula Virtual" subtitle={claseActiva ? "En vivo" : undefined} pestanas={claseActiva ? undefined : PESTANAS_PORTAFOLIO_DOCENTE} />
+        <TopBar title="Aula virtual" subtitle={claseActiva ? "En vivo" : undefined} pestanas={claseActiva ? undefined : PESTANAS_PORTAFOLIO_DOCENTE} />
         <div className="flex-1 overflow-y-auto bg-background p-6">
           {claseActiva ? (
             <SalaClase key={claseActiva}
@@ -73,7 +73,7 @@ function Planificacion({ onEntrar }: { onEntrar: (claseId: string) => void }) {
         </div>
         <button
           onClick={() => setCreando((v) => !v)}
-          className="px-4 py-2 bg-primary text-white rounded-full font-bold flex items-center gap-2 hover:opacity-90 active:scale-95"
+          className="px-4 py-2 bg-primary text-white rounded-lg font-bold flex items-center gap-2 hover:opacity-90"
         >
           <span className="material-symbols-outlined">{creando ? "close" : "add"}</span>
           {creando ? "Cerrar" : "Planificar clase"}
@@ -146,7 +146,7 @@ function TarjetaClase({
       {clase.enVivo ? (
         <button
           onClick={() => onEntrar(clase.id)}
-          className="px-4 py-2 bg-red-500 text-white rounded-full font-bold flex items-center gap-2 hover:opacity-90 active:scale-95"
+          className="px-4 py-2 bg-red-500 text-white rounded-lg font-bold flex items-center gap-2 hover:opacity-90"
         >
           <span className="material-symbols-outlined">videocam</span>
           Entrar
@@ -155,7 +155,7 @@ function TarjetaClase({
         <button
           onClick={iniciar}
           disabled={iniciando}
-          className="px-4 py-2 bg-primary text-white rounded-full font-bold flex items-center gap-2 hover:opacity-90 active:scale-95"
+          className="px-4 py-2 bg-primary text-white rounded-lg font-bold flex items-center gap-2 hover:opacity-90"
         >
           <span className="material-symbols-outlined">play_circle</span>
           {iniciando ? "Iniciando…" : "Iniciar"}
@@ -316,7 +316,7 @@ function FormularioClase({ onCreada }: { onCreada: () => void }) {
         <button
           type="submit"
           disabled={guardando || cargando || !!errorCatedras || !catedras?.length}
-          className="px-6 py-2 bg-primary text-white rounded-full font-bold hover:opacity-90 active:scale-95 disabled:opacity-50"
+          className="px-6 py-2 bg-primary text-white rounded-lg font-bold hover:opacity-90 disabled:opacity-50"
         >
           {guardando ? "Guardando…" : "Crear clase"}
         </button>

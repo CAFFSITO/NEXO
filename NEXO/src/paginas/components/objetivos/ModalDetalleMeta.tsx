@@ -78,7 +78,7 @@ export default function ModalDetalleMeta({ meta, onCambio, onCerrar, onEditar, o
       onClick={onCerrar}
     >
       <div
-        className="w-full max-w-lg bg-lienzo rounded-[20px] border border-purple-900/30 shadow-2xl max-h-[88vh] flex flex-col"
+        className="w-full max-w-lg bg-lienzo rounded-xl border border-linea shadow-2xl max-h-[88vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Encabezado */}

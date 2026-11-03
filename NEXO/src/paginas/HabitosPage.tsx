@@ -89,7 +89,7 @@ export default function HabitosPage() {
       />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen relative">
-        <TopBar title="Objetivos Personales" pestanas={PESTANAS_OBJETIVOS} />
+        <TopBar title="Objetivos personales" pestanas={PESTANAS_OBJETIVOS} />
 
         <div className="flex-1 overflow-y-auto bg-background p-8">
           <section className="max-w-5xl w-full mx-auto space-y-8">
@@ -97,7 +97,7 @@ export default function HabitosPage() {
             <div className="flex justify-between items-end">
               <div>
                 <h1 className="text-3xl font-black font-headline text-white tracking-tight">
-                  Mis Hábitos de Estudio
+                  Mis hábitos de estudio
                 </h1>
                 <p className="text-white/60 mt-1">
                   Mantené la constancia y alcanzá tus metas académicas.
@@ -105,10 +105,10 @@ export default function HabitosPage() {
               </div>
               <button
                 onClick={() => { setEditando(null); setModalAbierto(true); }}
-                className="bg-acento text-white px-6 py-2.5 rounded-full font-bold flex items-center gap-2 hover:brightness-110 transition-all shadow-lg shadow-acento/20"
+                className="bg-acento text-white px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 hover:brightness-110 transition-all shadow-lg"
               >
                 <span className="material-symbols-outlined text-sm">add</span>
-                Nuevo Hábito
+                Nuevo hábito
               </button>
             </div>
 
@@ -131,7 +131,7 @@ export default function HabitosPage() {
               </div>
             ) : (
               <div className="text-center py-16 text-white/40">
-                Todavía no tenés hábitos. Creá el primero con “Nuevo Hábito”.
+                Todavía no tenés hábitos. Creá el primero con “Nuevo hábito”.
               </div>
             )}
 

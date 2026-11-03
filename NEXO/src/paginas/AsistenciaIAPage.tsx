@@ -174,7 +174,7 @@ export default function AsistenciaIAPage() {
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col h-full relative">
         <TopBar
-          title="Asistencia Académica"
+          title="Asistencia académica"
           subtitle={modoConsulta==="dispositivo"?`Tutor NEXO · este dispositivo · ${modeloDispositivo||"sin modelo"}`:estado ? `Tutor NEXO · ${estado.modo === "institucional" ? "red institucional" : "servidor local"} · ${estado.modelo}` : "Tutor NEXO"}
           onHelpClick={() => setFaqAbierto(true)}
           onMenuClick={() => setMenuAbierto((v) => !v)}
@@ -182,7 +182,7 @@ export default function AsistenciaIAPage() {
 
         {/* Menú de tres puntos — ahora hace algo real (Error 2.G.2) */}
         {menuAbierto && (
-          <div className="absolute right-6 top-16 z-50 bg-lienzo border border-purple-800/40 rounded-xl shadow-xl py-1 w-56">
+          <div className="absolute right-6 top-16 z-50 bg-lienzo border border-linea rounded-xl shadow-xl py-1 w-56">
             <button
               onClick={handleBorrar}
               className="w-full text-left px-4 py-2.5 text-sm text-red-300 hover:bg-white/5 flex items-center gap-2"
@@ -204,16 +204,17 @@ export default function AsistenciaIAPage() {
 
         <ChatContainer messages={mensajesVista} />
 
-        <div className="px-6 pb-2 text-xs text-slate-300 space-y-2">
-          <label className="flex items-center gap-2">Dónde ejecutar la IA
-            <Selector value={modoConsulta} disabled={pensando} onChange={e=>cambiarModo(e.target.value as "institucional"|"dispositivo")} className="rounded bg-slate-800 p-1"><option value="institucional">Servidor privado institucional</option><option value="dispositivo">Este dispositivo</option></Selector>
+        {/* Las opciones de la consulta, alineadas con el cuadro para escribir. */}
+        <div className="mx-auto w-full max-w-3xl space-y-2 px-4 pb-2 text-xs text-on-surface-variant sm:px-6">
+          <label className="flex flex-wrap items-center gap-2"><span className="font-medium text-on-surface">Dónde ejecutar la IA</span>
+            <Selector value={modoConsulta} disabled={pensando} onChange={e=>cambiarModo(e.target.value as "institucional"|"dispositivo")} className="nx-campo !h-8 !w-auto !py-0 !text-xs"><option value="institucional">Servidor privado institucional</option><option value="dispositivo">Este dispositivo</option></Selector>
           </label>
-          {modoConsulta==="dispositivo"?<><p role="status">{estadoDispositivo}</p>{modelosDispositivo.length>0&&<label>Modelo local <Selector value={modeloDispositivo} onChange={e=>setModeloDispositivo(e.target.value)} className="rounded bg-slate-800 p-1">{modelosDispositivo.map(m=><option key={m} value={m}>{m}</option>)}</Selector></label>}<p>En este modo NEXO sólo entrega las fuentes elegidas; pregunta, respuesta e historial no se guardan en el servidor. Al cerrar esta pestaña se pierde la conversación.</p></>:<p>Modelo seleccionado: {estado?.modelo ?? "—"}. {modelos.length ? `Instalados: ${modelos.join(", ")}` : "Servicio de modelos no disponible."}</p>}
+          {modoConsulta==="dispositivo"?<><p role="status">{estadoDispositivo}</p>{modelosDispositivo.length>0&&<label>Modelo local <Selector value={modeloDispositivo} onChange={e=>setModeloDispositivo(e.target.value)} className="nx-campo !h-8 !w-auto !py-0 !text-xs">{modelosDispositivo.map(m=><option key={m} value={m}>{m}</option>)}</Selector></label>}<p>En este modo NEXO sólo entrega las fuentes elegidas; pregunta, respuesta e historial no se guardan en el servidor. Al cerrar esta pestaña se pierde la conversación.</p></>:<p>Modelo seleccionado: {estado?.modelo ?? "—"}. {modelos.length ? `Instalados: ${modelos.join(", ")}` : "Servicio de modelos no disponible."}</p>}
           <details>
-            <summary className="cursor-pointer">Fuentes para esta consulta ({fuentes.length})</summary>
+            <summary className="cursor-pointer font-medium text-on-surface">Fuentes para esta consulta ({fuentes.length})</summary>
             <input aria-label="Buscar fuentes" value={busqueda} onChange={e => setBusqueda(e.target.value)}
-              placeholder="Buscar tareas, biblioteca, documentos, lecciones o proyectos" className="w-full rounded bg-slate-800 p-2 mt-2" />
-            <div className="max-h-28 overflow-auto">
+              placeholder="Buscar tareas, biblioteca, documentos o lecciones" className="nx-campo mt-2 w-full !text-xs" />
+            <div className="mt-1 max-h-28 overflow-auto rounded-lg border border-linea">
               {fuentesDisponibles.map(f => {
                 const elegido = fuentes.some(x => x.tipo === f.tipo && x.id === f.id);
                 return <label key={`${f.tipo}-${f.id}`} className="flex gap-2 p-1">
@@ -245,7 +246,7 @@ export default function AsistenciaIAPage() {
             onClick={() => setFaqAbierto(false)}
           >
             <div
-              className="bg-lienzo border border-purple-800/40 rounded-2xl p-6 max-w-lg w-full space-y-4"
+              className="bg-lienzo border border-linea rounded-2xl p-6 max-w-lg w-full space-y-4"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between">

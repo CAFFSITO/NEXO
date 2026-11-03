@@ -11,7 +11,7 @@ export default function EscalaCompetencia({ nivel, onCambiarNivel }: EscalaCompe
   return (
     <div className="mb-8">
       <p className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">
-        Nivel Actual
+        Nivel actual
       </p>
       <div className="grid grid-cols-4 gap-2">
         {NIVELES.map(({ id, label }) => {

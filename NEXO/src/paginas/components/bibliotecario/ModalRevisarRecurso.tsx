@@ -84,7 +84,7 @@ export default function ModalRevisarRecurso({ item, onDecidido, onCerrar }: Moda
             href={item.enlaceUrl}
             target="_blank"
             rel="noreferrer noopener"
-            className="inline-flex items-center gap-1 mt-1 px-3 py-2 bg-acento/15 border border-acento/30 text-acento font-bold rounded-full hover:bg-acento/25 transition-colors text-sm"
+            className="inline-flex items-center gap-1 mt-1 px-3 py-2 bg-acento/15 border border-acento/30 text-acento font-bold rounded-lg hover:bg-acento/25 transition-colors text-sm"
           >
             <span className="material-symbols-outlined text-sm">open_in_new</span>
             Abrir en pestaña nueva
@@ -128,14 +128,14 @@ export default function ModalRevisarRecurso({ item, onDecidido, onCerrar }: Moda
           <iframe
             src={urlPreview(item.archivoId)}
             title={item.archivo ?? item.titulo}
-            className="w-full h-[55vh] rounded-2xl border border-white/10 bg-white"
+            className="w-full h-[55vh] rounded-2xl border border-white/10 bg-blanco"
           />
           <div className="flex items-center justify-between gap-2">
             {meta}
             <button
               type="button"
               onClick={() => descargar(item.archivoId!)}
-              className="inline-flex items-center gap-1 px-3 py-2 bg-white/5 border border-white/10 text-slate-200 font-bold rounded-full hover:bg-white/10 transition-colors text-sm shrink-0"
+              className="inline-flex items-center gap-1 px-3 py-2 bg-white/5 border border-white/10 text-slate-200 font-bold rounded-lg hover:bg-white/10 transition-colors text-sm shrink-0"
             >
               <span className="material-symbols-outlined text-sm">download</span>
               Descargar
@@ -153,7 +153,7 @@ export default function ModalRevisarRecurso({ item, onDecidido, onCerrar }: Moda
         <button
           type="button"
           onClick={() => descargar(item.archivoId!)}
-          className="inline-flex items-center gap-1 px-3 py-2 bg-white/5 border border-white/10 text-slate-200 font-bold rounded-full hover:bg-white/10 transition-colors text-sm shrink-0"
+          className="inline-flex items-center gap-1 px-3 py-2 bg-white/5 border border-white/10 text-slate-200 font-bold rounded-lg hover:bg-white/10 transition-colors text-sm shrink-0"
         >
           <span className="material-symbols-outlined text-sm">download</span>
           Descargar

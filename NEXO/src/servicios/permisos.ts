@@ -16,14 +16,20 @@ export interface ResultadoAcceso {
   error?: string;
 }
 
-// El rol de una sesión no cambia mientras dura, así que preguntar dos veces por
-// la misma pantalla es preguntar dos veces lo mismo: sin esto, volver al Feed
-// dispararía un pedido y un parpadeo de "Comprobando permisos" cada vez.
+// Lo permitido se recuerda para no preguntar en cada navegación. Las negativas
+// NO se recuerdan: la dirección puede mostrar un módulo en Modo edición y, si la
+// negativa quedara guardada, el ítem aparecería en el menú pero al tocarlo
+// diría "no tenés permiso". Todo se olvida también cuando cambia el genoma.
 const recordadas = new Map<string, ResultadoAcceso>();
 
-/** Vaciar lo recordado. Se llama al entrar y al salir: ahí sí cambia el rol. */
+/** Vaciar lo recordado. Se llama al entrar, al salir y cada vez que cambia la configuración de la escuela. */
 export function olvidarPermisos(): void {
   recordadas.clear();
+}
+
+/** Lo que ya se sabe sin preguntar (solo lo permitido se recuerda). */
+export function accesoRecordado(pagina: Exclude<Page, "login">): ResultadoAcceso | null {
+  return recordadas.get(pagina) ?? null;
 }
 
 /** Le pregunta al servidor si la sesión abierta puede ver esta pantalla. */
@@ -56,10 +62,7 @@ export async function consultarAcceso(
     error: datos.error ?? "No se pudo comprobar el permiso.",
   };
 
-  // Un 401 significa que la sesión venció recién, no que la pantalla esté
-  // prohibida: no se recuerda, para que al volver a entrar no arrastre una
-  // negativa que ya no corresponde.
-  if (respuesta.status === 403) recordadas.set(pagina, resultado);
+  // Un 401 significa que la sesión venció recién, no que la pantalla esté prohibida.
   if (respuesta.status === 401) window.dispatchEvent(new Event("nexo:sesion-vencida"));
 
   return resultado;

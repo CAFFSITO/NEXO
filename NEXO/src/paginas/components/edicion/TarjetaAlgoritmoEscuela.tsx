@@ -105,7 +105,7 @@ export default function TarjetaAlgoritmoEscuela({ slot, modulo, config, guardado
                   <label key={p.id} className="flex flex-col gap-2">
                     <span className="flex items-center justify-between gap-2 text-[12px] font-semibold text-on-surface-variant">
                       <span className="flex items-center gap-1.5 min-w-0">
-                        {tocado && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-acento shadow-[0_0_8px_var(--nexo-acento)]" aria-hidden="true" />}
+                        {tocado && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-acento" aria-hidden="true" />}
                         <span className="truncate">{p.nombre}</span>
                       </span>
                       <span className="flex items-center gap-1">

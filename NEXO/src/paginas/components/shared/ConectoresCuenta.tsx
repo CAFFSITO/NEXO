@@ -48,7 +48,7 @@ export default function ConectoresCuenta(){
   const importar=(externoId:string)=>operar(async()=>{const r=await enviar<{id:string;existente:boolean}>(`/api/conectores/${seleccion}/importar`,'POST',{id:externoId,...(seleccion==='meet'?{fecha}:{}),...(seleccion==='classroom'?{catedraId,fechaLimite:fecha}:{})});await cargar();setAviso(r.existente?'Ya estaba importado.':`Importado en NEXO con ID ${r.id}.`);});
   const leerCorreo=(externoId:string)=>operar(async()=>{const r=await pedir<{id:string;asunto:string;remitente:string;fecha:string;texto:string}>(`/api/conectores/gmail/mensajes/${encodeURIComponent(externoId)}`);setCorreo(r);});
   const desconectar=()=>operar(async()=>{await enviar(`/api/conectores/cuentas/${actual?.proveedor}`,'DELETE');setElementos([]);recargar();setAviso('Cuenta desconectada.');});
-  return <div className="bg-fondo border border-acento/20 rounded-2xl p-6 space-y-4">
+  return <div className="nx-tarjeta p-6 space-y-4">
     <div><h2 className="font-headline text-lg font-bold text-white">Conexiones externas</h2><p className="text-sm text-white/50">Tus cuentas opcionales. Los datos que sincronices quedan separados por origen y la IA privada no accede a estos servicios.</p></div>
     {error&&<p role="alert" className="text-red-400 text-sm">{error}</p>}
     <label className="block text-sm text-white/70">Servicio
@@ -61,7 +61,7 @@ export default function ConectoresCuenta(){
       {!actual.conectado&&actual.proveedor!=='google'&&actual.proveedor!=='whatsapp'&&<label className="block text-white/70">Token de integración
         <input className="mt-1 w-full rounded-lg bg-surface-container-lowest p-3 text-white" type="password" autoComplete="off" value={token} onChange={e=>setToken(e.target.value)} placeholder={actual.proveedor==='notion'?'Token de integración de Notion':'Token personal de Todoist'}/>
       </label>}
-      {!actual.conectado&&actual.proveedor!=='whatsapp'&&<button disabled={ocupado||actual.proveedor!=='google'&&!token} onClick={()=>void conectar()} className="rounded-full bg-acento px-4 py-2 font-bold text-white disabled:opacity-50">Conectar {NOMBRES[seleccion]}</button>}
+      {!actual.conectado&&actual.proveedor!=='whatsapp'&&<button disabled={ocupado||actual.proveedor!=='google'&&!token} onClick={()=>void conectar()} className="rounded-lg bg-acento px-4 py-2 font-bold text-white disabled:opacity-50">Conectar {NOMBRES[seleccion]}</button>}
       {actual.conectado&&<>
         {['docs','forms','meet'].includes(seleccion)&&<label className="block text-white/70">ID del recurso externo
           <input className="mt-1 w-full rounded-lg bg-surface-container-lowest p-3 text-white" value={id} onChange={e=>setId(e.target.value)} placeholder="ID del documento, formulario o espacio"/>
@@ -72,7 +72,7 @@ export default function ConectoresCuenta(){
         {['meet','classroom'].includes(seleccion)&&<label className="block text-white/70">{seleccion==='meet'?'Fecha del evento en NEXO':'Fecha límite si el trabajo no la trae'}
           <input type="date" className="mt-1 w-full rounded-lg bg-surface-container-lowest p-3 text-white" value={fecha} onChange={e=>setFecha(e.target.value)}/>
         </label>}
-        {actual.lectura&&<button disabled={ocupado||(['docs','forms','meet'].includes(seleccion)&&!id)} onClick={()=>void sincronizar()} className="rounded-full bg-acento px-4 py-2 font-bold text-white disabled:opacity-50">Sincronizar</button>}
+        {actual.lectura&&<button disabled={ocupado||(['docs','forms','meet'].includes(seleccion)&&!id)} onClick={()=>void sincronizar()} className="rounded-lg bg-acento px-4 py-2 font-bold text-white disabled:opacity-50">Sincronizar</button>}
         {actual.exportacionNativa&&<button disabled={ocupado} onClick={()=>void cargarExportables()} className="ml-2 text-primary underline">Ver elementos de NEXO para exportar</button>}
         {seleccion==='calendar'&&<label className="block text-white/70">Zona horaria para eventos con hora
           <input className="mt-1 w-full rounded-lg bg-surface-container-lowest p-3 text-white" value={zonaHoraria} onChange={e=>setZonaHoraria(e.target.value)} placeholder="America/Argentina/Buenos_Aires"/>

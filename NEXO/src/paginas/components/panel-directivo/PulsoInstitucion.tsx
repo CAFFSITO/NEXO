@@ -5,7 +5,7 @@ export interface MetricaPulso {
   id: string;
   label: string;
   valor: number; // 0-100
-  valorColor: string; // clase de texto, ej: "text-fuchsia-400"
+  valorColor: string; // clase de texto, ej: "text-primary"
   gradiente: string; // clases del fill, ej: "from-fuchsia-600 to-tertiary-container"
 }
 
@@ -15,9 +15,9 @@ interface PulsoInstitucionProps {
 
 export default function PulsoInstitucion({ metricas }: PulsoInstitucionProps) {
   return (
-    <div className="bg-lienzo rounded-[20px] p-6 border border-white/5 shadow-lg">
+    <div className="bg-lienzo rounded-xl p-6 border border-white/5 shadow-lg">
       <h3 className="font-headline font-bold text-xl mb-6 flex items-center">
-        <span className="material-symbols-outlined mr-3 text-fuchsia-400">insights</span>
+        <span className="material-symbols-outlined mr-3 text-primary">insights</span>
         Pulso de la institución
       </h3>
       <div className="space-y-6">
@@ -29,7 +29,7 @@ export default function PulsoInstitucion({ metricas }: PulsoInstitucionProps) {
             </div>
             <div className="h-3 w-full bg-slate-900/50 rounded-full overflow-hidden">
               <div
-                className={`h-full bg-gradient-to-r ${m.gradiente} rounded-full transition-[width] duration-500`}
+                className="h-full bg-acento rounded-full transition-[width] duration-500"
                 style={{ width: `${m.valor}%` }}
               />
             </div>

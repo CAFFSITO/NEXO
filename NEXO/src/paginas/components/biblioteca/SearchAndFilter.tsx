@@ -29,7 +29,7 @@ export default function SearchAndFilter({ onSearch, onFilter }: SearchAndFilterP
       <div className="h-6 w-px bg-lienzo"></div>
       <button
         onClick={onFilter}
-        className="flex items-center gap-2 px-4 py-2 bg-lienzo rounded-full text-xs font-bold text-on-surface hover:bg-[#4900a6] transition-colors"
+        className="flex items-center gap-2 px-4 py-2 bg-lienzo rounded-lg text-xs font-bold text-on-surface hover:bg-acento-oscuro transition-colors"
       >
         <span className="material-symbols-outlined text-sm">filter_list</span>
         <span>Filtrar</span>

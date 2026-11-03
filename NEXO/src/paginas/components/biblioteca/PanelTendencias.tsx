@@ -11,9 +11,9 @@ interface PanelTendenciasProps {
 // SidebarTendencias: materias con más actividad reciente (derivado de votos).
 export default function PanelTendencias({ tendencias, onSeleccionar }: PanelTendenciasProps) {
   return (
-    <div className="bg-lienzo rounded-[16px] p-6 border border-fuchsia-900/10">
+    <div className="bg-lienzo rounded-xl p-6 border border-linea">
       <div className="flex items-center gap-2 mb-6">
-        <span className="material-symbols-outlined text-fuchsia-500">trending_up</span>
+        <span className="material-symbols-outlined text-primary">trending_up</span>
         <h4 className="font-headline font-bold text-white uppercase tracking-wider text-sm">Tendencias</h4>
       </div>
 
@@ -25,7 +25,7 @@ export default function PanelTendencias({ tendencias, onSeleccionar }: PanelTend
               className="w-full flex items-center justify-between group cursor-pointer"
             >
               <span className="text-slate-300 group-hover:text-white transition-colors">{t.materia}</span>
-              <span className="px-2 py-1 bg-fuchsia-500/10 text-fuchsia-400 text-[10px] rounded-md font-bold">
+              <span className="px-2 py-1 bg-primary/10 text-primary text-[10px] rounded-md font-bold">
                 +{t.variacion}%
               </span>
             </button>

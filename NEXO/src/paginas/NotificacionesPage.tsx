@@ -161,7 +161,7 @@ export default function NotificacionesPage() {
                   onClick={() => abrir(n)}
                   className={`w-full text-left flex items-start gap-4 p-4 rounded-lg border transition ${
                     n.leida
-                      ? "bg-fondo border-[#3b2f50] hover:bg-lienzo/40"
+                      ? "bg-fondo border-linea hover:bg-lienzo/40"
                       : "bg-primary/10 border-primary/40 hover:bg-primary/20"
                   }`}
                 >

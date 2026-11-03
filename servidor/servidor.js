@@ -119,6 +119,10 @@ migrarBase(db);
 // ── 2. Armar la cocina ──────────────────────────────────────────────────────
 const app = express();
 app.disable("x-powered-by");
+// Si adelante hay un servidor web en la MISMA máquina (Apache de XAMPP), la
+// conexión llega desde 127.0.0.1: se le cree la IP real que manda en
+// X-Forwarded-For (sirve para frenar a quien prueba contraseñas). A nadie más.
+app.set("trust proxy", "loopback");
 app.use((_req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "same-origin");

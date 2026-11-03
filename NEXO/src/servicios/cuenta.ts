@@ -109,3 +109,38 @@ export function confirmarRecuperacion(
 ): Promise<Resultado> {
   return pedir(`${API_RECUPERACION}/confirmar`, "POST", { email, codigo, nueva });
 }
+
+// ── Foto de perfil ──────────────────────────────────────────────────────────
+// La imagen se recorta cuadrada y se achica en el navegador antes de subirla:
+// viaja liviana (unos 30 KB) y se ve igual de nítida en todos los tamaños.
+const LADO_AVATAR = 320;
+
+async function recortarAvatar(archivo: File): Promise<Blob> {
+  const imagen = await createImageBitmap(archivo);
+  const lado = Math.min(imagen.width, imagen.height);
+  const lienzo = document.createElement("canvas");
+  lienzo.width = LADO_AVATAR;
+  lienzo.height = LADO_AVATAR;
+  const ctx = lienzo.getContext("2d");
+  if (!ctx) throw new Error("Este navegador no puede preparar la foto.");
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(imagen, (imagen.width - lado) / 2, (imagen.height - lado) / 2, lado, lado, 0, 0, LADO_AVATAR, LADO_AVATAR);
+  imagen.close();
+  return new Promise((listo, fallo) => lienzo.toBlob((b) => (b ? listo(b) : fallo(new Error("No se pudo preparar la foto."))), "image/jpeg", 0.88));
+}
+
+/** Sube una foto de perfil nueva. Devuelve la dirección con la que se ve. */
+export async function subirAvatar(archivo: File): Promise<string> {
+  if (!archivo.type.startsWith("image/")) throw new Error("Elegí una imagen (JPG, PNG o WebP).");
+  if (archivo.size > 15 * 1024 * 1024) throw new Error("La imagen es demasiado grande (máximo 15 MB).");
+  const cuerpo = await recortarAvatar(archivo);
+  const respuesta = await fetch("/api/cuenta/avatar", { method: "PUT", headers: { "Content-Type": "image/jpeg" }, body: cuerpo });
+  const datos = await respuesta.json().catch(() => ({}));
+  if (!respuesta.ok) throw new Error(datos.error ?? "No se pudo guardar la foto.");
+  return datos.avatarUrl as string;
+}
+
+export async function quitarAvatar(): Promise<void> {
+  const respuesta = await fetch("/api/cuenta/avatar", { method: "DELETE" });
+  if (!respuesta.ok) throw new Error("No se pudo quitar la foto.");
+}

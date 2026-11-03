@@ -42,7 +42,7 @@ export default function CanalesDialogo({ inicial, onCerrar, onAbrir, onCambio }:
     finally { setAbriendo(false); }
   };
   return <div className="fixed inset-0 z-[100] bg-black/70 p-3 sm:p-6 flex items-center justify-center">
-    <section ref={dialogo} role="dialog" aria-modal="true" aria-labelledby="canales-titulo" className="w-full max-w-3xl max-h-[90dvh] overflow-y-auto bg-[#24143b] border border-white/15 rounded-2xl p-5 text-white space-y-5">
+    <section ref={dialogo} role="dialog" aria-modal="true" aria-labelledby="canales-titulo" className="w-full max-w-3xl max-h-[90dvh] overflow-y-auto bg-surface-container-low border border-white/15 rounded-2xl p-5 text-white space-y-5">
       <header className="flex justify-between gap-3 items-center"><h2 id="canales-titulo" className="text-xl font-bold">{editar ? editar === "nuevo" ? foro ? "Nuevo tema" : "Nuevo espacio" : "Configurar espacio" : foro?.nombre ?? "Canales, foros y ayuda"}</h2><button type="button" disabled={abriendo} onClick={onCerrar} aria-label="Cerrar espacios" className="p-2">✕</button></header>
       {editar ? <EditorCanal key={editar === "nuevo" ? `nuevo-${foro?.id ?? ""}` : `${editar.id}-${editar.version}`} canal={editar === "nuevo" ? undefined : editar} foro={foro} onCancelar={() => setEditar(null)} onGuardar={c => { onCambio(); recargar(); setEditar(null); if (c.clase === "foro") setForo(c); else onAbrir(c.id); }} /> : <>
         {foro ? <><button type="button" onClick={() => { setForo(undefined); setBusqueda(""); }} className="text-primary">← Todos los espacios</button><p className="text-sm text-slate-300">{foro.descripcion}</p></> : <p className="text-sm text-slate-300">Unite a espacios sociales, abrí temas o pedí ayuda. Participar es voluntario.</p>}

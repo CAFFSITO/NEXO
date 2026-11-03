@@ -83,7 +83,7 @@ export default function ModalNuevaMeta({
   const agregarSubtarea = () => setSubtareas((prev) => [...prev, ""]);
 
   const inputCls =
-    "w-full bg-fondo text-white text-sm rounded-lg px-4 py-3 border border-purple-900/30 focus:ring-2 focus:ring-acento/50 focus:border-acento/50 outline-none placeholder-slate-500";
+    "w-full bg-fondo text-white text-sm rounded-lg px-4 py-3 border border-linea focus:ring-2 focus:ring-acento/50 focus:border-acento/50 outline-none placeholder-slate-500";
   const labelCls = "block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider";
 
   return (
@@ -96,13 +96,13 @@ export default function ModalNuevaMeta({
           e.preventDefault();
           guardar();
         }}
-        className="w-full max-w-md bg-lienzo rounded-[20px] border border-purple-900/30 shadow-2xl p-6 max-h-[88vh] overflow-y-auto"
+        className="w-full max-w-md bg-lienzo rounded-xl border border-linea shadow-2xl p-6 max-h-[88vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-start mb-6">
           <div>
             <h2 className="text-xl font-bold font-headline text-white">
-              {modoEdicion ? "Editar Meta" : "Nueva Meta"}
+              {modoEdicion ? "Editar meta" : "Nueva meta"}
             </h2>
             <p className="text-xs text-slate-400 mt-1">
               Definí un objetivo y seguí tu progreso académico.
@@ -248,7 +248,7 @@ export default function ModalNuevaMeta({
           <button
             type="submit"
             disabled={!puedeGuardar || guardando}
-            className="px-6 py-2.5 bg-acento hover:bg-[#b039df] text-white rounded-full text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-6 py-2.5 bg-acento hover:bg-acento-vivo text-white rounded-lg text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {guardando ? "Guardando…" : modoEdicion ? "Guardar cambios" : "Crear meta"}
           </button>

@@ -36,7 +36,7 @@ export default function SaludSistemaPage() {
       <Sidebar usuario={usuario} onNavegar={navegar} onCerrarSesion={cerrarSesion} />
 
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
-        <TopBar title="Salud del Sistema" subtitle="Perfil Maestro" />
+        <TopBar title="Salud del sistema" subtitle="Perfil Maestro" />
 
         <section className="flex-1 px-10 pt-6 pb-12">
           <div className="max-w-7xl mx-auto">
@@ -58,7 +58,7 @@ export default function SaludSistemaPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                   <TarjetaMetrica
                     icono="domain"
-                    iconoColor="text-fuchsia-400"
+                    iconoColor="text-primary"
                     valor={String(salud.instituciones)}
                     etiqueta="Instituciones"
                   />
@@ -83,10 +83,10 @@ export default function SaludSistemaPage() {
                 </div>
 
                 {/* Logs del sistema — lo ÚNICO que va en "Actividad" (Error 5.A.2) */}
-                <div className="bg-lienzo rounded-[20px] border border-white/5 shadow-xl shadow-black/20 overflow-hidden">
+                <div className="bg-lienzo rounded-xl border border-white/5 shadow-xl shadow-black/20 overflow-hidden">
                   <div className="px-6 py-4 border-b border-white/5">
                     <h3 className="text-white font-headline font-bold flex items-center gap-2">
-                      <span className="material-symbols-outlined text-lg text-fuchsia-400">terminal</span>
+                      <span className="material-symbols-outlined text-lg text-primary">terminal</span>
                       Logs del sistema
                     </h3>
                   </div>

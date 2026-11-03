@@ -19,7 +19,7 @@ export default function EstadisticasPerfiles({ perfiles }: EstadisticasPerfilesP
       <div className="bg-surface-container rounded-3xl p-6 border border-white/5 hover:border-primary/20 transition-all">
         <div className="flex justify-between items-start mb-2">
           <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">
-            Total Usuarios
+            Total de usuarios
           </span>
           <span className="material-symbols-outlined text-primary">group</span>
         </div>

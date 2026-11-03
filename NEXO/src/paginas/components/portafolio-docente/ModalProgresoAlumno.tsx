@@ -26,11 +26,11 @@ export default function ModalProgresoAlumno({ catedraId, alumnoId, alumnoNombre,
       onClick={onCerrar}
     >
       <div
-        className="bg-[#231340] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl"
+        className="bg-surface-container-low border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Encabezado */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 sticky top-0 bg-[#231340] z-10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 sticky top-0 bg-surface-container-low z-10">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-lienzo flex items-center justify-center overflow-hidden text-xs font-bold text-white/60">
               {progreso?.alumno.avatar ? (

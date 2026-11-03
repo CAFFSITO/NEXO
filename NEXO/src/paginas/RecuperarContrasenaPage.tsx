@@ -11,7 +11,6 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import BackgroundGlow from "./components/shared/BackgroundGlow";
 import NexoLogo from "./components/shared/NexoLogo";
 import InputField from "./components/shared/InputField";
 import LoginFooter from "./components/moduloLogin/LoginFooter";
@@ -90,10 +89,9 @@ export default function RecuperarContrasenaPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
-      <BackgroundGlow />
 
       <main className="w-full max-w-[440px] relative z-10">
-        <div className="bg-surface-container p-8 md:p-10 rounded-[20px] border border-primary/10 shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
+        <div className="bg-surface-container p-8 md:p-10 rounded-xl border border-primary/10 shadow-lg">
           <div className="mb-10">
             <NexoLogo size="md" showSlogan />
           </div>
@@ -128,7 +126,7 @@ export default function RecuperarContrasenaPage() {
                 <button
                   type="submit"
                   disabled={enviando}
-                  className="w-full bg-primary hover:bg-primary-container text-surface-container-lowest font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full bg-primary hover:bg-primary-container text-surface-container-lowest font-bold py-4 rounded-xl shadow-lg transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {enviando ? "Generando..." : "Generar código"}
                 </button>
@@ -186,7 +184,7 @@ export default function RecuperarContrasenaPage() {
                 <button
                   type="submit"
                   disabled={enviando}
-                  className="w-full bg-primary hover:bg-primary-container text-surface-container-lowest font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full bg-primary hover:bg-primary-container text-surface-container-lowest font-bold py-4 rounded-xl shadow-lg transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {enviando ? "Cambiando..." : "Cambiar mi contraseña"}
                 </button>
@@ -215,7 +213,7 @@ export default function RecuperarContrasenaPage() {
               </p>
               <button
                 onClick={salirAlLogin}
-                className="w-full bg-primary hover:bg-primary-container text-surface-container-lowest font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all duration-200"
+                className="w-full bg-primary hover:bg-primary-container text-surface-container-lowest font-bold py-4 rounded-xl shadow-lg transition-all duration-200"
               >
                 Ir a iniciar sesión
               </button>

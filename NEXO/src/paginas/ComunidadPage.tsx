@@ -29,11 +29,12 @@ import ModalDenuncia from "./components/comunidad/ModalDenuncia";
 import ModalModeracion from "./components/comunidad/ModalModeracion";
 import AppsInstaladas from "./components/comunidad/AppsInstaladas";
 import { useDialogo } from "../servicios/useDialogo";
+import { marcarEnfoque } from "../servicios/enfoque";
+import CreadorDebate from "./components/comunidad/CreadorDebate";
 import "./components/comunidad/comunidad.css";
 
 const VISTAS: { id: VistaFeed; nombre: string }[] = [
   { id: "para-vos", nombre: "Para vos" },
-  { id: "siguiendo", nombre: "Siguiendo" },
   { id: "recientes", nombre: "Recientes" },
   { id: "guardados", nombre: "Guardados" },
   { id: "menciones", nombre: "Menciones" },
@@ -41,7 +42,7 @@ const VISTAS: { id: VistaFeed; nombre: string }[] = [
 const PUBLICAN = ["estudiante", "profesor", "admin-academico", "centro-estudiantes"];
 const VACIO: Record<VistaFeed, string> = {
   "para-vos": "Todavía no hay publicaciones en la comunidad.",
-  siguiendo: "Todavía no seguís a nadie (o no publicaron). Buscá gente en «A quién seguir».",
+  siguiendo: "",
   recientes: "Todavía no hay publicaciones.",
   guardados: "No guardaste nada todavía: tocá el marcador de una publicación.",
   menciones: "Nadie te mencionó todavía.",
@@ -73,6 +74,9 @@ export default function ComunidadPage() {
   const rol = usuario?.rol ?? "estudiante";
   const yo = { id: usuario?.id ?? 0, rol };
   const puedePublicar = publicarHabilitado && PUBLICAN.includes(rol);
+  // Crear un debate, también desde el Feed (antes solo estaba en la pestaña Debates).
+  const puedeDebatir = useFuncion("debates.crear") && ["estudiante", "profesor", "admin-academico", "centro-estudiantes"].includes(usuario?.rol ?? "");
+  const [creandoDebate, setCreandoDebate] = useState(false);
   const puedeModerar = rol === "admin-academico" || rol === "preceptor";
 
   const [vista, setVista] = useState<VistaFeed>("para-vos");
@@ -137,7 +141,6 @@ export default function ComunidadPage() {
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         <TopBar title="Comunidad" pestanas={pestanas} />
         <AppsInstaladas />
-        {rutaVisible(instancia, "/chat") && <button type="button" className="self-start mx-4 my-2 text-sm text-primary font-bold" onClick={() => navegar("/chat?espacios=1")}>Explorar canales y foros</button>}
 
         <div className="mx-auto flex w-full max-w-[1180px] flex-1 gap-8 px-3 py-6 sm:px-8">
           <div className="min-w-0 max-w-[680px] flex-1">
@@ -159,6 +162,13 @@ export default function ComunidadPage() {
               </div>
             )}
 
+            {puedeDebatir && (
+              <div className="mb-3 flex justify-end">
+                <button type="button" className="nx-btn nx-btn-secundario nx-btn-chico" onClick={() => setCreandoDebate(true)}>
+                  <span className="material-symbols-outlined" aria-hidden="true">forum</span>Nuevo debate
+                </button>
+              </div>
+            )}
             {puedePublicar ? (
               <div className="mb-5"><Compositor usuario={usuario} onPublicado={(m) => { avisar(m); recargar(); }} /></div>
             ) : (
@@ -236,6 +246,7 @@ export default function ComunidadPage() {
         />
       )}
       {moderando && <ModalModeracion onCerrar={() => setModerando(false)} />}
+      {creandoDebate && <CreadorDebate onCerrar={() => setCreandoDebate(false)} onCreado={(id) => { setCreandoDebate(false); marcarEnfoque("debate", id); navegar("/comunidad/debates"); }} />}
       {aviso && (
         <div role="status" className={`fixed bottom-6 left-1/2 z-[90] -translate-x-1/2 rounded-full px-5 py-3 text-sm font-semibold shadow-2xl c-aparecer ${aviso.tipo === "ok" ? "bg-primary text-on-primary" : "bg-rose-500 text-white"}`}>
           {aviso.texto}

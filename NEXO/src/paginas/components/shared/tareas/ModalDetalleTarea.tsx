@@ -31,7 +31,6 @@ import BotonConversacionContextual from "../BotonConversacionContextual";
 import { OpinionesPares } from "../../portafolio/RevisionesPares";
 import EstudioMultimedia from "../../multimedia/EstudioMultimedia";
 import RecursosVinculados from "../../biblioteca/RecursosVinculados";
-import ProyectosVinculados from '../../proyectos/ProyectosVinculados';
 
 interface Props {
   onCerrar: () => void;
@@ -131,7 +130,7 @@ export default function ModalDetalleTarea({
       onClick={onCerrar}
     >
       <div
-        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-lienzo border border-white/10 rounded-[20px] shadow-2xl"
+        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-lienzo border border-white/10 rounded-xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Encabezado */}
@@ -151,7 +150,6 @@ export default function ModalDetalleTarea({
         <div className="p-6 space-y-6">
           {(tareaDocente || detalle) && <BotonConversacionContextual tipo="tarea" id={tareaDocente?.id ?? tareaId!} etiqueta="Conversación de la tarea" />}
           {(tareaDocente || detalle) && <RecursosVinculados tipo="tarea" id={tareaDocente?.id ?? tareaId!} />}
-          {(tareaDocente || detalle) && <ProyectosVinculados tipo="tarea" id={tareaDocente?.id ?? tareaId!} />}
           {detalle?.entrega && <BotonConversacionContextual tipo="entrega" id={detalle.entrega.id} etiqueta="Conversar con el docente sobre mi entrega" />}
           {esDocente ? (
             <DetalleDocente tarea={tareaDocente} acciones={acciones} />
@@ -163,11 +161,11 @@ export default function ModalDetalleTarea({
             <>
               {/* Metadatos */}
               <div className="flex flex-wrap gap-3 text-sm">
-                <span className="px-3 py-1 rounded-full bg-fondo text-slate-300 flex items-center gap-1.5">
+                <span className="px-3 py-1 rounded-lg bg-fondo text-slate-300 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-base">menu_book</span>
                   {detalle.tarea.materia}
                 </span>
-                <span className="px-3 py-1 rounded-full bg-fondo text-slate-300 flex items-center gap-1.5">
+                <span className="px-3 py-1 rounded-lg bg-fondo text-slate-300 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-base">person</span>
                   {detalle.tarea.profesor}
                 </span>
@@ -180,7 +178,7 @@ export default function ModalDetalleTarea({
                   {textoVencimiento(detalle.tarea.fechaLimite)}
                 </span>
                 {detalle.tarea.tipoAsignacion === "grupal" && (
-                  <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 flex items-center gap-1.5">
+                  <span className="px-3 py-1 rounded-lg bg-indigo-500/10 text-indigo-300 flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-base">groups</span>
                     Grupal
                   </span>
@@ -275,11 +273,11 @@ function DetalleDocente({
   return (
     <>
       <div className="flex flex-wrap gap-3 text-sm">
-        <span className="px-3 py-1 rounded-full bg-fondo text-slate-300 flex items-center gap-1.5">
+        <span className="px-3 py-1 rounded-lg bg-fondo text-slate-300 flex items-center gap-1.5">
           <span className="material-symbols-outlined text-base">menu_book</span>
           {tarea.materia}
         </span>
-        <span className="px-3 py-1 rounded-full bg-fondo text-slate-300 flex items-center gap-1.5">
+        <span className="px-3 py-1 rounded-lg bg-fondo text-slate-300 flex items-center gap-1.5">
           <span className="material-symbols-outlined text-base">school</span>
           {tarea.curso}
         </span>
@@ -292,7 +290,7 @@ function DetalleDocente({
           {textoVencimiento(tarea.fechaLimite)}
         </span>
         {tarea.tipoAsignacion === "grupal" && (
-          <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 flex items-center gap-1.5">
+          <span className="px-3 py-1 rounded-lg bg-indigo-500/10 text-indigo-300 flex items-center gap-1.5">
             <span className="material-symbols-outlined text-base">groups</span>
             Grupal
           </span>
@@ -339,7 +337,7 @@ function ArchivoDescargable({
     <li>
       <a
         href={urlDescarga(archivo.id)}
-        className="flex items-center gap-3 bg-fondo rounded-[10px] px-4 py-3 hover:bg-[#241640] transition-colors group"
+        className="flex items-center gap-3 bg-fondo rounded-[10px] px-4 py-3 hover:bg-surface-container-high transition-colors group"
       >
         <span className="material-symbols-outlined text-acento">description</span>
         <span className="text-slate-200 text-sm flex-1 truncate group-hover:text-white">
@@ -384,7 +382,7 @@ function EntregaHecha({
 
       {/* Devolución del profesor (Error 2.C.6) */}
       {entrega.corregida ? (
-        <div className="bg-gradient-to-br from-fondo to-[#241640] rounded-[14px] p-5 border border-acento/20">
+        <div className="bg-gradient-to-br from-fondo to-primary/5 rounded-[14px] p-5 border border-acento/20">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Devolución del profesor
@@ -411,7 +409,7 @@ function EntregaHecha({
           <button
             onClick={onAnular}
             disabled={enviando}
-            className="px-4 py-2 text-rose-400 font-semibold hover:text-rose-300 hover:bg-rose-500/10 rounded-full transition-colors disabled:opacity-40 shrink-0"
+            className="px-4 py-2 text-rose-400 font-semibold hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-40 shrink-0"
           >
             Anular entrega
           </button>
@@ -488,7 +486,7 @@ function FormularioEntrega({
         <button
           onClick={onEntregar}
           disabled={enviando}
-          className="px-6 py-2.5 bg-acento text-black font-bold rounded-full hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-6 py-2.5 bg-acento text-white font-bold rounded-lg hover:bg-acento-vivo transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {enviando ? "Entregando…" : "Entregar"}
         </button>

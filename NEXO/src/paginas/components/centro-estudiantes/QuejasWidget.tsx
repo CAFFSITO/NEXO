@@ -15,7 +15,7 @@ export default function QuejasWidget({ categorias, nuevas, onVerTodas }: QuejasW
   return (
     <section className="bg-lienzo rounded-lg p-6 border border-white/5">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-headline font-bold text-white">Quejas Recientes</h3>
+        <h3 className="text-lg font-headline font-bold text-white">Quejas recientes</h3>
         {nuevas > 0 && (
           <span className="bg-[#B00020] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
             {nuevas} NUEVAS

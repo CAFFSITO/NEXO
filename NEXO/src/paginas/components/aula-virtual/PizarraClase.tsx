@@ -196,7 +196,7 @@ export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) 
                 onClick={() => setColor(c)}
                 aria-label={`Color ${c}`}
                 className={`w-5 h-5 rounded-full border-2 transition-transform ${
-                  color === c ? "border-white scale-110" : "border-transparent"
+                  color === c ? "border-blanco scale-110" : "border-transparent"
                 }`}
                 style={{ backgroundColor: c }}
               />
@@ -220,7 +220,7 @@ export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) 
         onPointerMove={alMover}
         onPointerUp={alSoltar}
         onPointerCancel={() => { dibujandoRef.current = null; redibujar(); }}
-        className={`flex-1 w-full rounded-2xl bg-[#0f0820] border border-white/10 ${
+        className={`flex-1 w-full rounded-2xl bg-surface-container-lowest border border-white/10 ${
           esDocente ? "cursor-crosshair touch-none" : "cursor-default"
         }`}
       />

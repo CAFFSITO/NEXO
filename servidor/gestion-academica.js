@@ -89,7 +89,27 @@ export function registrarGestionAcademica(app, db) {
         return null;
       }
     }
-    return { anio, division, preceptorId, turnoId, especialidadId };
+    // Cupo: enteros entre 0 y 500, o vacío (sin límite). Lo que no venga queda como estaba.
+    const cupo = (clave, columna) => {
+      const v = req.body?.[clave];
+      if (v === undefined) return { valor: actual ? actual[columna] ?? null : null };
+      if (v === null || v === "") return { valor: null };
+      const n = Number(v);
+      return Number.isInteger(n) && n >= 0 && n <= 500 ? { valor: n } : { error: true };
+    };
+    const minimo = cupo("cupoMinimo", "cupo_minimo");
+    const maximo = cupo("cupoMaximo", "cupo_maximo");
+    if (minimo.error || maximo.error) {
+      res.status(400).json({ error: "El cupo tiene que ser un número entero de 0 a 500 estudiantes." });
+      return null;
+    }
+    if (minimo.valor != null && maximo.valor != null && minimo.valor > maximo.valor) {
+      res.status(400).json({ error: "El cupo mínimo no puede ser mayor que el máximo." });
+      return null;
+    }
+    const aulaPedida = req.body?.aula;
+    const aula = aulaPedida === undefined ? actual?.aula ?? null : String(aulaPedida ?? "").trim().slice(0, 40) || null;
+    return { anio, division, preceptorId, turnoId, especialidadId, cupoMinimo: minimo.valor, cupoMaximo: maximo.valor, aula };
   }
   function transaccion(operacion) {
     db.exec("BEGIN");
@@ -133,12 +153,12 @@ export function registrarGestionAcademica(app, db) {
     if (!usuario) return;
     const datos = datosCurso(req, res, usuario);
     if (!datos) return;
-    const { anio, division, preceptorId, turnoId, especialidadId } = datos;
+    const { anio, division, preceptorId, turnoId, especialidadId, cupoMinimo, cupoMaximo, aula } = datos;
     if (db.prepare("SELECT id FROM cursos WHERE institucion_id = ? AND anio = ? AND division = ? COLLATE NOCASE").get(usuario.institucionId, anio, division)) {
       return res.status(409).json({ error: "Ya existe un curso con ese año y división." });
     }
     const id = transaccion(() => {
-      const info = db.prepare("INSERT INTO cursos (institucion_id, anio, division, preceptor_id, turno_id, especialidad_id) VALUES (?, ?, ?, ?, ?, ?)").run(usuario.institucionId, anio, division, preceptorId, turnoId, especialidadId);
+      const info = db.prepare("INSERT INTO cursos (institucion_id, anio, division, preceptor_id, turno_id, especialidad_id, cupo_minimo, cupo_maximo, aula) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run(usuario.institucionId, anio, division, preceptorId, turnoId, especialidadId, cupoMinimo, cupoMaximo, aula);
       asegurarComunidadCurso(db, Number(info.lastInsertRowid));
       return info.lastInsertRowid;
     });
@@ -152,12 +172,12 @@ export function registrarGestionAcademica(app, db) {
     if (!curso) return;
     const datos = datosCurso(req, res, usuario, curso);
     if (!datos) return;
-    const { anio, division, preceptorId, turnoId, especialidadId } = datos;
+    const { anio, division, preceptorId, turnoId, especialidadId, cupoMinimo, cupoMaximo, aula } = datos;
     if (db.prepare("SELECT id FROM cursos WHERE institucion_id = ? AND anio = ? AND division = ? COLLATE NOCASE AND id <> ?").get(usuario.institucionId, anio, division, curso.id)) {
       return res.status(409).json({ error: "Ya existe un curso con ese año y división." });
     }
     transaccion(() => {
-      db.prepare("UPDATE cursos SET anio = ?, division = ?, preceptor_id = ?, turno_id = ?, especialidad_id = ? WHERE id = ?").run(anio, division, preceptorId, turnoId, especialidadId, curso.id);
+      db.prepare("UPDATE cursos SET anio = ?, division = ?, preceptor_id = ?, turno_id = ?, especialidad_id = ?, cupo_minimo = ?, cupo_maximo = ?, aula = ? WHERE id = ?").run(anio, division, preceptorId, turnoId, especialidadId, cupoMinimo, cupoMaximo, aula, curso.id);
       asegurarComunidadCurso(db, curso.id);
     });
     res.json({ ok: true });

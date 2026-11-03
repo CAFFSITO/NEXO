@@ -39,7 +39,7 @@ export function Fallo({ error, onReintentar }: FalloProps) {
       {onReintentar && (
         <button
           onClick={onReintentar}
-          className="mt-2 px-5 py-2 rounded-full border border-acento text-acento text-sm font-bold hover:bg-acento/10 transition-colors"
+          className="mt-2 px-5 py-2 rounded-lg border border-acento text-acento text-sm font-bold hover:bg-acento/10 transition-colors"
         >
           Reintentar
         </button>
@@ -57,7 +57,7 @@ interface VacioProps {
 export function Vacio({ icono, mensaje }: VacioProps) {
   return (
     <div className="bg-lienzo/40 border border-white/5 rounded-[14px] p-12 text-center">
-      <span className="material-symbols-outlined text-4xl text-slate-500 mb-2 block">
+      <span className="material-symbols-outlined text-4xl text-slate-500 mb-2 block mx-auto">
         {icono}
       </span>
       <p className="text-slate-400 text-sm">{mensaje}</p>

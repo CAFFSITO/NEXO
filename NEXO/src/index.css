@@ -1,271 +1,430 @@
-/* NEXO: paleta original, tipografía y componentes compartidos. */
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Architects+Daughter&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+/* NEXO — sistema visual.
+   Claro por defecto (como la mayoría de las aplicaciones), oscuro opcional.
+   Una sola familia tipográfica (Inter), un color de marca (el acento de la
+   escuela), superficies neutras y bordes finos. */
 @import "tailwindcss";
 @config "../tailwind.config.ts";
+@import "./estilos/paleta-modos.css";
 
-:root { --sidebar-width: 248px; --nexo-border: rgba(212,193,213,.11); --nexo-muted: #a99ab9; }
+/* Las fuentes viajan con NEXO (public/fuentes): se ven igual sin internet o con
+   una red escolar lenta. Los íconos usan font-display: block: mientras cargan,
+   no se muestra el nombre del ícono como texto (eso se veía como palabras
+   cortadas: "se", "no", "ca"…). */
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("/fuentes/inter-latin.woff2") format("woff2"); }
+@font-face { font-family: "Material Symbols Outlined"; font-style: normal; font-weight: 300 700; font-display: block; src: url("/fuentes/material-symbols-outlined.woff2") format("woff2"); }
 
-/* Paleta de la instancia (perfil Maestro). Estos son los valores originales de
-   NEXO; cuando la escuela tiene otra paleta en su genoma, servicios/tema.ts los
-   pisa en <html> con los colores derivados de esa paleta. */
-:root {
-  --nexo-acento: #c548f5;
-  --nexo-acento-vivo: #d15aff;
-  --nexo-acento-oscuro: #9a06cb;
-  /* La letra sobre el acento: blanca, salvo que el acento de la escuela sea tan
-     claro que no se lea (servicios/tema.ts → letraSobre elige una oscura). */
+/* ── Tokens ─────────────────────────────────────────────────────────────────
+   Modo claro (por defecto). servicios/tema.ts pisa las variables de marca
+   cuando la escuela tiene su propia paleta. */
+:root, [data-modo="claro"] {
+  --menu-ancho: 256px;
+  --sidebar-width: var(--menu-ancho);
+  --nexo-barra-inferior: 0px;
+  --nexo-acento: #4f46e5;
+  --nexo-acento-vivo: #4338ca;
+  --nexo-acento-oscuro: #3730a3;
   --nexo-sobre-acento: #ffffff;
-  --nexo-primario: #edb1ff;
-  --nexo-primario-claro: #f9d8ff;
-  --nexo-sobre-primario: #53006f;
-  --nexo-sobre-primario-fuerte: #480062;
-  --nexo-secundario: #d2bcfa;
-  --nexo-secundario-contenedor: #4f3d72;
-  --nexo-sobre-secundario: #c1abe8;
-  --nexo-terciario: #efc04c;
-  --nexo-terciario-oscuro: #b38b15;
-  --nexo-fondo: #190d2d;
-  --nexo-fondo-pagina: #1c1030;
-  --nexo-lienzo: #2d1b4e;
-  --nexo-sidebar: #160d28;
-  --nexo-sup-0: #130727;
-  --nexo-sup-1: #211535;
-  --nexo-sup-2: #25193a;
-  --nexo-sup-3: #302445;
-  --nexo-sup-4: #3b2f50;
-  --nexo-sup-brillante: #403355;
-  --nexo-texto: #ecdcff;
-  --nexo-texto-suave: #d4c1d5;
-  --nexo-borde: #9c8b9e;
-  --nexo-borde-suave: #504253;
-  --nexo-radio: 12px;
+  --nexo-primario: #4338ca;
+  --nexo-primario-claro: #eef0ff;
+  --nexo-sobre-primario: #ffffff;
+  --nexo-sobre-primario-fuerte: #ffffff;
+  --nexo-secundario: #6d28d9;
+  --nexo-secundario-contenedor: #ede9fe;
+  --nexo-sobre-secundario: #4c1d95;
+  --nexo-terciario: #b45309;
+  --nexo-terciario-oscuro: #92400e;
+  --nexo-fondo: #f4f5f7;
+  --nexo-fondo-pagina: #f4f5f7;
+  --nexo-lienzo: #ffffff;
+  --nexo-sidebar: #ffffff;
+  --nexo-sup-0: #eceef2;
+  --nexo-sup-1: #ffffff;
+  --nexo-sup-2: #f8f9fb;
+  --nexo-sup-3: #f0f2f5;
+  --nexo-sup-4: #e7eaef;
+  --nexo-sup-brillante: #dfe3e9;
+  --nexo-texto: #16181d;
+  --nexo-texto-suave: #5b6170;
+  --nexo-borde: #9aa1ad;
+  --nexo-borde-suave: #e2e5ea;
+  --nexo-linea: #e6e8ec;
+  --nexo-tinta: #16181d;
+  --nexo-foco: #6366f1;
+  --nexo-hover: rgb(16 24 40 / .045);
+  --nexo-sombra-1: 0 1px 2px rgb(16 24 40 / .05);
+  --nexo-sombra-2: 0 1px 3px rgb(16 24 40 / .08), 0 1px 2px rgb(16 24 40 / .04);
+  --nexo-sombra-3: 0 12px 32px -8px rgb(16 24 40 / .18), 0 4px 8px -4px rgb(16 24 40 / .06);
+  --nexo-velo: rgb(16 24 40 / .45);
+  --nexo-exito: #047857;
+  --nexo-peligro: #b42318;
+  --nexo-error: #b42318;
+  --nexo-error-contenedor: #fee4e2;
+  --nexo-sobre-error-contenedor: #7a271a;
+  --nexo-radio: 10px;
+  color-scheme: light;
 }
-html { color-scheme: dark; background: var(--nexo-fondo); scroll-behavior: smooth; }
-body { margin: 0; min-width: 320px; font-family: "Inter", sans-serif; background: var(--nexo-fondo); color: var(--nexo-texto); -webkit-font-smoothing: antialiased; }
+
+[data-modo="oscuro"], .maestro {
+  --nexo-acento: #4f46e5;
+  --nexo-acento-vivo: #6366f1;
+  --nexo-acento-oscuro: #3730a3;
+  --nexo-sobre-acento: #ffffff;
+  --nexo-primario: #a5b4fc;
+  --nexo-primario-claro: #c7d2fe;
+  --nexo-sobre-primario: #1e1b4b;
+  --nexo-sobre-primario-fuerte: #1e1b4b;
+  --nexo-secundario: #c4b5fd;
+  --nexo-secundario-contenedor: #2e2a5c;
+  --nexo-sobre-secundario: #ddd6fe;
+  --nexo-terciario: #fbbf24;
+  --nexo-terciario-oscuro: #b45309;
+  --nexo-fondo: #0e1014;
+  --nexo-fondo-pagina: #0e1014;
+  --nexo-lienzo: #1a1d24;
+  --nexo-sidebar: #121419;
+  --nexo-sup-0: #0a0b0e;
+  --nexo-sup-1: #16181e;
+  --nexo-sup-2: #1b1e25;
+  --nexo-sup-3: #22262e;
+  --nexo-sup-4: #2a2e38;
+  --nexo-sup-brillante: #333845;
+  --nexo-texto: #e8eaef;
+  --nexo-texto-suave: #a1a7b4;
+  --nexo-borde: #6b7280;
+  --nexo-borde-suave: #2a2e37;
+  --nexo-linea: #23262e;
+  --nexo-tinta: #ffffff;
+  --nexo-foco: #a5b4fc;
+  --nexo-hover: rgb(255 255 255 / .05);
+  --nexo-sombra-1: 0 1px 2px rgb(0 0 0 / .3);
+  --nexo-sombra-2: 0 1px 3px rgb(0 0 0 / .4);
+  --nexo-sombra-3: 0 16px 40px -8px rgb(0 0 0 / .6);
+  --nexo-velo: rgb(0 0 0 / .6);
+  --nexo-exito: #34d399;
+  --nexo-peligro: #f97066;
+  --nexo-error: #fda29b;
+  --nexo-error-contenedor: #55160c;
+  --nexo-sobre-error-contenedor: #fee4e2;
+  color-scheme: dark;
+}
+
+/* Tipografía y formas: menos "inflado" que el diseño anterior. */
+:root {
+  --font-weight-black: 700;
+  --font-weight-extrabold: 700;
+  --radius-2xl: 14px;
+  --radius-3xl: 16px;
+  --radius-4xl: 18px;
+  --text-4xl: 1.75rem;
+  --text-4xl--line-height: 1.25;
+  --text-5xl: 2rem;
+  --text-5xl--line-height: 1.2;
+  --text-6xl: 2.25rem;
+  --text-6xl--line-height: 1.15;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+html { background: var(--nexo-fondo); scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-width: 320px; font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 14px; line-height: 1.5; background: var(--nexo-fondo); color: var(--nexo-texto); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-feature-settings: "cv11", "ss01"; }
 #root { min-height: 100dvh; }
-/* Los botones y marcas pintados con el acento (bg-acento) escriben "text-white",
-   y con un acento claro eso es blanco sobre blanco. Esta regla es la única que
-   lo resuelve, para los que ya existen y para los que vengan: arriba del acento,
-   la letra es la que eligió el tema. Va fuera de las capas de Tailwind a
-   propósito, para ganarle a la utilidad text-white. */
-.bg-acento.text-white,
-.bg-acento > .text-white { color: var(--nexo-sobre-acento); }
-/* El desplegable propio (components/shared/Selector.tsx): en NEXO no se usa el
-   <select> del navegador. El aspecto del botón lo traen sus clases. */
-.nexo-selector { cursor: pointer; text-align: left; }
-.nexo-selector:disabled { cursor: not-allowed; opacity: .6; }
-.nexo-selector:focus-visible { outline: 2px solid var(--nexo-acento); outline-offset: 2px; }
-::selection { background: color-mix(in srgb, var(--nexo-acento) 31.4%, transparent); color: #fff; }
+::selection { background: color-mix(in srgb, var(--nexo-acento) 22%, transparent); color: inherit; }
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 button:not(:disabled), a { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
-:focus-visible { outline: 2px solid var(--nexo-primario); outline-offset: 4px; }
+:focus-visible { outline: 2px solid var(--nexo-foco); outline-offset: 2px; }
 input, textarea, select { max-width: 100%; }
-select { color-scheme: dark; }
 input[type="date"], input[type="datetime-local"], input[type="time"] { min-width: 0; }
-input::placeholder, textarea::placeholder { opacity: 1; }
-.font-headline { font-family: "Plus Jakarta Sans", sans-serif; }
-.font-handwritten { font-family: "Architects Daughter", cursive; }
-.material-symbols-outlined { font-family: "Material Symbols Outlined"; font-weight: normal; font-style: normal; font-size: 24px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; width: 1em; overflow: hidden; vertical-align: middle; white-space: nowrap; word-wrap: normal; direction: ltr; font-feature-settings: "liga"; -webkit-font-smoothing: antialiased; font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; flex-shrink: 0; }
+input::placeholder, textarea::placeholder { opacity: 1; color: color-mix(in srgb, var(--nexo-texto-suave) 75%, transparent); }
+.font-headline { font-family: "Inter", system-ui, sans-serif; letter-spacing: -.011em; }
+.font-handwritten { font-family: "Segoe Print", "Comic Sans MS", cursive; }
+/* Íconos: lo esencial (la fuente, que nunca se desborde) va acá; el tamaño, el
+   ancho y la forma van en @layer base para que las clases de Tailwind de cada
+   ícono (text-lg, w-12, grid, hidden…) se respeten. Antes esta regla les ganaba
+   a todas: un recuadro "w-12 h-12" con el ícono adentro quedaba de 22 px de
+   ancho y el ícono se veía corrido. */
+@layer base {
+  /* content-box: si un recuadro le pone relleno al ícono, el relleno va por fuera y no se come el dibujo. */
+  .material-symbols-outlined { box-sizing: content-box; font-size: 22px; display: inline-block; width: 1em; vertical-align: middle; flex-shrink: 0; }
+}
+.material-symbols-outlined { font-family: "Material Symbols Outlined"; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; overflow: hidden; white-space: nowrap; word-wrap: normal; direction: ltr; font-feature-settings: "liga"; -webkit-font-smoothing: antialiased; font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; }
+.relleno { font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24; }
+/* El desplegable propio (components/shared/Selector.tsx). */
+.nexo-selector { cursor: pointer; text-align: left; }
+.nexo-selector:disabled { cursor: not-allowed; opacity: .6; }
+.nexo-selector:focus-visible { outline: 2px solid var(--nexo-foco); outline-offset: 2px; }
+.custom-scrollbar, .nexo-search-results { scrollbar-width: thin; scrollbar-color: var(--nexo-borde-suave) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--nexo-borde-suave); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--nexo-borde); }
+.chalkboard-texture { background-color: #12241c; background-image: radial-gradient(circle at 20% 30%,#ffffff0a,transparent 40%),linear-gradient(135deg,#14261e,#0f1f18); }
+.whiteboard-grid { background-image: linear-gradient(#0000000d 1px,transparent 1px),linear-gradient(90deg,#0000000d 1px,transparent 1px); background-size: 32px 32px; }
 
-/* Un único contrato de layout para todas las páginas. */
-.app-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); min-width: 0; }
+/* Bordes finos de las tarjetas: en claro, "border-white/5" (tinta al 5%) casi
+   no se ve; la línea del tema los hace visibles y parejos en toda la app. */
+:is([class~="border-white/5"], [class~="border-white/10"], [class~="border-white/8"], [class~="border-outline-variant/30"], [class~="border-outline-variant/20"], [class~="border-surface-variant"], [class~="border-surface-container-highest"]) { border-color: var(--nexo-linea); }
+:is([class~="divide-white/5"], [class~="divide-white/10"]) > :not(:last-child) { border-color: var(--nexo-linea); }
+/* Tarjetas: en claro, una sombra mínima las separa del fondo gris. */
+:root:not([data-modo="oscuro"]) .app-content :is(.bg-surface-container-low, .bg-surface-container-lowest, .bg-lienzo):is(.rounded-xl, .rounded-2xl, .rounded-3xl, [class*="rounded-["]):not(button) { box-shadow: var(--nexo-sombra-1); }
+/* Recuadros "hundidos" (negro translúcido sobre fondo oscuro): en claro, una
+   superficie gris suave. Los velos sobre fotos y video (40 % o más) no cambian. */
+:root:not([data-modo="oscuro"]) :is([class~="bg-black/10"], [class~="bg-black/15"], [class~="bg-black/20"], [class~="bg-black/25"], [class~="bg-black/30"]):not(.absolute):not(.fixed) { background-color: var(--nexo-sup-3); }
+/* Velos de los diálogos: más livianos y parejos en los dos modos. */
+.fixed.inset-0:is([class~="bg-black/70"], [class~="bg-black/60"], [class~="bg-black/80"], [class~="bg-black/50"]) { background-color: var(--nexo-velo); }
+
+/* ── Armazón: contenido ─────────────────────────────────────────────────── */
+.app-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); min-width: 0; background: var(--nexo-fondo-pagina); }
 .app-fixed-header { left: var(--sidebar-width); }
 .app-content > :is(div, section) { min-width: 0; }
-.app-content h1 { letter-spacing: -.045em; line-height: 1.2; }
-.app-content :is(h2,h3) { letter-spacing: -.025em; }
-.app-content > .p-8, .app-content > .px-8 { padding-left: clamp(20px,3vw,48px); padding-right: clamp(20px,3vw,48px); }
+/* Un solo tamaño de título de página en toda la app (antes cada pantalla tenía
+   el suyo, de 36 a 60 px). */
+.app-content h1 { font-size: clamp(1.375rem, 1.1rem + .6vw, 1.625rem); line-height: 1.25; font-weight: 700; letter-spacing: -.02em; }
+.app-content :is(h2, h3) { letter-spacing: -.011em; }
+.app-content > .p-8, .app-content > .px-8, .app-content > .p-10, .app-content > .px-10 { padding-left: clamp(16px, 2.6vw, 40px); padding-right: clamp(16px, 2.6vw, 40px); }
 .app-content > .overflow-y-auto { scrollbar-gutter: stable; }
-/* La barra de arriba (components/shared/TopBar.tsx): pegada al bajar y sin línea.
-   Arriba de todo es transparente (toma el fondo de cada pantalla); cuando el
-   contenido pasa por debajo, gana superficie, desenfoque y una sombra suave. */
-.nexo-topbar { position: sticky; top: 0; z-index: 40; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding: 14px clamp(20px,3vw,48px); background: transparent; transition: box-shadow .2s, background-color .2s; }
-.nexo-topbar.is-elevada { background: color-mix(in srgb, var(--nexo-fondo-pagina) 88%, transparent); -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%); box-shadow: 0 16px 36px -24px #000d; }
-.nexo-topbar-fila { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.nexo-topbar-lugar { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.nexo-topbar-icono { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; font-size: 22px; color: var(--nexo-primario); background: color-mix(in srgb, var(--nexo-acento) 14%, transparent); font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
-.nexo-topbar-seccion { margin-bottom: 3px; font-size: 10px; font-weight: 600; line-height: 1.2; letter-spacing: 1.6px; text-transform: uppercase; color: var(--nexo-texto-suave); opacity: .62; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nexo-topbar-titulos { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.nexo-topbar-titulo { min-width: 0; font: 700 19px/1.25 "Plus Jakarta Sans", sans-serif; letter-spacing: -.02em; color: var(--nexo-texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nexo-topbar-contexto { min-width: 0; max-width: 380px; padding: 4px 11px; border-radius: 999px; background: color-mix(in srgb, var(--nexo-acento) 13%, transparent); color: var(--nexo-primario); font-size: 12px; font-weight: 600; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nexo-topbar-acciones { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
-.nexo-topbar-fecha { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--nexo-texto-suave); white-space: nowrap; }
-.nexo-topbar-fecha .material-symbols-outlined { font-size: 17px; color: var(--nexo-primario); }
-.nexo-topbar-herramientas { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 14px; background: var(--nexo-sup-1); }
-.nexo-topbar-herramientas .nexo-icon-button { color: var(--nexo-texto-suave); }
-.nexo-topbar-herramientas .nexo-icon-button:hover { color: var(--nexo-primario); background: var(--nexo-sup-3); }
-.nexo-topbar-globo { position: absolute; top: 1px; right: 0; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; display: grid; place-items: center; background: var(--nexo-acento); color: var(--nexo-sobre-acento); font-size: 10px; font-weight: 700; line-height: 1; box-shadow: 0 0 0 2px var(--nexo-sup-1); }
-.nexo-topbar-pestanas { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; padding: 2px 4px; }
+
+/* Sin palabras cortadas: lo que antes quedaba en una línea con "…" ahora baja de
+   renglón (los títulos enteros; los textos, hasta 3 renglones). Las listas tipo
+   chat, las cabeceras de conversación y la barra superior siguen en una línea,
+   como en cualquier aplicación. */
+.app-content :is(h1, h2, h3, h4, h5).truncate:not(.nexo-topbar-titulo):not(.wa-conversacion-cab *) { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; }
+.app-content :is(p, span, a, button, label, dd, dt, li, strong, b).truncate:not(.wa-chat *):not(.wa-conversacion-cab *):not(.nexo-topbar *):not(.wa-adjunto-pendiente *):not(.nexo-menu *) { white-space: normal; text-overflow: clip; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow-wrap: break-word; }
+.app-content :is(h1, h2, h3, h4, p, li, dd, td, th, label, button, a) { overflow-wrap: break-word; }
+
+/* ── Barra superior (components/shared/TopBar.tsx) ──────────────────────── */
+.nexo-topbar { position: sticky; top: 0; z-index: 40; flex-shrink: 0; display: flex; flex-direction: column; padding: 0 clamp(16px, 2.6vw, 40px); background: color-mix(in srgb, var(--nexo-fondo-pagina) 92%, transparent); -webkit-backdrop-filter: saturate(160%) blur(12px); backdrop-filter: saturate(160%) blur(12px); border-bottom: 1px solid transparent; transition: border-color .15s; }
+.nexo-topbar.is-elevada, .nexo-topbar.con-pestanas { border-bottom-color: var(--nexo-linea); }
+.nexo-topbar-fila { height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.nexo-topbar-lugar { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.nexo-topbar-titulos { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.nexo-topbar-titulo { min-width: 0; font: 600 17px/1.3 "Inter", sans-serif; letter-spacing: -.015em; color: var(--nexo-texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0; }
+.nexo-topbar-contexto { min-width: 0; max-width: 360px; font-size: 13px; color: var(--nexo-texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nexo-topbar-contexto::before { content: "·"; margin-right: 10px; opacity: .6; }
+.nexo-topbar-acciones { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.nexo-topbar-buscar-campo { display: flex; align-items: center; gap: 8px; width: 260px; height: 36px; padding: 0 10px; border-radius: 8px; background: var(--nexo-sup-3); color: var(--nexo-texto-suave); font-size: 13px; border: 1px solid transparent; transition: border-color .15s, background .15s; }
+.nexo-topbar-buscar-campo:hover { border-color: var(--nexo-borde-suave); background: var(--nexo-sup-1); }
+.nexo-topbar-buscar-campo .material-symbols-outlined { font-size: 19px; }
+/* Nunca en dos renglones: si no entra, se corta con "…" y el atajo se esconde. */
+.nexo-topbar-buscar-campo { white-space: nowrap; text-align: left; min-width: 0; }
+.nexo-topbar-buscar-campo > span:not(.material-symbols-outlined) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.nexo-topbar-buscar-campo kbd { white-space: nowrap; flex-shrink: 0; }
+.nexo-topbar-buscar-campo kbd { margin-left: auto; font: 500 11px "Inter", sans-serif; padding: 2px 6px; border-radius: 5px; border: 1px solid var(--nexo-borde-suave); background: var(--nexo-sup-1); color: var(--nexo-texto-suave); }
+.nexo-topbar-globo { position: absolute; top: 4px; right: 3px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; display: grid; place-items: center; background: #e5484d; color: #fff; font-size: 10px; font-weight: 700; line-height: 1; box-shadow: 0 0 0 2px var(--nexo-fondo-pagina); }
+.nexo-topbar .nexo-topbar-avatar, .nexo-topbar .nexo-topbar-buscar-icono { display: none; }
+.nexo-topbar-avatar .nexo-avatar { box-shadow: none !important; }
+.nexo-topbar-pestanas { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; padding: 0 4px; }
 .nexo-topbar-pestanas::-webkit-scrollbar { display: none; }
-.nexo-topbar-pestana { flex-shrink: 0; padding: 8px 16px; border-radius: 999px; font: 600 13px/1.2 "Plus Jakarta Sans", sans-serif; color: var(--nexo-texto-suave); transition: background .15s, color .15s; }
-.nexo-topbar-pestana:hover { color: var(--nexo-texto); background: var(--nexo-sup-2); }
-.nexo-topbar-pestana[aria-current="page"] { color: var(--nexo-primario); background: color-mix(in srgb, var(--nexo-acento) 14%, transparent); }
-/* La fecha y la escuela ceden su lugar antes que el título. (El buscador en
-   celular ya está en la barra del menú.) */
-@media (max-width: 1279px) { .nexo-topbar-fecha { display: none; } }
-@media (max-width: 639px) { .nexo-topbar-contexto, .nexo-topbar-seccion { display: none; } }
-.nexo-pill { align-items: center; border: 1px solid color-mix(in srgb, var(--nexo-primario) 14.5%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--nexo-primario) 3.9%, transparent); color: var(--nexo-primario); font-size: 10px; font-weight: 600; padding: 4px 9px; }
-.nexo-icon-button { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; flex-shrink: 0; color: #b6a6c9; transition: background .15s, color .15s; }
-.nexo-icon-button:hover { color: var(--nexo-primario); background: color-mix(in srgb, var(--nexo-primario) 5.1%, transparent); }
-.nexo-icon-button .material-symbols-outlined { font-size: 21px; }
-.nexo-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 50; width: var(--sidebar-width); height: 100dvh; background: var(--nexo-sidebar); border-right: 1px solid var(--nexo-border); padding: 30px 16px 16px; display: flex; flex-direction: column; overflow: hidden; }
-.nexo-brand-row { display: flex; align-items: center; gap: 10px; padding: 0 12px; }
-.nexo-brand-icon { color: var(--nexo-acento); background: color-mix(in srgb, var(--nexo-acento) 9%, transparent); padding: 8px; border-radius: 12px; font-size: 23px; }
-.nexo-wordmark { color: var(--nexo-texto); font: 800 32px/1 "Plus Jakarta Sans", sans-serif; letter-spacing: -2px; }
-.nexo-wordmark > span { color: var(--nexo-acento); }
-.nexo-brand-caption { font-size: 8px; font-weight: 600; letter-spacing: 1.8px; color: #a99ab9; margin: 14px 12px 28px; }
-.nexo-nav-search { display: flex; align-items: center; gap: 8px; width: 100%; padding: 11px 10px; border-radius: 9px; background: var(--nexo-sup-1); border: 1px solid var(--nexo-border); color: #b6a6c9; font-size: 11px; }
-.nexo-nav-search .material-symbols-outlined { font-size: 18px; }
-.nexo-nav-search kbd { margin-left: auto; color: #a99ab9; font: 9px "Inter",sans-serif; white-space: nowrap; border: 1px solid var(--nexo-borde-suave); border-radius: 4px; padding: 3px; }
-.nexo-nav-section-label { margin: 28px 12px 12px; font-size: 9px; letter-spacing: 1.8px; font-weight: 600; color: #8b7c9b; display: flex; align-items: center; gap: 6px; }
-.nexo-nav-section-label .material-symbols-outlined { font-size: 13px; color: var(--nexo-acento); opacity: .8; }
-.nexo-nav-group + .nexo-nav-group .nexo-nav-section-label { margin-top: 20px; }
-.nexo-nav-items { display: flex; flex-direction: column; gap: 5px; padding-bottom: 20px; }
-.nexo-nav-item { width: 100%; min-height: 45px; display: flex; gap: 11px; align-items: center; padding: 11px 12px; border-radius: 9px; color: #b6a6c9; font-size: 12px; font-weight: 500; text-align: left; border: 1px solid transparent; transition: background .15s,color .15s; }
-.nexo-nav-item > .material-symbols-outlined { font-size: 21px; }
-.nexo-nav-item:hover { color: var(--nexo-texto); background: var(--nexo-sup-2); }
-.nexo-nav-item.is-active { color: var(--nexo-primario); background: color-mix(in srgb, var(--nexo-acento) 8.2%, transparent); border-color: color-mix(in srgb, var(--nexo-acento) 14.5%, transparent); }
-.nexo-nav-item.is-active > .material-symbols-outlined { font-variation-settings: "FILL" 1; }
-.nexo-nav-badge { margin-left: auto; background: var(--nexo-acento); color: var(--nexo-sobre-acento); min-width: 19px; border-radius: 6px; text-align: center; padding: 2px 4px; font-size: 10px; }
-.nexo-sidebar-scroll { flex: 1 1 auto; min-height: 0; margin: 0 -8px; padding: 0 8px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
-.nexo-sidebar-scroll::-webkit-scrollbar { display: none; }
-.nexo-sidebar-tools { padding-top: 14px; padding-bottom: 8px; border-top: 1px solid var(--nexo-border); }
-.nexo-user-card { flex: 0 0 auto; margin-top: 8px; padding: 16px 0 0; border-top: 1px solid var(--nexo-border); display: flex; align-items: center; gap: 9px; background: var(--nexo-sidebar); }
-.nexo-avatar { width: 36px; height: 36px; flex-shrink: 0; object-fit: cover; border-radius: 12px; display: grid; place-items: center; background: var(--nexo-secundario-contenedor); color: #ebddff; font-size: 11px; font-weight: 700; }
-.nexo-mobile-bar, .nexo-drawer-close, .nexo-drawer-backdrop { display: none; }
-.nexo-skip-link { position: fixed; top: -100px; left: 16px; z-index: 200; background: var(--nexo-primario); color: #320045; border-radius: 8px; padding: 12px 18px; }
+.nexo-topbar-pestana { position: relative; flex-shrink: 0; padding: 10px 12px 12px; font: 500 14px/1.2 "Inter", sans-serif; color: var(--nexo-texto-suave); border-radius: 6px 6px 0 0; transition: color .15s, background .15s; }
+.nexo-topbar-pestana:hover { color: var(--nexo-texto); background: var(--nexo-hover); }
+.nexo-topbar-pestana[aria-current="page"] { color: var(--nexo-primario); font-weight: 600; }
+.nexo-topbar-pestana[aria-current="page"]::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px; border-radius: 2px 2px 0 0; background: var(--nexo-acento); }
+
+/* ── Botones de ícono y piezas compartidas ──────────────────────────────── */
+@layer components {
+  .nexo-icon-button { position: relative; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0; color: var(--nexo-texto-suave); transition: background .15s, color .15s; }
+  .nexo-icon-button:hover { color: var(--nexo-texto); background: var(--nexo-hover); }
+  .nexo-icon-button .material-symbols-outlined { font-size: 21px; }
+  .nexo-pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; background: color-mix(in srgb, var(--nexo-acento) 10%, transparent); color: var(--nexo-primario); font-size: 11px; font-weight: 600; padding: 3px 9px; }
+  .nexo-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--nexo-primario); }
+  .nexo-perfil-punto { width: 8px; height: 8px; border-radius: 999px; display: inline-block; flex-shrink: 0; }
+  .nexo-avatar { width: 32px; height: 32px; flex-shrink: 0; object-fit: cover; border-radius: 999px; display: grid; place-items: center; background: var(--nexo-secundario-contenedor); color: var(--nexo-sobre-secundario); font-size: 12px; font-weight: 600; }
+
+  /* Botones, campos y tarjetas para las pantallas nuevas. */
+  .nx-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 8px; font: 600 14px/1 "Inter", sans-serif; white-space: nowrap; border: 1px solid transparent; transition: background .15s, border-color .15s, color .15s, box-shadow .15s; }
+  .nx-btn .material-symbols-outlined { font-size: 19px; }
+  .nx-btn:disabled { opacity: .5; }
+  .nx-btn-primario { background: var(--nexo-acento); color: var(--nexo-sobre-acento); box-shadow: var(--nexo-sombra-1); }
+  .nx-btn-primario:hover:not(:disabled) { background: var(--nexo-acento-vivo); }
+  .nx-btn-secundario { background: var(--nexo-sup-1); color: var(--nexo-texto); border-color: var(--nexo-borde-suave); box-shadow: var(--nexo-sombra-1); }
+  .nx-btn-secundario:hover:not(:disabled) { background: var(--nexo-sup-3); }
+  .nx-btn-fantasma { color: var(--nexo-texto-suave); }
+  .nx-btn-fantasma:hover:not(:disabled) { color: var(--nexo-texto); background: var(--nexo-hover); }
+  .nx-btn-peligro { background: var(--nexo-sup-1); color: var(--nexo-peligro); border-color: color-mix(in srgb, var(--nexo-peligro) 30%, transparent); }
+  .nx-btn-peligro:hover:not(:disabled) { background: color-mix(in srgb, var(--nexo-peligro) 8%, transparent); }
+  .nx-btn-chico { height: 30px; padding: 0 10px; font-size: 13px; }
+  .nx-campo { width: 100%; height: 38px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--nexo-borde-suave); background: var(--nexo-sup-1); color: var(--nexo-texto); font-size: 14px; outline: none; transition: border-color .15s, box-shadow .15s; }
+  .nx-campo:focus { border-color: var(--nexo-acento); box-shadow: 0 0 0 3px color-mix(in srgb, var(--nexo-acento) 18%, transparent); }
+  .nx-tarjeta { background: var(--nexo-sup-1); border: 1px solid var(--nexo-linea); border-radius: 12px; box-shadow: var(--nexo-sombra-1); }
+}
+
+/* ── Menú lateral (components/shared/Sidebar.tsx) ───────────────────────── */
+.nexo-skip-link { position: fixed; top: -100px; left: 16px; z-index: 200; background: var(--nexo-acento); color: var(--nexo-sobre-acento); border-radius: 8px; padding: 10px 16px; font-weight: 600; }
 .nexo-skip-link:focus { top: 12px; }
-.nexo-search-dialog { position: fixed; inset: 12vh 0 auto; margin: 0 auto; width: min(560px,calc(100% - 32px)); max-height: 78dvh; border: 1px solid var(--nexo-borde-suave); border-radius: 18px; background: var(--nexo-sup-1); color: var(--nexo-texto); padding: 0; box-shadow: 0 30px 100px #0008; }
-.nexo-search-dialog::backdrop { background: #0d061bcc; backdrop-filter: blur(6px); }
-.nexo-search-input { display: flex; align-items: center; gap: 10px; border: 1px solid var(--nexo-borde-suave); background: var(--nexo-fondo); border-radius: 10px; padding: 12px; color: #b6a6c9; }
-.nexo-search-input input { outline: none; width: 100%; background: transparent; font-size: 14px; color: var(--nexo-texto); }
-.nexo-search-results { overflow-y: auto; max-height: 44dvh; padding: 0 12px 12px; }
-.nexo-search-result { width: 100%; display: flex; align-items: center; gap: 14px; padding: 13px 12px; text-align: left; font-size: 13px; border-radius: 8px; }
-.nexo-search-result:hover, .nexo-search-result:focus-visible { background: var(--nexo-sup-3); }
-.nexo-search-result .material-symbols-outlined { font-size: 20px; }
+.nexo-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 50; width: var(--menu-ancho); height: 100dvh; background: var(--nexo-sidebar); border-right: 1px solid var(--nexo-linea); display: flex; flex-direction: column; overflow: hidden; }
+.nexo-escuela { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 10px 14px; flex-shrink: 0; }
+.nexo-escuela-logo { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; background: var(--nexo-acento); color: var(--nexo-sobre-acento); font-size: 19px; flex-shrink: 0; font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
+.nexo-escuela-texto { min-width: 0; flex: 1; }
+.nexo-escuela-nombre { display: block; font-size: 14px; font-weight: 600; line-height: 1.25; color: var(--nexo-texto); overflow-wrap: break-word; }
+.nexo-escuela-marca { display: block; font-size: 11.5px; color: var(--nexo-texto-suave); line-height: 1.3; }
+.nexo-nav-search { display: flex; align-items: center; gap: 8px; margin: 4px 12px 8px; height: 34px; padding: 0 10px; border-radius: 8px; background: var(--nexo-sup-3); color: var(--nexo-texto-suave); font-size: 13px; border: 1px solid transparent; transition: border-color .15s, background .15s; }
+.nexo-nav-search:hover { border-color: var(--nexo-borde-suave); background: var(--nexo-sup-1); }
+.nexo-nav-search .material-symbols-outlined { font-size: 18px; }
+.nexo-nav-search kbd { margin-left: auto; font: 500 10.5px "Inter", sans-serif; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--nexo-borde-suave); color: var(--nexo-texto-suave); background: var(--nexo-sup-1); }
+.nexo-sidebar-scroll { flex: 1 1 auto; min-height: 0; padding: 4px 12px 12px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.nexo-sidebar-scroll:hover { scrollbar-color: var(--nexo-borde-suave) transparent; }
+.nexo-nav-group + .nexo-nav-group { margin-top: 14px; }
+.nexo-nav-section-label { display: flex; align-items: center; gap: 6px; padding: 6px 10px 4px; font-size: 11.5px; font-weight: 600; color: var(--nexo-texto-suave); opacity: .85; }
+.nexo-nav-section-label .material-symbols-outlined { font-size: 14px; }
+.nexo-nav-items { display: flex; flex-direction: column; gap: 1px; }
+.nexo-nav-item { position: relative; width: 100%; min-height: 36px; display: flex; gap: 10px; align-items: center; padding: 7px 10px; line-height: 1.3; border-radius: 8px; color: var(--nexo-texto-suave); font-size: 14px; font-weight: 500; text-align: left; transition: background .12s, color .12s; }
+.nexo-nav-item > span:not(.material-symbols-outlined):not(.nexo-nav-badge) { min-width: 0; overflow-wrap: break-word; }
+.nexo-nav-item > .material-symbols-outlined { font-size: 20px; }
+.nexo-nav-item:hover { color: var(--nexo-texto); background: var(--nexo-hover); }
+.nexo-nav-item.is-active { color: var(--nexo-primario); background: color-mix(in srgb, var(--nexo-acento) 10%, transparent); font-weight: 600; }
+.nexo-nav-item.is-active > .material-symbols-outlined { font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24; }
+.nexo-nav-badge { margin-left: auto; background: var(--nexo-acento); color: var(--nexo-sobre-acento); min-width: 20px; height: 20px; border-radius: 999px; display: grid; place-items: center; padding: 0 6px; font-size: 11px; font-weight: 700; }
+.nexo-user-card { position: relative; flex: 0 0 auto; padding: 8px 12px 12px; border-top: 1px solid var(--nexo-linea); }
+.nexo-user-boton { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; text-align: left; transition: background .12s; }
+.nexo-user-boton:hover, .nexo-user-boton[aria-expanded="true"] { background: var(--nexo-hover); }
+.nexo-mobile-bar, .nexo-drawer-close, .nexo-drawer-backdrop, .nexo-barra-inferior { display: none; }
 
-/* Acceso institucional: una portada útil sin estadísticas inventadas. */
-.nexo-login { min-height: 100dvh; display: grid; grid-template-columns: minmax(0,1.1fr) minmax(400px,1fr); background: var(--nexo-fondo); }
-.nexo-login-story { padding: clamp(32px,5vw,80px); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; border-right: 1px solid var(--nexo-border); background: radial-gradient(ellipse at 25% 45%,#4f3d7245,transparent 65%),var(--nexo-sidebar); }
-.nexo-login-story::after { content: ""; position: absolute; width: 460px; height: 460px; border: 1px solid color-mix(in srgb, var(--nexo-acento) 8.6%, transparent); border-radius: 50%; right: -240px; bottom: -170px; box-shadow: 0 0 0 70px color-mix(in srgb, var(--nexo-acento) 3.1%, transparent),0 0 0 140px color-mix(in srgb, var(--nexo-acento) 2%, transparent); pointer-events: none; }
-.nexo-login-heading { max-width: 560px; padding: 56px 0 40px; position: relative; z-index: 1; }
-.nexo-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: var(--nexo-primario); }
-.nexo-eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--nexo-acento); }
-.nexo-login-heading h1 { font: 700 clamp(38px,4.3vw,66px)/1.1 "Plus Jakarta Sans",sans-serif; letter-spacing: -.055em; margin: 24px 0; }
-.nexo-login-heading h1 span { color: var(--nexo-primario); }
-.nexo-login-heading > p { color: #b6a6c9; max-width: 390px; font-size: 15px; line-height: 1.8; }
-.nexo-login-features { display: grid; gap: 17px; margin-top: 40px; }
-.nexo-login-feature { display: flex; gap: 13px; align-items: center; }
-.nexo-login-feature > span { color: var(--nexo-primario); font-size: 20px; padding: 10px; border: 1px solid var(--nexo-borde-suave); border-radius: 12px; }
-.nexo-login-feature p { font-size: 12px; color: #b6a6c9; margin-top: 3px; }
-.nexo-login-feature h2 { font-size: 13px; font-weight: 600; }
-.nexo-login-form-panel { display: flex; flex-direction: column; justify-content: center; padding: 48px clamp(24px,5vw,80px); }
-.nexo-login-form-panel > main { width: 100%; max-width: 400px; margin: auto; padding: 40px 0; }
-.nexo-login-form-panel footer { margin-top: 28px; }
-.nexo-login-form-panel form > button[type="submit"] { border-radius: 10px; box-shadow: none; }
-.nexo-login-form-panel input { border-radius: 10px; background: var(--nexo-sup-1); }
+/* Menú lateral cerrable y con ancho ajustable (solo computadora). */
+.nexo-sidebar-borde { position: fixed; top: 0; bottom: 0; left: calc(var(--menu-ancho) - 4px); width: 9px; z-index: 56; cursor: col-resize; touch-action: none; }
+:root[data-menu-cerrado] .nexo-sidebar-borde { display: none; }
+.nexo-sidebar-borde::after { content: ""; position: absolute; top: 0; bottom: 0; left: 3.5px; width: 2px; background: transparent; transition: background .15s .1s; }
+.nexo-sidebar-borde:hover::after, .nexo-sidebar-borde:focus-visible::after, :root[data-redimensionando] .nexo-sidebar-borde::after { background: var(--nexo-acento); }
+.nexo-sidebar-borde:focus-visible { outline: none; }
+:root[data-redimensionando], :root[data-redimensionando] * { cursor: col-resize !important; user-select: none !important; }
+.nexo-menu-abrir { display: none; }
+@media (min-width: 1024px) {
+  .nexo-sidebar, .app-content, .app-fixed-header { transition: transform .2s ease, margin-left .2s ease, width .2s ease, left .2s ease; }
+  :root[data-redimensionando] :is(.nexo-sidebar, .app-content, .app-fixed-header) { transition: none; }
+  :root[data-menu-cerrado] { --sidebar-width: 0px; }
+  :root[data-menu-cerrado] .nexo-sidebar { transform: translateX(-100%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
+  .nexo-menu-abrir { position: fixed; top: 12px; left: 12px; z-index: 55; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; color: var(--nexo-texto-suave); background: var(--nexo-sup-1); border: 1px solid var(--nexo-borde-suave); box-shadow: var(--nexo-sombra-1); }
+  .nexo-menu-abrir:hover { color: var(--nexo-texto); background: var(--nexo-sup-3); }
+  :root[data-menu-cerrado] .nexo-topbar { padding-left: 60px; }
+  :root[data-menu-cerrado] .nexo-topbar .nexo-topbar-avatar { display: inline-flex; }
+}
+@media (max-width: 1023px) { .nexo-menu-cerrar, .nexo-sidebar-borde { display: none !important; } }
 
-.chalkboard-texture { background-color: #12241c; background-image: radial-gradient(circle at 20% 30%,#ffffff0a,transparent 40%),linear-gradient(135deg,#14261e,#0f1f18); }
-.whiteboard-grid { background-image: linear-gradient(#ffffff0a 1px,transparent 1px),linear-gradient(90deg,#ffffff0a 1px,transparent 1px); background-size: 32px 32px; }
-.custom-scrollbar, .nexo-search-results { scrollbar-width: thin; scrollbar-color: var(--nexo-borde-suave) transparent; }
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--nexo-borde-suave); border-radius: 10px; }
+/* Menú de la cuenta (avatar → configuración, apariencia, salir). */
+.nexo-menu { position: fixed; z-index: 120; width: 280px; padding: 6px; border-radius: 12px; background: var(--nexo-sup-1); border: 1px solid var(--nexo-borde-suave); box-shadow: var(--nexo-sombra-3); color: var(--nexo-texto); animation: nexo-aparecer .14s ease-out; }
+.nexo-menu-cabecera { display: flex; align-items: center; gap: 10px; padding: 10px; }
+.nexo-menu-separador { height: 1px; margin: 6px 0; background: var(--nexo-linea); }
+.nexo-menu-item { width: 100%; display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; font-size: 14px; color: var(--nexo-texto); text-align: left; }
+.nexo-menu-item:hover, .nexo-menu-item:focus-visible { background: var(--nexo-hover); outline: none; }
+.nexo-menu-item .material-symbols-outlined { font-size: 20px; color: var(--nexo-texto-suave); }
+.nexo-menu-item.peligro, .nexo-menu-item.peligro .material-symbols-outlined { color: var(--nexo-peligro); }
+.nexo-menu-etiqueta { padding: 8px 10px 6px; font-size: 12px; font-weight: 600; color: var(--nexo-texto-suave); }
+.nexo-segmentado { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin: 0 6px 6px; padding: 3px; border-radius: 9px; background: var(--nexo-sup-3); }
+.nexo-segmentado button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border-radius: 7px; font-size: 12px; font-weight: 500; color: var(--nexo-texto-suave); }
+.nexo-segmentado button .material-symbols-outlined { font-size: 18px; }
+.nexo-segmentado button[aria-pressed="true"] { background: var(--nexo-sup-1); color: var(--nexo-texto); box-shadow: var(--nexo-sombra-2); }
+@keyframes nexo-aparecer { from { opacity: 0; transform: translateY(4px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes nexo-subir { from { transform: translateY(100%); } to { transform: none; } }
 
+/* Buscador (Ctrl K). */
+.nexo-search-dialog { position: fixed; inset: 12vh 0 auto; margin: 0 auto; width: min(600px, calc(100% - 24px)); max-height: 76dvh; border: 1px solid var(--nexo-borde-suave); border-radius: 14px; background: var(--nexo-sup-1); color: var(--nexo-texto); padding: 0; box-shadow: var(--nexo-sombra-3); overflow: hidden; }
+.nexo-search-dialog::backdrop { background: var(--nexo-velo); }
+.nexo-search-input { display: flex; align-items: center; gap: 10px; padding: 0 16px; height: 54px; border-bottom: 1px solid var(--nexo-linea); color: var(--nexo-texto-suave); }
+.nexo-search-input input { outline: none; width: 100%; background: transparent; font-size: 15px; color: var(--nexo-texto); }
+.nexo-search-results { overflow-y: auto; max-height: 52dvh; padding: 6px; }
+.nexo-search-grupo { padding: 10px 10px 4px; font-size: 12px; font-weight: 600; color: var(--nexo-texto-suave); }
+.nexo-search-result { width: 100%; display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 10px; text-align: left; font-size: 14px; border-radius: 8px; color: var(--nexo-texto); }
+.nexo-search-result:hover, .nexo-search-result:focus-visible, .nexo-search-result[aria-selected="true"] { background: var(--nexo-hover); outline: none; }
+.nexo-search-result[aria-selected="true"] { background: color-mix(in srgb, var(--nexo-acento) 10%, transparent); }
+.nexo-search-result .material-symbols-outlined { font-size: 20px; color: var(--nexo-texto-suave); }
+.nexo-search-pie { display: flex; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--nexo-linea); font-size: 12px; color: var(--nexo-texto-suave); }
+.nexo-search-pie kbd { font: 500 11px "Inter", sans-serif; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--nexo-borde-suave); margin-right: 4px; }
+
+/* ── Acceso (login, recuperar contraseña, ayuda) ────────────────────────── */
+.nexo-login { min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); background: var(--nexo-sup-1); }
+.nexo-login-form-panel { display: flex; flex-direction: column; padding: 28px clamp(24px, 6vw, 88px); }
+.nexo-login-form-panel > main { width: 100%; max-width: 380px; margin: auto; padding: 32px 0; }
+.nexo-login-marca { display: flex; align-items: center; gap: 10px; font: 700 18px/1 "Inter", sans-serif; letter-spacing: -.02em; color: var(--nexo-texto); }
+.nexo-login-marca .material-symbols-outlined { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; background: var(--nexo-acento); color: var(--nexo-sobre-acento); font-size: 20px; font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
+.nexo-login-story { position: relative; overflow: hidden; margin: 12px; border-radius: 20px; padding: clamp(32px, 4vw, 64px); display: flex; flex-direction: column; justify-content: flex-end; color: #fff; background: var(--nexo-acento-oscuro); }
+.nexo-login-story > * { position: relative; }
+.nexo-login-story h2 { font: 700 clamp(28px, 2.6vw, 40px)/1.15 "Inter", sans-serif; letter-spacing: -.03em; max-width: 520px; }
+.nexo-login-story p { color: rgb(255 255 255 / .78); font-size: 15px; line-height: 1.6; max-width: 460px; margin-top: 14px; }
+.nexo-login-features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 36px; }
+.nexo-login-feature { padding: 14px; border-radius: 12px; background: rgb(255 255 255 / .08); border: 1px solid rgb(255 255 255 / .12); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.nexo-login-feature .material-symbols-outlined { font-size: 22px; color: #fff; }
+.nexo-login-feature h3 { margin-top: 10px; font-size: 13.5px; font-weight: 600; color: #fff; }
+.nexo-login-feature p { margin-top: 4px; font-size: 12.5px; line-height: 1.45; color: rgb(255 255 255 / .72); }
+
+/* ── Movimiento y densidad (genoma y preferencias de la cuenta) ─────────── */
+:root[data-movimiento="sereno"] * { transition-duration: 80ms !important; }
+:root[data-movimiento="vibrante"] .nexo-nav-item.is-active { box-shadow: inset 2px 0 0 var(--nexo-acento); }
+:root[data-densidad="compacta"] .nexo-nav-items { gap: 0; }
+:root[data-densidad="compacta"] .nexo-nav-item { height: 32px; }
+:root[data-densidad="compacta"] main :is(td, th) { padding-block: 0.5rem; }
+:root[data-preferencia-movimiento="reducido"] { scroll-behavior: auto; }
+:root[data-preferencia-movimiento="reducido"] *,
+:root[data-preferencia-movimiento="reducido"] *::before,
+:root[data-preferencia-movimiento="reducido"] *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-preferencia-movimiento="completo"]) { scroll-behavior: auto; }
+  :root:not([data-preferencia-movimiento="completo"]) *,
+  :root:not([data-preferencia-movimiento="completo"]) *::before,
+  :root:not([data-preferencia-movimiento="completo"]) *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+@media (max-width: 1279px) { .nexo-topbar-contexto { display: none; } .nexo-topbar-buscar-campo { width: 180px; } .nexo-topbar-buscar-campo kbd { display: none; } }
+
+/* ── Tablet y celular ───────────────────────────────────────────────────────
+   Como cualquier app móvil: una barra arriba con el título y una barra abajo
+   con las 4 secciones principales + "Más" (el menú completo, en hoja). */
 @media (max-width: 1023px) {
-  .app-content { margin-left: 0; width: 100%; padding-top: 64px; }
+  :root { --nexo-barra-inferior: calc(60px + env(safe-area-inset-bottom)); }
+  .app-content { margin-left: 0; width: 100%; padding-bottom: var(--nexo-barra-inferior); }
   .app-content.h-full { height: 100dvh; }
-  .app-content > header.sticky { top: 64px; }
-  .app-fixed-header { left: 0; top: 64px; }
-  .app-content:has(~ .app-fixed-header), .app-fixed-header ~ .app-content { padding-top: 152px; }
-  .nexo-sidebar { transform: translateX(-100%); visibility: hidden; transition: transform .2s,visibility .2s; z-index: 90; width: 270px; }
-  .nexo-sidebar.is-open { transform: translateX(0); visibility: visible; }
-  .nexo-mobile-bar { display: flex; position: fixed; inset: 0 0 auto; height: 64px; background: var(--nexo-sidebar); z-index: 45; align-items: center; justify-content: space-between; padding: 0 16px; }
-  .nexo-mobile-bar .nexo-wordmark { font-size: 27px; }
+  .app-fixed-header { left: 0; }
+  .nexo-topbar { padding: 0 12px 0 16px; }
+  .nexo-topbar-fila { height: 56px; gap: 8px; }
+  .nexo-topbar-titulo { font-size: 16px; line-height: 1.2; white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .nexo-topbar-contexto { display: none; }
+  .nexo-topbar-buscar-campo { display: none; }
+  .nexo-topbar .nexo-topbar-buscar-icono, .nexo-topbar .nexo-topbar-avatar { display: inline-flex; }
+  .nexo-sidebar { inset: auto 0 0 0; width: 100%; height: auto; max-height: 86dvh; border-right: 0; border-radius: 16px 16px 0 0; transform: translateY(100%); visibility: hidden; transition: transform .22s cubic-bezier(.2,.8,.2,1), visibility .22s; z-index: 90; box-shadow: var(--nexo-sombra-3); padding-bottom: env(safe-area-inset-bottom); }
+  .nexo-sidebar.is-open { transform: none; visibility: visible; }
+  .nexo-sidebar::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 4px; background: var(--nexo-borde-suave); margin: 8px auto 0; flex-shrink: 0; }
+  .nexo-sidebar .nexo-user-card { display: none; }
   .nexo-drawer-close { display: inline-flex; margin-left: auto; }
-  .nexo-drawer-backdrop { display: block; position: fixed; inset: 0; background: #080311b3; z-index: 80; backdrop-filter: blur(3px); }
-  .nexo-topbar { top: 64px; padding: 10px 16px; gap: 10px; }
-  .nexo-topbar-fila { min-height: 44px; gap: 12px; }
-  .nexo-topbar-lugar { gap: 11px; }
-  .nexo-topbar-icono { width: 38px; height: 38px; border-radius: 12px; font-size: 20px; }
-  .nexo-topbar-titulo { font-size: 17px; }
-  .nexo-topbar-buscar { display: none; }
+  .nexo-drawer-backdrop { display: block; position: fixed; inset: 0; background: var(--nexo-velo); z-index: 80; border: 0; }
+  .nexo-barra-inferior { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; position: fixed; inset: auto 0 0 0; z-index: 60; height: var(--nexo-barra-inferior); padding-bottom: env(safe-area-inset-bottom); background: color-mix(in srgb, var(--nexo-sidebar) 94%, transparent); -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px); border-top: 1px solid var(--nexo-linea); }
+  .nexo-barra-inferior button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; padding: 6px 2px 4px; color: var(--nexo-texto-suave); font-size: 11px; font-weight: 500; }
+  .nexo-barra-inferior button > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nexo-barra-inferior .icono { display: grid; place-items: center; width: 56px; height: 30px; border-radius: 999px; transition: background .15s; }
+  .nexo-barra-inferior .icono .material-symbols-outlined { font-size: 23px; }
+  .nexo-barra-inferior button[aria-current="page"] { color: var(--nexo-texto); font-weight: 600; }
+  .nexo-barra-inferior button[aria-current="page"] .icono { background: color-mix(in srgb, var(--nexo-acento) 14%, transparent); color: var(--nexo-primario); }
+  .nexo-barra-inferior button[aria-current="page"] .icono .material-symbols-outlined { font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
+  .nexo-barra-inferior .globo { position: absolute; top: 3px; left: calc(50% + 6px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: #e5484d; color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--nexo-sidebar); }
+  /* Pantalla completa (una conversación abierta): sin barra inferior, como WhatsApp. */
+  :root[data-inmersivo] { --nexo-barra-inferior: 0px; }
+  :root[data-inmersivo] .nexo-barra-inferior, :root[data-inmersivo] .nexo-topbar { display: none; }
+  .nexo-menu { left: 8px !important; right: 8px !important; width: auto; top: auto !important; bottom: calc(var(--nexo-barra-inferior) + 8px) !important; }
 }
 @media (max-width: 767px) {
   .nexo-login { grid-template-columns: 1fr; }
-  .nexo-login-story { padding: 28px 24px; border-right: none; border-bottom: 1px solid var(--nexo-border); }
-  .nexo-login-heading { padding: 32px 0 0; }
-  .nexo-login-heading h1 { font-size: 38px; margin: 16px 0 12px; }
-  .nexo-login-heading > p { font-size: 13px; }
-  .nexo-login-features, .nexo-login-story > p { display: none; }
-  .nexo-login-form-panel { padding: 0 24px 28px; }
-  .nexo-login-form-panel > main { padding: 36px 0 12px; }
+  .nexo-login-story { display: none; }
+  .nexo-login-form-panel { padding: 20px; }
   .app-content > .p-8, .app-content > .px-8, .app-content > .p-10, .app-content > .px-10 { padding-left: 16px; padding-right: 16px; }
-  .app-content > .p-8 { padding-top: 24px; }
-  .app-content h1 { font-size: clamp(24px,6vw,32px); }
+  .app-content > .p-8 { padding-top: 20px; }
   .app-content > .flex.gap-6 { gap: 20px; padding-left: 16px; padding-right: 16px; overflow-x: auto; flex-shrink: 0; }
   .app-content > .flex.gap-6 > button { white-space: nowrap; }
-  .nexo-search-dialog { inset-block-start: 5dvh; }
+  .nexo-search-dialog { inset-block-start: 8px; max-height: calc(100dvh - 16px); }
+  .nexo-login-features { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
-.nexo-community-welcome { display: flex; justify-content: space-between; gap: 24px; align-items: center; margin-bottom: 28px; }
-.nexo-community-welcome h1 { font-family: "Plus Jakarta Sans",sans-serif; font-size: clamp(27px,2.8vw,38px); font-weight: 700; margin: 13px 0 10px; }
-.nexo-community-welcome h1 > span { color: #b6a6c9; font-weight: 500; }
-.nexo-community-welcome p:not(.nexo-eyebrow) { font-size: 13px; line-height: 1.7; color: #a99ab9; }
-.nexo-welcome-symbol { font-size: 72px; color: var(--nexo-acento); background: color-mix(in srgb, var(--nexo-acento) 4.3%, transparent); border: 1px solid color-mix(in srgb, var(--nexo-acento) 9.4%, transparent); padding: 25px; border-radius: 30px; transform: rotate(-7deg); }
-.nexo-quick-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin-bottom: 38px; }
-.nexo-quick-card { display: flex; align-items: center; gap: 14px; padding: 19px; text-align: left; background: var(--nexo-sup-1); border: 1px solid var(--nexo-border); border-radius: 14px; transition: border-color .2s,transform .2s; }
-.nexo-quick-card:hover { border-color: color-mix(in srgb, var(--nexo-acento) 37.6%, transparent); transform: translateY(-2px); }
-.nexo-quick-card strong { display: block; font-size: 12px; font-weight: 600; }
-.nexo-quick-card small { display: block; color: #a99ab9; margin-top: 5px; font-size: 10px; }
-.nexo-quick-icon { font-size: 23px; padding: 10px; border-radius: 11px; background: color-mix(in srgb, var(--nexo-acento) 10.2%, transparent); color: var(--nexo-primario); }
-.nexo-quick-icon.tone-1 { background: #10b98115; color: #10b981; }
-.nexo-quick-icon.tone-2 { background: #efc04c15; color: #efc04c; }
-.nexo-quick-arrow { margin-left: auto; font-size: 17px; color: #8b7c9b; }
-.bg-primary.text-white { color: #53006f; }
-@media(max-width:767px) {
- .nexo-community-welcome { margin-bottom: 24px; }
- .nexo-community-welcome h1 > span { display: block; margin-top: 4px; }
- .nexo-welcome-symbol { display: none; }
- .nexo-quick-grid { grid-template-columns: 1fr; gap: 8px; margin-bottom: 28px; }
- .nexo-quick-card { padding: 12px 14px; }
- .nexo-quick-card small { display: none; }
- .nexo-quick-icon { padding: 8px; font-size: 20px; }
-}
-
-/* Movimiento de la instancia (genoma → tema.movimiento). "Sereno" apaga los
-   desplazamientos al pasar el mouse; "vibrante" suma brillo al ítem activo y a
-   las tarjetas. "Normal" es el NEXO de siempre. */
-:root[data-movimiento="sereno"] .nexo-quick-card:hover { transform: none; }
-:root[data-movimiento="sereno"] * { transition-duration: 80ms !important; }
-:root[data-movimiento="vibrante"] .nexo-nav-item.is-active { box-shadow: 0 0 22px color-mix(in srgb, var(--nexo-acento) 30%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--nexo-acento) 35%, transparent); }
-:root[data-movimiento="vibrante"] .nexo-quick-card:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 18px 50px color-mix(in srgb, var(--nexo-acento) 22%, transparent); }
-:root[data-movimiento="vibrante"] .nexo-brand-icon { animation: nexo-latido 3.2s ease-in-out infinite; }
-@keyframes nexo-latido { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--nexo-acento) 0%, transparent); } 50% { box-shadow: 0 0 26px 2px color-mix(in srgb, var(--nexo-acento) 45%, transparent); } }
-.nexo-perfil-punto { width: 8px; height: 8px; border-radius: 999px; display: inline-block; flex-shrink: 0; }
-
-/* Preferencias heredadas institución → perfil → cuenta. */
-:root[data-densidad="compacta"] .nexo-nav-items { gap: 2px; padding-bottom: 12px; }
-:root[data-densidad="compacta"] .nexo-nav-item { min-height: 40px; padding-block: 8px; }
-:root[data-densidad="compacta"] .nexo-quick-card { padding: 12px 14px; }
-:root[data-densidad="compacta"] main :is(td, th) { padding-block: 0.5rem; }
-:root[data-preferencia-movimiento="reducido"] { scroll-behavior: auto; }
-:root[data-preferencia-movimiento="reducido"] *,
-:root[data-preferencia-movimiento="reducido"] *::before,
-:root[data-preferencia-movimiento="reducido"] *::after {
-  animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important; scroll-behavior: auto !important;
-}
-@media (prefers-reduced-motion: reduce) {
-  :root:not([data-preferencia-movimiento="completo"]) { scroll-behavior: auto; }
-  :root:not([data-preferencia-movimiento="completo"]) *,
-  :root:not([data-preferencia-movimiento="completo"]) *::before,
-  :root:not([data-preferencia-movimiento="completo"]) *::after {
-    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important; scroll-behavior: auto !important;
-  }
-}
+/* ── Indicadores de carga ─────────────────────────────────
+   Se mueven siempre, también con "reducir animaciones" del sistema o de NEXO
+   (como los círculos de carga de Windows o Android): un cargador quieto parece
+   una aplicación colgada. Las reglas de movimiento reducido de arriba apagan
+   todo lo demás; estas les ganan por especificidad. */
+@keyframes nx-barra-indeterminada { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+@keyframes nx-giro { to { transform: rotate(360deg); } }
+@keyframes nx-aparecer-tarde { from { opacity: 0; } to { opacity: 1; } }
+.nx-barra-carga { display: block; position: relative; overflow: hidden; height: 4px; border-radius: 999px; background: color-mix(in srgb, var(--nexo-acento) 18%, transparent); }
+.nx-progreso-ruta { position: fixed; top: 0; left: 0; right: 0; z-index: 300; height: 3px; overflow: hidden; pointer-events: none; background: color-mix(in srgb, var(--nexo-acento) 14%, transparent); opacity: 0; animation: nx-aparecer-tarde .2s ease .15s forwards; }
+.nx-barra-carga::before, .nx-progreso-ruta::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; border-radius: 999px; background: var(--nexo-acento); animation: nx-barra-indeterminada 1.15s cubic-bezier(.4, 0, .6, 1) infinite; }
+.nx-giro { display: inline-block; animation: nx-giro .9s linear infinite; }
+/* El "Abriendo…" aparece solo si la espera se alarga: lo rápido no parpadea. */
+.nx-esperando { opacity: 0; animation: nx-aparecer-tarde .25s ease .4s forwards; }
+html:root .nx-barra-carga::before, html:root .nx-progreso-ruta::before { animation-duration: 1.15s !important; animation-iteration-count: infinite !important; }
+html:root .nx-giro, html:root .animate-spin { animation-duration: .9s !important; animation-iteration-count: infinite !important; }

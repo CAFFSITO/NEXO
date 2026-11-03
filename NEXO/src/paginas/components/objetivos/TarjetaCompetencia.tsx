@@ -23,7 +23,7 @@ export default function TarjetaCompetencia({
   const sinEvidencias = competencia.evidencias.length === 0;
 
   return (
-    <div className="bg-lienzo rounded-[20px] p-6 border border-purple-900/20 hover:border-primary/40 transition-all group">
+    <div className="bg-lienzo rounded-xl p-6 border border-linea hover:border-primary/40 transition-all group">
       {/* Header: ícono + nombre + descripción + badge de nivel */}
       <div className="flex justify-between items-start mb-6">
         <div>
@@ -40,7 +40,7 @@ export default function TarjetaCompetencia({
           )}
         </div>
         <span
-          className={`px-4 py-1.5 rounded-full text-xs font-bold border whitespace-nowrap ${paleta.badgeBg} ${paleta.badgeText} ${paleta.badgeBorder}`}
+          className={`px-4 py-1.5 rounded-lg text-xs font-bold border whitespace-nowrap ${paleta.badgeBg} ${paleta.badgeText} ${paleta.badgeBorder}`}
         >
           {LABEL_NIVEL[competencia.nivel]}
         </span>
@@ -54,7 +54,7 @@ export default function TarjetaCompetencia({
         <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Evidencias</p>
         <div className="flex flex-wrap gap-2 items-center">
           {sinEvidencias ? (
-            <div className="flex items-center gap-2 bg-fondo/50 border border-dashed border-slate-700 px-3 py-2 rounded-full">
+            <div className="flex items-center gap-2 bg-fondo/50 border border-dashed border-slate-700 px-3 py-2 rounded-lg">
               <span className="text-xs font-medium text-slate-500 italic">
                 Sin evidencias registradas
               </span>
@@ -63,7 +63,7 @@ export default function TarjetaCompetencia({
             competencia.evidencias.map((ev) => (
               <div
                 key={ev.id}
-                className="flex items-center gap-2 bg-fondo border border-purple-500/30 px-3 py-2 rounded-full group/chip"
+                className="flex items-center gap-2 bg-fondo border border-primary/30 px-3 py-2 rounded-lg group/chip"
               >
                 <span className={`material-symbols-outlined text-[16px] ${paleta.iconoText}`}>
                   {ev.icono ?? "description"}
@@ -81,7 +81,7 @@ export default function TarjetaCompetencia({
           )}
           <button
             onClick={onAgregarEvidencia}
-            className="flex items-center gap-1.5 px-3 py-2 text-acento hover:bg-acento/10 rounded-full transition-colors text-xs font-bold"
+            className="flex items-center gap-1.5 px-3 py-2 text-acento hover:bg-acento/10 rounded-lg transition-colors text-xs font-bold"
           >
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
             Agregar evidencia

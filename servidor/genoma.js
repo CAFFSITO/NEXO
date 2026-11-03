@@ -935,16 +935,16 @@ const SLOT_POR_ID = new Map([...ALGORITMO_POR_ID, [ALGORITMO_NACIONAL.id, ALGORI
 export const slotPorId = (id) => SLOT_POR_ID.get(id) ?? null;
 
 export const TEMA_BASE = Object.freeze({
-  acento: "#c548f5",
-  primario: "#edb1ff",
-  secundario: "#d2bcfa",
-  terciario: "#efc04c",
-  fondo: "#190d2d",
-  superficie: "#2d1b4e",
-  radio: 12,
+  acento: "#4f46e5",
+  primario: "#a5b4fc",
+  secundario: "#c4b5fd",
+  terciario: "#fbbf24",
+  fondo: "#0e1014",
+  superficie: "#1a1d24",
+  radio: 10,
   movimiento: "normal",
 });
-const COLORES_TEMA = ["acento", "primario", "secundario", "terciario", "fondo", "superficie"];
+export const COLORES_TEMA = ["acento", "primario", "secundario", "terciario", "fondo", "superficie"];
 const MOVIMIENTOS = ["sereno", "normal", "vibrante"];
 
 // ── Rutas → patrones ─────────────────────────────────────────────────────────
@@ -1046,7 +1046,7 @@ const entero = (v, min, max, defecto) => {
   return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : defecto;
 };
 /** Luminancia relativa WCAG de un color "#rrggbb" (0 = negro, 1 = blanco). */
-function luminancia(hex) {
+export function luminancia(hex) {
   const canal = (i) => {
     const c = parseInt(hex.slice(i, i + 2), 16) / 255;
     return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;

@@ -14,8 +14,11 @@
 //     muestra cosas cada uno) y en qué nivel está cada perfil. La dirección
 //     queda siempre arriba.
 //
-// Lo que NO toca: la identidad y los colores, crear o borrar perfiles, los
-// flujos ni los grafos de nodos (eso es del Maestro), y nunca borra un módulo
+//   · los COLORES de la escuela (por ejemplo, los que salen del logo): solo los
+//     seis colores; la redondez y el movimiento siguen siendo del Maestro.
+//
+// Lo que NO toca: la identidad, crear o borrar perfiles, los flujos ni los
+// grafos de nodos (eso es del Maestro), y nunca borra un módulo
 // (no se puede: solo se ocultan). Cada guardado es una versión nueva del genoma
 // firmada por la dirección, con la lista de cambios como nota.
 //
@@ -30,8 +33,10 @@ import { exigirAcceso, ventanilla, antiguedadEnHoras, hoyISO } from "./comun.js"
 import {
   ALGORITMOS,
   CAPACIDADES,
+  COLORES_TEMA,
   MODULOS,
   ErrorGenoma,
+  luminancia,
   catalogoPublico,
   guardarGenoma,
   leerGenoma,
@@ -52,15 +57,31 @@ const ALGORITMO_POR_ID = new Map(ALGORITMOS.map((a) => [a.id, a]));
 const LARGO_VISTA = 8;
 
 const objeto = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+const NOMBRE_COLOR = { acento: "principal", primario: "destacados", secundario: "secundario", terciario: "avisos", fondo: "fondo oscuro", superficie: "tarjetas en modo oscuro" };
 const formato = (n) => (Math.round(Number(n) * 100) / 100).toLocaleString("es-AR");
 
 /**
  * Lleva lo que mandó la vidriera al genoma actual, campo por campo y solo en lo
- * que la dirección puede tocar. Todo lo demás (identidad, tema, perfiles
- * nuevos, flujos, grafos) queda como estaba aunque venga en el pedido.
+ * que la dirección puede tocar. Todo lo demás (identidad, redondez y movimiento
+ * del tema, perfiles nuevos, flujos, grafos) queda como estaba aunque venga en
+ * el pedido.
  */
 function aplicarCambios(actual, cuerpo) {
   const g = structuredClone(actual);
+  // Colores: se validan acá (y no en la normalización, que en silencio vuelve a
+  // los de fábrica) para que la dirección sepa por qué no se guardó.
+  if (cuerpo.tema !== undefined) {
+    const t = objeto(cuerpo.tema);
+    g.tema = { ...g.tema };
+    for (const k of COLORES_TEMA) {
+      if (t[k] === undefined) continue;
+      if (!/^#[0-9a-f]{6}$/i.test(String(t[k]))) throw new ErrorGenoma(`El color «${NOMBRE_COLOR[k]}» no es válido: tiene que ser un código como #4f46e5.`);
+      g.tema[k] = String(t[k]).toLowerCase();
+    }
+    for (const k of ["fondo", "superficie"]) {
+      if (luminancia(g.tema[k]) > 0.08) throw new ErrorGenoma(`El color «${NOMBRE_COLOR[k]}» tiene que ser oscuro: es el del modo oscuro y, si es claro, los textos no se leen.`);
+    }
+  }
   if (cuerpo.personalizacion !== undefined) {
     const p = objeto(cuerpo.personalizacion);
     // Dirección configura su instalación; el registro de extensiones lo diseña Maestro.
@@ -136,6 +157,7 @@ export function describirCambios(antes, despues) {
   for (const [clave, etiqueta] of Object.entries({ institucion: "Preferencias de la institución", perfiles: "Preferencias por perfil", academico: "Rango de años académicos", retencion: "Conservación de datos", evidencias: "Fichas de evidencia" })) {
     if (JSON.stringify(antes.personalizacion?.[clave]) !== JSON.stringify(despues.personalizacion?.[clave])) agregar("tune", etiqueta);
   }
+  if (COLORES_TEMA.some((k) => antes.tema?.[k] !== despues.tema?.[k])) agregar("palette", "Nuevos colores de la escuela");
   const nombreSeccion = (genoma, id) => (id ? genoma.secciones.find((s) => s.id === id)?.nombre ?? "Mi espacio" : "Mi espacio");
 
   // Secciones

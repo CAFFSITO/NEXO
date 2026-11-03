@@ -74,7 +74,7 @@ export default function PasoModulos({ genoma, catalogo, onCambiar }: Props) {
               <div className="flex flex-wrap items-center gap-3 p-3 pr-4">
                 <span className="material-symbols-outlined m-asa" aria-hidden="true">drag_indicator</span>
                 <span className="text-xs tabular-nums text-[color:var(--m-tenue)] w-5 text-right">{indice + 1}</span>
-                <span className="m-modulo-icono" style={{ background: m.color + "26", color: m.color, boxShadow: g.oculto ? "none" : `0 0 24px ${m.color}40` }}>
+                <span className="m-modulo-icono" style={{ background: m.color + "26", color: m.color }}>
                   <span className="material-symbols-outlined" aria-hidden="true">{g.icono || m.icono}</span>
                 </span>
                 <div className="min-w-[180px] flex-1">

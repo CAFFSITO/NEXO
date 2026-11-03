@@ -60,7 +60,7 @@ export default function GestionInstitucionesPage() {
                   setCredenciales(null);
                   setModalAbierto(true);
                 }}
-                className="flex items-center gap-2 bg-acento hover:opacity-90 active:scale-95 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-acento/20 transition-all self-start"
+                className="flex items-center gap-2 bg-acento hover:opacity-90 text-white px-5 py-2.5 rounded-lg font-bold shadow-lg transition-all self-start"
               >
                 <span className="material-symbols-outlined text-xl">add_business</span>
                 <span>Nueva institución</span>
@@ -121,7 +121,7 @@ export default function GestionInstitucionesPage() {
                 </div>
                 <button
                   onClick={() => setModalPlantilla(true)}
-                  className="flex items-center gap-2 border border-acento/40 text-acento hover:bg-acento/10 px-5 py-2.5 rounded-full font-bold transition-all self-start"
+                  className="flex items-center gap-2 border border-acento/40 text-acento hover:bg-acento/10 px-5 py-2.5 rounded-lg font-bold transition-all self-start"
                 >
                   <span className="material-symbols-outlined text-xl">dashboard_customize</span>
                   <span>Nueva plantilla</span>
@@ -180,9 +180,9 @@ export default function GestionInstitucionesPage() {
 // ─── Tarjeta de una plantilla ───────────────────────────
 function TarjetaPlantilla({ plantilla }: { plantilla: PlantillaPlataforma }) {
   return (
-    <div className="bg-lienzo p-5 rounded-[20px] border border-white/5">
+    <div className="bg-lienzo p-5 rounded-xl border border-white/5">
       <div className="flex items-center gap-2 mb-3">
-        <span className="material-symbols-outlined text-fuchsia-400">dashboard_customize</span>
+        <span className="material-symbols-outlined text-primary">dashboard_customize</span>
         <p className="text-white font-bold font-headline">{plantilla.nombre}</p>
       </div>
       <div className="space-y-2 text-sm">
@@ -221,9 +221,9 @@ function TarjetaInstitucion({
   onAplicar: () => void;
 }) {
   return (
-    <div className="bg-lienzo p-6 rounded-[20px] border border-white/5 shadow-xl shadow-black/20 flex flex-col">
+    <div className="bg-lienzo p-6 rounded-xl border border-white/5 shadow-xl shadow-black/20 flex flex-col">
       <div className="flex items-center gap-3 mb-4">
-        <span className="material-symbols-outlined text-fuchsia-400">domain</span>
+        <span className="material-symbols-outlined text-primary">domain</span>
         <div>
           <p className="text-white font-bold font-headline">{institucion.nombre}</p>
           <p className="text-slate-400 text-xs">Ciclo {institucion.cicloLectivo}</p>
@@ -329,7 +329,7 @@ function ModalNuevaInstitucion({
           </label>
         </div>
 
-        <p className="text-xs text-fuchsia-300 uppercase tracking-wider mb-2">Cuenta de la dirección</p>
+        <p className="text-xs text-primary uppercase tracking-wider mb-2">Cuenta de la dirección</p>
         <label className="flex flex-col gap-1 mb-4">
           <span className="text-xs text-on-surface-variant uppercase tracking-wider">Nombre y apellido</span>
           <input value={dirNombre} onChange={(e) => setDirNombre(e.target.value)} placeholder="Ej: Directora Ana Romero" className={inputCls} />
@@ -342,10 +342,10 @@ function ModalNuevaInstitucion({
         {error && <p className="text-error text-sm mb-2">{error}</p>}
 
         <div className="flex gap-3 mt-6">
-          <button type="button" onClick={onCerrar} className="flex-1 py-3 rounded-xl border border-primary/20 text-primary font-medium hover:bg-primary/5 transition-colors active:scale-95">
+          <button type="button" onClick={onCerrar} className="flex-1 py-3 rounded-xl border border-primary/20 text-primary font-medium hover:bg-primary/5 transition-colors">
             Cancelar
           </button>
-          <button type="submit" disabled={guardando} className="flex-1 bg-acento hover:bg-acento/90 text-white py-3 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-60">
+          <button type="submit" disabled={guardando} className="flex-1 bg-acento hover:bg-acento/90 text-white py-3 rounded-xl font-bold transition-all disabled:opacity-60">
             {guardando ? "Creando…" : "Crear institución"}
           </button>
         </div>
@@ -456,10 +456,10 @@ function ModalNuevaPlantilla({
         {error && <p className="text-error text-sm mb-2">{error}</p>}
 
         <div className="flex gap-3 mt-4">
-          <button type="button" onClick={onCerrar} className="flex-1 py-3 rounded-xl border border-primary/20 text-primary font-medium hover:bg-primary/5 transition-colors active:scale-95">
+          <button type="button" onClick={onCerrar} className="flex-1 py-3 rounded-xl border border-primary/20 text-primary font-medium hover:bg-primary/5 transition-colors">
             Cancelar
           </button>
-          <button type="submit" disabled={guardando} className="flex-1 bg-acento hover:bg-acento/90 text-white py-3 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-60">
+          <button type="submit" disabled={guardando} className="flex-1 bg-acento hover:bg-acento/90 text-white py-3 rounded-xl font-bold transition-all disabled:opacity-60">
             {guardando ? "Creando…" : "Crear plantilla"}
           </button>
         </div>

@@ -12,6 +12,9 @@
 //   PUT  /api/cuenta/nombre          → cambiar mi nombre (solo el nombre)
 //   POST /api/recuperacion           → pedir un código de un solo uso (sin sesión)
 //   POST /api/recuperacion/confirmar → canjear el código por una contraseña nueva
+//   PUT  /api/cuenta/avatar          → mi foto de perfil (JPG, PNG o WebP, ya recortada)
+//   DELETE /api/cuenta/avatar        → quitar mi foto
+//   GET  /api/avatares/:id           → la foto de una persona (con sesión)
 //
 // ── CÓMO LLEGA EL CÓDIGO A LA PERSONA ──────────────────────────────────────
 // NEXO todavía no tiene por dónde mandar un correo (no hay servicio de mail
@@ -27,6 +30,7 @@
 // ============================================================================
 
 import { randomInt } from "node:crypto";
+import express from "express";
 import {
   hashearContrasena,
   verificarContrasena,
@@ -203,6 +207,54 @@ export function registrarCuenta(app, db) {
 
     guardarNombre.run(nombre, usuario.id);
     res.json({ ok: true, nombre, mensaje: "Listo, tu nombre quedó cambiado." });
+  });
+
+  // ── Foto de perfil ────────────────────────────────────────────────────────
+  // La foto llega ya recortada y achicada desde el navegador (cuadrada, chica).
+  // Se guarda en su propia tabla y `usuarios.avatar_url` apunta a la dirección
+  // que la sirve, con una versión para que los navegadores no muestren la vieja.
+  // Solo imágenes reales (se miran los primeros bytes, no lo que dice el pedido):
+  // un SVG podría traer código, así que no se acepta.
+  db.exec(`CREATE TABLE IF NOT EXISTS usuario_avatares (
+    usuario_id INTEGER PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL,
+    datos BLOB NOT NULL,
+    actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+  )`);
+  const tipoDeImagen = (b) => {
+    if (b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+    if (b.length > 8 && b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
+    if (b.length > 12 && b.subarray(0, 4).toString("ascii") === "RIFF" && b.subarray(8, 12).toString("ascii") === "WEBP") return "image/webp";
+    return null;
+  };
+  const guardarAvatar = db.prepare(`INSERT INTO usuario_avatares (usuario_id, tipo, datos, actualizado_en) VALUES (?, ?, ?, datetime('now'))
+    ON CONFLICT(usuario_id) DO UPDATE SET tipo = excluded.tipo, datos = excluded.datos, actualizado_en = excluded.actualizado_en`);
+  const fijarAvatarUrl = db.prepare("UPDATE usuarios SET avatar_url = ? WHERE id = ?");
+  app.put("/api/cuenta/avatar", express.raw({ type: () => true, limit: "1mb" }), (req, res) => {
+    const usuario = usuarioDeLaSesion(db, req);
+    if (!usuario) return res.status(401).json({ error: "No hay sesión abierta." });
+    const datos = Buffer.isBuffer(req.body) ? req.body : null;
+    const tipo = datos ? tipoDeImagen(datos) : null;
+    if (!datos || !tipo) return res.status(400).json({ error: "La foto tiene que ser una imagen JPG, PNG o WebP." });
+    guardarAvatar.run(usuario.id, tipo, datos);
+    const avatarUrl = `/api/avatares/${usuario.id}?v=${Date.now()}`;
+    fijarAvatarUrl.run(avatarUrl, usuario.id);
+    res.json({ ok: true, avatarUrl });
+  });
+  app.delete("/api/cuenta/avatar", (req, res) => {
+    const usuario = usuarioDeLaSesion(db, req);
+    if (!usuario) return res.status(401).json({ error: "No hay sesión abierta." });
+    db.prepare("DELETE FROM usuario_avatares WHERE usuario_id = ?").run(usuario.id);
+    fijarAvatarUrl.run(null, usuario.id);
+    res.json({ ok: true, avatarUrl: null });
+  });
+  const leerAvatar = db.prepare("SELECT tipo, datos FROM usuario_avatares WHERE usuario_id = ?");
+  app.get("/api/avatares/:id", (req, res) => {
+    if (!usuarioDeLaSesion(db, req)) return res.status(401).json({ error: "No hay sesión abierta." });
+    const fila = leerAvatar.get(Number(req.params.id) || 0);
+    if (!fila) return res.status(404).json({ error: "Esta persona no tiene foto." });
+    res.set({ "Content-Type": fila.tipo, "X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=604800" });
+    res.send(Buffer.from(fila.datos));
   });
 
   // ── Primer ingreso: seguir con la contraseña que me dieron ────────────────

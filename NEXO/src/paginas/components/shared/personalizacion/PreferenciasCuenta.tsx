@@ -6,7 +6,7 @@ import EditorPreferencias from "./EditorPreferencias";
 
 export default function PreferenciasCuenta() {
   const { datos, cargando, error, recargar } = useDatos<DatosCuenta>("/api/cuenta/preferencias");
-  return <section className="bg-fondo border border-acento/20 rounded-2xl p-6 space-y-4">
+  return <section className="nx-tarjeta p-6 space-y-4">
     <h2 className="font-headline text-lg font-bold text-white">Mi experiencia de lectura</h2>
     <p className="text-sm text-white/60">Podés ajustar tu cuenta o heredar la configuración de tu perfil e institución. Tus cambios no afectan a otras personas.</p>
     {cargando ? <p role="status">Cargando preferencias…</p> : error || !datos ? <div><p role="alert">{error ?? "No se pudieron cargar las preferencias."}</p><button type="button" onClick={recargar} className="mt-2 text-primary">Reintentar</button></div> : <Formulario key={datos.version} datos={datos} recargar={recargar} />}
@@ -43,6 +43,6 @@ function Formulario({ datos, recargar }: { datos: DatosCuenta; recargar: () => v
     {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
     {conflicto && <button type="button" onClick={recargar} className="text-sm text-primary">Cargar la última versión y descartar este borrador</button>}
     {listo && <p role="status" className="text-sm text-emerald-300">Preferencias guardadas.</p>}
-    <button type="submit" disabled={guardando || conflicto} className="bg-acento text-white px-6 py-2.5 rounded-full font-bold disabled:opacity-60">{guardando ? "Guardando…" : "Guardar preferencias"}</button>
+    <button type="submit" disabled={guardando || conflicto} className="bg-acento text-white px-6 py-2.5 rounded-lg font-bold disabled:opacity-60">{guardando ? "Guardando…" : "Guardar preferencias"}</button>
   </form>;
 }

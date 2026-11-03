@@ -11,6 +11,7 @@ import TarjetaMetrica from "./components/panel-directivo/TarjetaMetrica";
 import ActividadHoy, { type ItemActividad } from "./components/panel-directivo/ActividadHoy";
 import AlertasSistema, { type Alerta } from "./components/panel-directivo/AlertasSistema";
 import PulsoInstitucion, { type MetricaPulso } from "./components/panel-directivo/PulsoInstitucion";
+import CupoCursos from "./components/panel-directivo/CupoCursos";
 import AccesosRapidos, { type AccesoRapido } from "./components/panel-directivo/AccesosRapidos";
 import { useNavegacion } from "../navegacion";
 import { usePanelInstitucional } from "../servicios/panel";
@@ -36,8 +37,8 @@ const ESTILO_ACTIVIDAD: Record<string, string> = {
   entrega: "bg-tertiary",
   correccion: "bg-emerald-500",
   debate: "bg-blue-500",
-  recurso: "bg-fuchsia-600",
-  clase: "bg-purple-500",
+  recurso: "bg-acento",
+  clase: "bg-acento",
 };
 
 // ─── PÁGINA ─────────────────────────────────────────────
@@ -71,7 +72,7 @@ export default function PanelInstitucionalPage() {
     const m = datos?.metricas;
     if (!m) return [];
     return [
-      { id: "alumnos", icono: "person", iconoColor: "text-fuchsia-400", valor: String(m.estudiantes), etiqueta: "Estudiantes activos" },
+      { id: "alumnos", icono: "person", iconoColor: "text-primary", valor: String(m.estudiantes), etiqueta: "Estudiantes activos" },
       { id: "docentes", icono: "cast_for_education", iconoColor: "text-tertiary", valor: String(m.docentes), etiqueta: "Docentes" },
       {
         id: "entregas",
@@ -102,7 +103,7 @@ export default function PanelInstitucionalPage() {
     const p = datos?.pulso;
     if (!p) return [];
     const lista: MetricaPulso[] = [
-      { id: "p1", label: "Participación en Comunidad", valor: p.participacionComunidad, valorColor: "text-fuchsia-400", gradiente: "from-fuchsia-600 to-tertiary-container" },
+      { id: "p1", label: "Participación en Comunidad", valor: p.participacionComunidad, valorColor: "text-primary", gradiente: "from-fuchsia-600 to-tertiary-container" },
     ];
     if (p.entregasEnTermino !== null) {
       lista.push({ id: "p2", label: "Entregas a tiempo", valor: p.entregasEnTermino, valorColor: "text-tertiary", gradiente: "from-tertiary to-primary" });
@@ -155,7 +156,7 @@ export default function PanelInstitucionalPage() {
         <section className="flex-1 px-10 pt-6 pb-12">
           <div className="max-w-7xl mx-auto">
             <header className="mb-8">
-              <h2 className="text-3xl font-headline font-extrabold text-white leading-tight">Panel Institucional</h2>
+              <h2 className="text-3xl font-headline font-extrabold text-white leading-tight">Panel institucional</h2>
               {/* Decía "Colegio San Martín — Ciclo 2025" a mano (Error 13.7). */}
               <p className="text-slate-400 font-medium">{subtituloInstitucional(institucion)}</p>
             </header>
@@ -168,7 +169,7 @@ export default function PanelInstitucionalPage() {
                 la Etapa 3; hasta entonces, un aviso honesto en vez de cifras
                 inventadas de una escuela que no le corresponde (sección 1.1). */}
             {!cargando && !error && datos?.sinInstitucion && (
-              <div className="bg-lienzo/40 border border-white/5 rounded-[20px] p-12 text-center text-slate-400">
+              <div className="bg-lienzo/40 border border-white/5 rounded-xl p-12 text-center text-slate-400">
                 Este panel es de la dirección de un colegio. Como administrador de
                 plataforma, no ves los datos internos de las escuelas.
               </div>
@@ -191,6 +192,7 @@ export default function PanelInstitucionalPage() {
                   </div>
 
                   <div className="space-y-6">
+                    <CupoCursos onIr={navegar} />
                     <PulsoInstitucion metricas={pulso} />
                     <AccesosRapidos accesos={ACCESOS} onAccion={manejarAcceso} />
                   </div>
@@ -199,9 +201,9 @@ export default function PanelInstitucionalPage() {
                 {/* Comunicados emitidos: acá la dirección fija/desfija (Prompt 13).
                     El pin sale de fijado_en real y es el mismo que ven las
                     familias en su portal. El servidor revalida el permiso. */}
-                <div className="mt-6 bg-lienzo/40 border border-white/5 rounded-[20px] p-6">
+                <div className="mt-6 bg-lienzo/40 border border-white/5 rounded-xl p-6">
                   <h3 className="text-lg font-headline font-bold text-white mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-fuchsia-400">campaign</span>
+                    <span className="material-symbols-outlined text-primary">campaign</span>
                     Comunicados enviados
                   </h3>
 
@@ -222,7 +224,7 @@ export default function PanelInstitucionalPage() {
                       <div
                         key={c.id}
                         className={`flex items-center justify-between gap-4 rounded-xl px-4 py-3 border ${
-                          c.fijado ? "border-acento/50 bg-fuchsia-500/5" : "border-white/5 bg-black/20"
+                          c.fijado ? "border-acento/50 bg-primary/5" : "border-white/5 bg-black/20"
                         }`}
                       >
                         <div className="min-w-0">
@@ -246,7 +248,7 @@ export default function PanelInstitucionalPage() {
                           onClick={() => alternarFijado(c.id, !c.fijado)}
                           className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
                             c.fijado
-                              ? "bg-fuchsia-500/15 text-acento hover:bg-fuchsia-500/25"
+                              ? "bg-primary/15 text-acento hover:bg-primary/25"
                               : "bg-white/5 text-slate-300 hover:bg-white/10"
                           }`}
                         >

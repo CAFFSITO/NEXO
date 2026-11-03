@@ -48,9 +48,9 @@ export default function PasoRevision({ genoma, catalogo, modo, faltantes, nota, 
   return (
     <div className="flex flex-col gap-8">
       <section className="m-cristal p-8 relative overflow-hidden m-aparecer" style={{ boxShadow: `0 50px 140px -60px ${genoma.tema.acento}` }}>
-        <span aria-hidden="true" className="absolute -top-32 -right-20 w-96 h-96 rounded-full blur-3xl opacity-30" style={{ background: genoma.tema.acento }} />
+        <span aria-hidden="true" className="absolute -top-32 -right-20 w-96 h-96 rounded-full hidden opacity-30" style={{ background: genoma.tema.acento }} />
         <div className="relative flex flex-wrap items-center gap-8">
-          <span className="material-symbols-outlined text-7xl" style={{ color: genoma.tema.acento, textShadow: `0 0 50px ${genoma.tema.acento}` }} aria-hidden="true">{genoma.identidad.icono}</span>
+          <span className="material-symbols-outlined text-7xl" style={{ color: genoma.tema.acento }} aria-hidden="true">{genoma.identidad.icono}</span>
           <div className="flex-1 min-w-[260px]">
             <p className="m-eyebrow">Revisión final</p>
             <h2 className="m-titulo text-4xl mt-2 break-words">{genoma.identidad.nombre || "Sin nombre todavía"}</h2>

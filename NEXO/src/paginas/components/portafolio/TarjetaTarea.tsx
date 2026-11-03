@@ -46,7 +46,7 @@ export default function TarjetaTarea({
             {tarea.materia.toUpperCase()}
           </span>
           <span
-            className={`px-3 py-1 text-[10px] font-bold rounded-full tracking-wider ${ESTADO_META[estado].badge}`}
+            className={`px-3 py-1 text-[10px] font-bold rounded-lg tracking-wider ${ESTADO_META[estado].badge}`}
           >
             {ESTADO_META[estado].label}
           </span>
@@ -115,7 +115,7 @@ export default function TarjetaTarea({
             </button>
             <button
               onClick={() => onEntregar(tarea.id)}
-              className="px-6 py-2 bg-acento text-black font-bold rounded-full hover:bg-white transition-colors"
+              className="px-6 py-2 bg-acento text-white font-bold rounded-lg hover:bg-acento-vivo transition-colors"
             >
               Entregar
             </button>

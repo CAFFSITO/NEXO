@@ -125,7 +125,7 @@ test('Votos con flechas (no hay "me gusta") y reacciones con emoji', async () =>
   assert.equal((await request('/api/comunidad/reacciones', 'austral', 'POST', { objetoTipo: 'publicacion', objetoId: Number(id), emoji: '🔥' })).status, 404);
 });
 
-test('Estilo X: hilos encadenados, citas, reposts, guardados, seguir y silenciar', async () => {
+test('Estilo X: hilos encadenados, citas, reposts, guardados y silenciar (sin seguir personas)', async () => {
   const hilo = await publicar('garcia', { contenido: 'Hilo sobre cómo estudiar mejor 🧵', hilo: [{ contenido: '1. Repasá con preguntas.' }, { contenido: '2. Espaciá el estudio.' }] });
   assert.equal(hilo.hilo.length, 3);
   const enFeed = await feed('julieta');
@@ -139,16 +139,13 @@ test('Estilo X: hilos encadenados, citas, reposts, guardados, seguir y silenciar
   assert.ok((await notifs('garcia')).some((n) => n.titulo.includes('citó tu publicación')));
   assert.equal((await feed('martin')).find((p) => p.id === hilo.id).citas, 1);
 
-  // Lucas sigue a Julieta: en "Siguiendo" ve lo de ella y lo que ella repostea.
-  assert.equal((await ok(`/api/comunidad/usuarios/8/seguir`, 'lucas', 'POST')).activo, true);
+  // En NEXO no se sigue a personas: la ventanilla de seguir ya no existe.
+  assert.equal((await request(`/api/comunidad/usuarios/8/seguir`, 'lucas', 'POST')).status, 410);
   await ok(`/api/comunidad/publicaciones/${hilo.id}/repost`, 'julieta', 'POST');
-  const siguiendo = await feed('lucas', '?vista=siguiendo');
-  assert.ok(siguiendo.some((p) => p.id === cita.id));
-  assert.equal(siguiendo.find((p) => p.repostadoPor)?.repostadoPor.nombre, 'Julieta Rossi');
-  assert.ok((await notifs('julieta')).some((n) => n.titulo.includes('empezó a seguirte')));
+  assert.ok(!(await notifs('julieta')).some((n) => n.titulo.includes('empezó a seguirte')));
   assert.equal((await request(`/api/comunidad/publicaciones/${hilo.id}/repost`, 'pereyra', 'POST')).status, 403, 'el preceptor lee y responde, no repostea');
   const perfil = await ok('/api/comunidad/usuarios/8', 'lucas');
-  assert.deepEqual([perfil.seguidores, perfil.loSigo, perfil.handle], [3, true, 'julieta'], 'Martín y Sofía ya la seguían (datos de ejemplo)');
+  assert.equal(perfil.handle, 'julieta');
   assert.ok((await feed('lucas', '?vista=perfil&usuario=8')).some((p) => p.repostadoPor));
 
   await ok(`/api/comunidad/publicaciones/${cita.id}/guardar`, 'lucas', 'POST');

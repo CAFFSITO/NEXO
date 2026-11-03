@@ -27,7 +27,7 @@ export default function CursosActivosPage() {
       <main id="contenido-principal" tabIndex={-1} className="app-content flex flex-col min-h-screen">
         {/* El nombre del colegio estaba escrito acá. Sale de la base: el día que
             haya un segundo colegio, esta pantalla no tiene que cambiar. */}
-        <TopBar title="Gestión Institucional" subtitle={institucion?.nombre ?? ""} />
+        <TopBar title="Gestión institucional" subtitle={institucion?.nombre ?? ""} />
 
         <div className="flex-1 overflow-y-auto p-8 max-w-7xl w-full mx-auto">
           <PanelCursos />

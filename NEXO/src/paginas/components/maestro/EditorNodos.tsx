@@ -589,7 +589,7 @@ export default function EditorNodos({ modo, titulo, catalogo, grafoInicial, slot
         <aside className="m-editor-panel der" aria-label="Inspector">
           <div className="flex gap-1 mb-4 p-1 rounded-full bg-white/5">
             {(["nodo", "probar", "simular"] as const).map((p) => (
-              <button key={p} onClick={() => setPestana(p)} className={`flex-1 rounded-full py-1.5 text-xs font-bold transition ${pestana === p ? "bg-white text-[#0b0619]" : "text-[color:var(--m-suave)]"}`}>
+              <button key={p} onClick={() => setPestana(p)} className={`flex-1 rounded-full py-1.5 text-xs font-bold transition ${pestana === p ? "bg-blanco text-[#0b0619]" : "text-[color:var(--m-suave)]"}`}>
                 {p === "nodo" ? "Nodo" : p === "probar" ? "Probar" : "Simular"}
               </button>
             ))}

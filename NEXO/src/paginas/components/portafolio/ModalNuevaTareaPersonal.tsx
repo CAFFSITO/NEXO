@@ -61,7 +61,7 @@ export default function ModalNuevaTareaPersonal({
       <div
         role="dialog" aria-modal="true" aria-labelledby="titulo-modal-personal"
         ref={dialogo}
-        className="w-full max-w-md max-h-[90dvh] overflow-y-auto bg-lienzo border border-white/10 rounded-[20px] p-6 sm:p-8 shadow-2xl"
+        className="w-full max-w-md max-h-[90dvh] overflow-y-auto bg-lienzo border border-white/10 rounded-xl p-6 sm:p-8 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
@@ -110,7 +110,7 @@ export default function ModalNuevaTareaPersonal({
             <button
               type="submit"
               disabled={!puedeGuardar || guardando}
-              className="px-6 py-2.5 bg-acento text-black font-bold rounded-full hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-6 py-2.5 bg-acento text-white font-bold rounded-lg hover:bg-acento-vivo transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {guardando ? "Guardando…" : editando ? "Guardar" : "Agregar"}
             </button>

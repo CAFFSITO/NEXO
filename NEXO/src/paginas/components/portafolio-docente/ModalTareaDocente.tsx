@@ -270,14 +270,14 @@ export default function ModalTareaDocente({
             <button
               type="button"
               onClick={onCerrar}
-              className="px-5 py-2.5 rounded-full font-bold text-on-surface-variant hover:text-white hover:bg-white/5 transition-colors active:scale-95"
+              className="px-5 py-2.5 rounded-lg font-bold text-on-surface-variant hover:text-white hover:bg-white/5 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={guardando}
-              className="bg-primary text-on-primary font-bold px-6 py-2.5 rounded-full flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"
+              className="bg-primary text-on-primary font-bold px-6 py-2.5 rounded-lg flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-40"
             >
               <span className="material-symbols-outlined text-lg">
                 {esEdicion ? "save" : "add"}

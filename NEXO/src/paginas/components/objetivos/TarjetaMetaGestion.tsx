@@ -54,12 +54,12 @@ export default function TarjetaMetaGestion({
       <div className="flex items-start justify-between mb-4">
         <div className="flex flex-wrap gap-2">
           <span
-            className={`px-3 py-1 text-[10px] font-black rounded-full tracking-wider ${paleta.badgeBg} ${paleta.badgeText}`}
+            className={`px-3 py-1 text-[10px] font-black rounded-lg tracking-wider ${paleta.badgeBg} ${paleta.badgeText}`}
           >
             {etiqueta}
           </span>
           {completada && (
-            <span className="px-3 py-1 bg-emerald-500 text-background text-[10px] font-black rounded-full tracking-wider flex items-center gap-1">
+            <span className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black rounded-lg tracking-wider flex items-center gap-1">
               COMPLETADA
               <span
                 className="material-symbols-outlined text-[10px]"
@@ -70,7 +70,7 @@ export default function TarjetaMetaGestion({
             </span>
           )}
           {vencida && (
-            <span className="px-3 py-1 bg-red-500 text-white text-[10px] font-black rounded-full tracking-wider">
+            <span className="px-3 py-1 bg-red-500 text-white text-[10px] font-black rounded-lg tracking-wider">
               VENCIDA
             </span>
           )}
@@ -128,8 +128,8 @@ export default function TarjetaMetaGestion({
             <div
               className={`h-full rounded-full transition-all ${
                 completada
-                  ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
-                  : "bg-acento shadow-[0_0_8px_rgba(197,72,245,0.6)]"
+                  ? "bg-emerald-500"
+                  : "bg-acento"
               }`}
               style={{ width: `${progreso}%` }}
             />

@@ -93,7 +93,7 @@ export default function MisCursosEstudiantePage() {
                         <section className="space-y-8" id="mis-cursos">
                             <div className="flex flex-wrap items-center justify-between gap-4">
                                 <div>
-                                    <h1 className="text-4xl font-black text-white tracking-tight">Mis Cursos</h1>
+                                    <h1 className="text-4xl font-black text-white tracking-tight">Mis cursos</h1>
                                     <p className="text-slate-400 mt-2">
                                         Continuá donde lo dejaste en tu ruta de aprendizaje.
                                     </p>
@@ -104,7 +104,7 @@ export default function MisCursosEstudiantePage() {
                                         aria-pressed={vista === "grid"}
                                         className={`p-2 rounded-lg transition-colors ${
                                             vista === "grid"
-                                                ? "bg-surface-container text-fuchsia-400 hover:bg-surface-container-high"
+                                                ? "bg-surface-container text-primary hover:bg-surface-container-high"
                                                 : "bg-transparent text-slate-500 hover:bg-surface-container"
                                         }`}
                                     >
@@ -120,7 +120,7 @@ export default function MisCursosEstudiantePage() {
                                         aria-pressed={vista === "lista"}
                                         className={`p-2 rounded-lg transition-colors ${
                                             vista === "lista"
-                                                ? "bg-surface-container text-fuchsia-400 hover:bg-surface-container-high"
+                                                ? "bg-surface-container text-primary hover:bg-surface-container-high"
                                                 : "bg-transparent text-slate-500 hover:bg-surface-container"
                                         }`}
                                     >
@@ -163,7 +163,7 @@ export default function MisCursosEstudiantePage() {
                         {/* ── SECCIÓN 2: AULA VIRTUAL (real, Error 2.C.1) ── */}
                         <section className="space-y-6 pb-20" id="aula-virtual">
                             <div className="flex items-center gap-4">
-                                <h2 className="text-3xl font-black text-white">Aula Virtual</h2>
+                                <h2 className="text-3xl font-black text-white">Aula virtual</h2>
                             </div>
 
                             {cargando && <Cargando que="tus clases" />}
@@ -215,7 +215,7 @@ function TarjetaClaseVivo({
             {clase.enVivo ? (
                 <button
                     onClick={onEntrar}
-                    className="px-4 py-2 bg-red-500 text-white rounded-full font-bold flex items-center gap-2 hover:opacity-90 active:scale-95"
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg font-bold flex items-center gap-2 hover:opacity-90"
                 >
                     <span className="material-symbols-outlined">videocam</span>
                     Entrar

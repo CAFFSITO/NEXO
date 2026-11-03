@@ -37,7 +37,7 @@ export default function TarjetaQueja({ queja, onMarcarVista }: TarjetaQuejaProps
               <span className="bg-slate-700/30 text-slate-400 text-[10px] font-black px-2 py-0.5 rounded tracking-tighter uppercase">
                 VISTA
               </span>
-              <span className="bg-surface-container-highest text-on-surface-variant text-[11px] font-semibold px-3 py-0.5 rounded-full">
+              <span className="bg-surface-container-highest text-on-surface-variant text-[11px] font-semibold px-3 py-0.5 rounded-lg">
                 {categoria}
               </span>
             </div>
@@ -64,7 +64,7 @@ export default function TarjetaQueja({ queja, onMarcarVista }: TarjetaQuejaProps
             <span className="bg-orange-500/10 text-orange-500 text-[10px] font-black px-2 py-0.5 rounded tracking-tighter uppercase">
               NUEVA
             </span>
-            <span className="bg-secondary-container text-secondary text-[11px] font-semibold px-3 py-0.5 rounded-full">
+            <span className="bg-secondary-container text-secondary text-[11px] font-semibold px-3 py-0.5 rounded-lg">
               {categoria}
             </span>
           </div>

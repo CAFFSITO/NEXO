@@ -1,0 +1,43 @@
+NEXO - Cómo arrancarlo
+======================
+
+Requisito: Node.js 22.5 o superior (recomendado 24 LTS) -> https://nodejs.org
+No hace falta instalar nada más: las piezas del servidor ya vienen incluidas
+(servidor/node_modules) y la aplicación ya viene compilada (NEXO/dist).
+
+Arrancar (desde esta carpeta):
+
+    node server.js
+
+Después se entra desde el navegador a:
+
+    http://<IP-del-servidor>:3073   (en la escuela: http://192.168.4.252:3073)
+
+La primera vez, NEXO crea la base de datos vacía (sin datos de prueba) y la
+cuenta del Maestro, que es la que crea y diseña la escuela:
+  - Si se ejecuta en una consola, pregunta el correo y la contraseña.
+  - Si no hay consola (un panel o un servicio), genera una contraseña al azar
+    y la muestra UNA vez en la salida, junto con el correo maestro@nexo.local.
+    También se pueden fijar antes con las variables NEXO_MAESTRO_EMAIL y
+    NEXO_MAESTRO_CONTRASENA.
+
+Configuración opcional:
+  - Puerto: por defecto el 3073 (el 3000 ya lo usa otro programa). Si el 3073
+    está ocupado, NEXO usa el siguiente libre y lo dice al arrancar.
+    Para fijar otro: variable PORT (o NEXO_PORT).
+      Windows (PowerShell):  $env:PORT=8080; node server.js
+      Linux:                 PORT=8080 node server.js
+    El firewall del servidor tiene que dejar entrar a ese puerto.
+  - Todo lo demás: copiar servidor/nexo.env.ejemplo como servidor/nexo.env y
+    completarlo (dónde guardar los datos, HTTPS, respaldos).
+
+Importante:
+  - Ejecutar Node EN el servidor, con la carpeta en un disco local de esa
+    máquina. No arrancarlo desde otra computadora abriendo la carpeta por red:
+    la base (SQLite) se puede dañar si se usa a través de una carpeta compartida.
+  - Los datos quedan en base-de-datos/nexo.db y servidor/almacen (archivos
+    subidos). Quien tenga acceso a esta carpeta puede leerlos: conviene que
+    solo la administre quien maneja el servidor.
+
+Guía completa (HTTPS con Apache/XAMPP, arranque automático, respaldos):
+INSTALAR_EN_XAMPP.md

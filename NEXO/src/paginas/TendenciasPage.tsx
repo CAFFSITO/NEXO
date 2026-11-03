@@ -369,8 +369,8 @@ function BandejaDireccion({
           <div className="space-y-2">
             {datos.propuestas.map((f) => (
               <FilaBandeja key={`${f.tipo}-${f.id}`} fila={f} ocupado={decidiendo === `${f.tipo}-${f.id}`} onAbrir={() => onAbrir(f)}>
-                <button onClick={() => onDecidir(f, "aprobar")} className="flex-1 rounded-full bg-acento px-3 py-1.5 text-xs font-bold text-white hover:bg-acento/90">Aprobar</button>
-                <button onClick={() => onDecidir(f, "rechazar")} className="flex-1 rounded-full border border-white/15 px-3 py-1.5 text-xs font-bold text-white/70 hover:bg-white/5">Descartar</button>
+                <button onClick={() => onDecidir(f, "aprobar")} className="flex-1 rounded-lg bg-acento px-3 py-1.5 text-xs font-bold text-white hover:bg-acento/90">Aprobar</button>
+                <button onClick={() => onDecidir(f, "rechazar")} className="flex-1 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-bold text-white/70 hover:bg-white/5">Descartar</button>
               </FilaBandeja>
             ))}
           </div>
@@ -383,7 +383,7 @@ function BandejaDireccion({
                 <span className="flex-1 text-[11px] text-sky-300">
                   {f.posicionNacional ? `Puesto ${f.posicionNacional} en lo nacional` : "Fuera del top nacional por ahora"}
                 </span>
-                <button onClick={() => onDecidir(f, "retirar")} className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-bold text-white/70 hover:bg-white/5">Retirar</button>
+                <button onClick={() => onDecidir(f, "retirar")} className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-bold text-white/70 hover:bg-white/5">Retirar</button>
               </FilaBandeja>
             ))}
           </div>
@@ -399,7 +399,7 @@ function BandejaDireccion({
                   {datos.descartadas.map((f) => (
                     <FilaBandeja key={`${f.tipo}-${f.id}`} fila={f} ocupado={decidiendo === `${f.tipo}-${f.id}`} onAbrir={() => onAbrir(f)}>
                       <span className="flex-1 text-[11px] text-white/40">{f.estado === "retirada" ? "Retirada" : "Descartada"}</span>
-                      <button onClick={() => onDecidir(f, "aprobar")} className="rounded-full border border-acento/40 px-3 py-1.5 text-xs font-bold text-primary hover:bg-acento/10">Aprobar igual</button>
+                      <button onClick={() => onDecidir(f, "aprobar")} className="rounded-lg border border-acento/40 px-3 py-1.5 text-xs font-bold text-primary hover:bg-acento/10">Aprobar igual</button>
                     </FilaBandeja>
                   ))}
                 </div>

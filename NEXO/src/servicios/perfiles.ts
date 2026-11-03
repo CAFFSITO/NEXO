@@ -174,6 +174,10 @@ export interface Curso {
   preceptor: string | null;
   estudiantes: number;
   materias: number;
+  /** Cupo de estudiantes (null = sin límite) y aula. */
+  cupoMinimo: number | null;
+  cupoMaximo: number | null;
+  aula: string | null;
   activo: boolean;
 }
 
@@ -224,7 +228,7 @@ export interface TareaDetalle {
 }
 
 export interface DetalleCurso {
-  curso: { id: string; anio: number; division: string; turno: DatoDeCurso | null; especialidad: DatoDeCurso | null };
+  curso: { id: string; anio: number; division: string; turno: DatoDeCurso | null; especialidad: DatoDeCurso | null; cupoMinimo: number | null; cupoMaximo: number | null; aula: string | null };
   /** null = el curso no tiene preceptor asignado. */
   preceptor: string | null;
   catedras: CatedraDetalle[];

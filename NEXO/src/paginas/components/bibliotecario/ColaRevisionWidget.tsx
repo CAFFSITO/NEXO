@@ -19,7 +19,7 @@ export default function ColaRevisionWidget({ items, onRevisarItem, onVerCola }: 
             <div className="flex items-center justify-between mb-4">
                 <h3 className="font-headline font-bold text-white flex items-center gap-2">
                     <span className="material-symbols-outlined text-primary">assignment_late</span>
-                    Cola de Revisión
+                    Cola de revisión
                 </h3>
                 <span className="bg-primary-container text-on-primary-container text-xs font-black w-6 h-6 rounded-full flex items-center justify-center">
                     {items.length}

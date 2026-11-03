@@ -30,8 +30,8 @@ export default function InputField({
   const inputType = isPassword && showPassword ? "text" : type;
 
   return (
-    <div className="space-y-2">
-      <label htmlFor={id} className="block text-sm font-medium text-on-surface-variant ml-1">
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="block text-sm font-medium text-on-surface">
         {label}
       </label>
       <div className="relative">
@@ -44,7 +44,7 @@ export default function InputField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3.5 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 ${isPassword ? "pr-12" : ""}`}
+          className={`nx-campo h-11 ${isPassword ? "pr-12" : ""}`}
         />
         {isPassword && (
           <button
@@ -52,7 +52,7 @@ export default function InputField({
             aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
             aria-pressed={showPassword}
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-outline-variant hover:text-primary transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 nexo-icon-button"
           >
             <span className="material-symbols-outlined text-xl">
               {showPassword ? "visibility_off" : "visibility"}

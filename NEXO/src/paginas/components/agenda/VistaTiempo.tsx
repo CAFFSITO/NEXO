@@ -83,7 +83,7 @@ export default function VistaTiempo({ dias, eventos, feriados, hoy, onHueco, onE
         {dias.map((d) => (
           <button key={d} type="button" className="px-2 py-3 text-center hover:bg-white/[0.03]" onClick={() => onVerDia?.(d)} disabled={!onVerDia}>
             <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant/55">{NOMBRES_DIA[diaSemana(d)].slice(0, 3)}</span>
-            <span className={`mt-1 inline-grid h-9 w-9 place-items-center rounded-full font-headline text-lg font-bold ${d === hoy ? "bg-acento text-white shadow-[0_0_16px_var(--nexo-acento)]" : "text-white"}`}>{Number(d.slice(8))}</span>
+            <span className={`mt-1 inline-grid h-9 w-9 place-items-center rounded-full font-headline text-lg font-bold ${d === hoy ? "bg-acento text-white" : "text-white"}`}>{Number(d.slice(8))}</span>
             {dias.length === 1 && <span className="block text-[11px] text-on-surface-variant/55">{fechaCorta(d)}</span>}
           </button>
         ))}

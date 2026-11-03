@@ -138,10 +138,10 @@ export function TarjetaAlgoritmo({
         <>
           {slot.admiteGrafo && (
             <div className="flex gap-1 p-1 rounded-full bg-white/5 w-fit">
-              <button type="button" className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${!personalizado ? "bg-white text-[#0b0619]" : "text-[color:var(--m-suave)]"}`} onClick={() => onEditar((a) => { a.variante = "nativo"; })}>Nativo</button>
+              <button type="button" className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${!personalizado ? "bg-blanco text-[#0b0619]" : "text-[color:var(--m-suave)]"}`} onClick={() => onEditar((a) => { a.variante = "nativo"; })}>Nativo</button>
               <button
                 type="button"
-                className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${personalizado ? "bg-white text-[#0b0619]" : "text-[color:var(--m-suave)]"} disabled:opacity-40`}
+                className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${personalizado ? "bg-blanco text-[#0b0619]" : "text-[color:var(--m-suave)]"} disabled:opacity-40`}
                 disabled={!config.grafo || !config.aprobacion}
                 title={!config.grafo ? "Primero armalo en el editor de nodos" : !config.aprobacion ? "El grafo todavía no está aprobado" : undefined}
                 onClick={() => onEditar((a) => { a.variante = "personalizado"; })}

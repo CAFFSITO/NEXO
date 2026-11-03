@@ -3,7 +3,7 @@
 
 interface TarjetaMetricaProps {
   icono: string;
-  iconoColor: string; // clase de color Tailwind, ej: "text-fuchsia-400"
+  iconoColor: string; // clase de color Tailwind, ej: "text-primary"
   valor: string;
   etiqueta: string;
   delta?: string; // ej: "+12%"
@@ -11,11 +11,11 @@ interface TarjetaMetricaProps {
 
 export default function TarjetaMetrica({ icono, iconoColor, valor, etiqueta, delta }: TarjetaMetricaProps) {
   return (
-    <div className="bg-lienzo p-6 rounded-[20px] border border-white/5 shadow-xl shadow-black/20">
+    <div className="bg-lienzo p-6 rounded-xl border border-white/5 shadow-xl shadow-black/20">
       <div className="flex justify-between items-start mb-4">
         <span className={`material-symbols-outlined ${iconoColor}`}>{icono}</span>
         {delta && (
-          <span className="text-[10px] bg-fuchsia-500/10 text-fuchsia-400 px-2 py-0.5 rounded-full font-bold">
+          <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
             {delta}
           </span>
         )}

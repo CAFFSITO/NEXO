@@ -54,7 +54,7 @@ export default function PasoFlujos({ genoma, catalogo, onCambiar, onAbrirEditor,
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 m-escalonado">
         {PLANTILLAS_FLUJO.map((p) => (
           <button key={p.id} type="button" className="m-cristal p-5 text-left hover:bg-white/[0.07] transition group" onClick={() => crear(p)}>
-            <span className="material-symbols-outlined text-3xl text-[color:var(--m-oro)] group-hover:scale-110 transition-transform inline-block" aria-hidden="true">{p.icono}</span>
+            <span className="material-symbols-outlined text-3xl text-[color:var(--m-oro)] group-hover:scale-110 transition-transform inline-block mx-auto" aria-hidden="true">{p.icono}</span>
             <span className="block font-bold mt-3">{p.nombre}</span>
             <span className="block text-xs text-[color:var(--m-suave)] mt-1 leading-relaxed">{p.descripcion}</span>
           </button>
@@ -65,7 +65,7 @@ export default function PasoFlujos({ genoma, catalogo, onCambiar, onAbrirEditor,
         <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[color:var(--m-tenue)]">Flujos de esta instancia ({genoma.flujos.length})</h3>
         {genoma.flujos.length === 0 && (
           <div className="m-cristal p-8 text-center text-sm text-[color:var(--m-suave)]">
-            <span className="material-symbols-outlined text-5xl text-[color:var(--m-violeta)] block mb-2" aria-hidden="true">account_tree</span>
+            <span className="material-symbols-outlined text-5xl text-[color:var(--m-violeta)] block mx-auto mb-2" aria-hidden="true">account_tree</span>
             Todavía no hay flujos. Elegí una plantilla de arriba para empezar.
           </div>
         )}

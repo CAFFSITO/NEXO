@@ -27,13 +27,13 @@ export default function VistaPreviaEscuela({ borrador, edicion, perfilClave, onP
   const nombre = (id: string) => borrador.modulos[id]?.etiqueta || catalogo.find((m) => m.id === id)?.nombre || id;
 
   return (
-    <aside className="flex flex-col gap-3 xl:sticky xl:top-6" aria-label="Vista previa del menú">
+    <aside className="flex flex-col gap-3 @6xl:sticky @6xl:top-6" aria-label="Vista previa del menú">
       <p className="e-subtitulo">Así lo ve</p>
       <Selector className="e-input" value={perfil.clave} onChange={(e) => onPerfil(e.target.value)} aria-label="Perfil de la vista previa">
         {borrador.perfiles.map((p) => <option key={p.clave} value={p.clave}>{p.nombre}</option>)}
       </Selector>
       <MenuDeMuestra
-        tema={edicion.tema}
+        tema={borrador.tema}
         nombre={edicion.escuela.nombre}
         icono={edicion.escuela.icono}
         grupos={grupos}

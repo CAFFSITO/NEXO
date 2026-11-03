@@ -47,6 +47,7 @@ try {
   await page.getByRole('button', { name: 'Cargar mensajes anteriores', exact: true }).click();
   await page.getByRole('log').getByText('histórico 000', { exact: true }).waitFor();
   assert.equal(await page.getByRole('log').locator('[id^="mensaje-"]').count(), 66);
+  await page.getByRole('button', { name: 'Buscar en la conversación', exact: true }).click();
   await page.getByRole('textbox', { name: 'Buscar en el historial', exact: true }).fill('histórico 000');
   await page.getByRole('button', { name: 'Buscar', exact: true }).click();
   await page.waitForFunction(() => document.querySelectorAll('[role="log"] [id^="mensaje-"]').length === 1);

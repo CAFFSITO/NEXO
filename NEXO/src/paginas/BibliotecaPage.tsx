@@ -140,7 +140,7 @@ export default function BibliotecaPage() {
             {puedeSubir ? (
               <button
                 onClick={handlePresentarRecurso}
-                className="flex items-center gap-2 px-6 py-3 bg-acento text-white rounded-full font-bold hover:bg-[#d15aff] transition-all active:scale-95"
+                className="flex items-center gap-2 px-6 py-3 bg-acento text-white rounded-lg font-bold hover:bg-acento-vivo transition-all"
               >
                 <span className="material-symbols-outlined">add</span>
                 <span>Agregar recurso</span>
@@ -148,7 +148,7 @@ export default function BibliotecaPage() {
             ) : puedePresentar ? (
               <button
                 onClick={handlePresentarRecurso}
-                className="flex items-center gap-2 px-6 py-3 border-2 border-acento text-acento rounded-full font-bold hover:bg-acento hover:text-white transition-all active:scale-95"
+                className="flex items-center gap-2 px-6 py-3 border-2 border-acento text-acento rounded-lg font-bold hover:bg-acento hover:text-white transition-all"
               >
                 <span className="material-symbols-outlined">add</span>
                 <span>Presentar recurso</span>
@@ -216,7 +216,7 @@ export default function BibliotecaPage() {
       {rol === "estudiante" && (
         <button
           onClick={() => handleNavegar("/asistencia-academica")}
-          className="fixed bottom-8 right-8 w-14 h-14 bg-acento text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50"
+          className="fixed bottom-8 right-8 w-14 h-14 bg-acento text-white rounded-full shadow-2xl flex items-center justify-center transition-all z-50"
           aria-label="Asistente"
         >
           <span className="material-symbols-outlined text-2xl">question_answer</span>

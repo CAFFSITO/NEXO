@@ -14,24 +14,24 @@ interface TemaClases {
 
 const TEMAS: Record<TemaCurso, TemaClases> = {
     fuchsia: {
-        iconoBox: "bg-fuchsia-500/20 text-fuchsia-500",
-        badge: "bg-fuchsia-500/10 text-fuchsia-400",
-        progresoTexto: "text-fuchsia-400",
-        barra: "bg-gradient-to-r from-fuchsia-600 to-fuchsia-400",
-        botonHover: "hover:bg-fuchsia-600",
+        iconoBox: "bg-primary/20 text-primary",
+        badge: "bg-primary/10 text-primary",
+        progresoTexto: "text-primary",
+        barra: "bg-acento",
+        botonHover: "hover:bg-acento",
     },
     indigo: {
         iconoBox: "bg-indigo-500/20 text-indigo-400",
         badge: "bg-indigo-500/10 text-indigo-400",
         progresoTexto: "text-indigo-400",
-        barra: "bg-gradient-to-r from-indigo-600 to-indigo-400",
+        barra: "bg-indigo-500",
         botonHover: "hover:bg-indigo-600",
     },
     emerald: {
         iconoBox: "bg-emerald-500/20 text-emerald-400",
         badge: "bg-emerald-500/10 text-emerald-400",
         progresoTexto: "text-emerald-400",
-        barra: "bg-gradient-to-r from-emerald-600 to-emerald-400",
+        barra: "bg-emerald-500",
         botonHover: "hover:bg-emerald-600",
     },
 };
@@ -60,7 +60,7 @@ export default function TarjetaCurso({ curso, vista, onAccion }: TarjetaCursoPro
 
     if (vista === "lista") {
         return (
-            <div className="group relative bg-surface-container rounded-lg p-4 flex items-center gap-4 hover:shadow-2xl hover:shadow-fuchsia-500/5 border border-white/5 transition-all overflow-hidden">
+            <div className="nx-tarjeta group relative flex items-center gap-4 p-4">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${tema.iconoBox}`}>
                     <span className="material-symbols-outlined">{curso.icono}</span>
                 </div>
@@ -79,7 +79,7 @@ export default function TarjetaCurso({ curso, vista, onAccion }: TarjetaCursoPro
                 </div>
                 <button
                     onClick={() => onAccion(curso.id)}
-                    className={`bg-surface-container-highest text-white px-5 py-2.5 rounded-full font-bold text-sm transition-colors flex items-center gap-2 flex-shrink-0 ${tema.botonHover}`}
+                    className="nx-btn nx-btn-secundario shrink-0"
                 >
                     <span>{curso.labelBoton}</span>
                     <span className="material-symbols-outlined text-sm">{curso.iconoBoton}</span>
@@ -89,36 +89,35 @@ export default function TarjetaCurso({ curso, vista, onAccion }: TarjetaCursoPro
     }
 
     return (
-        <div className="group relative bg-surface-container rounded-lg p-6 flex flex-col gap-6 hover:shadow-2xl hover:shadow-fuchsia-500/5 border border-white/5 transition-all overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/10 blur-3xl -mr-16 -mt-16 group-hover:bg-fuchsia-500/20 transition-all" />
-            <div className="flex justify-between items-start">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${tema.iconoBox}`}>
-                    <span className="material-symbols-outlined">{curso.icono}</span>
+        <article className="nx-tarjeta group relative flex flex-col overflow-hidden transition-colors hover:border-outline-variant">
+            <div className={`h-1 w-full ${tema.barra}`} aria-hidden="true" />
+            <div className="flex flex-1 flex-col gap-4 p-5">
+                <div className="flex items-start justify-between gap-3">
+                    <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${tema.iconoBox}`}>
+                        <span className="material-symbols-outlined" aria-hidden="true">{curso.icono}</span>
+                    </div>
+                    <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${tema.badge}`}>{curso.categoria}</span>
                 </div>
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full ${tema.badge}`}>
-                    {curso.categoria}
-                </span>
-            </div>
-            <div className="space-y-2">
-                <h3 className="text-xl font-bold text-white">{curso.titulo}</h3>
-                <p className="text-sm text-slate-400">{curso.profesor}</p>
-            </div>
-            <div className="space-y-3">
-                <div className="flex justify-between text-xs font-medium">
-                    <span className="text-slate-400">Progreso del curso</span>
-                    <span className={tema.progresoTexto}>{progreso}%</span>
+                <div>
+                    <h3 className="text-[17px] font-semibold leading-snug text-on-surface">{curso.titulo}</h3>
+                    <p className="mt-0.5 text-sm text-on-surface-variant">{curso.profesor}</p>
                 </div>
-                <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${tema.barra}`} style={{ width: `${progreso}%` }} />
+                <div className="mt-auto space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                        <span className="text-on-surface-variant">Progreso</span>
+                        <span className="font-semibold tabular-nums text-on-surface">{progreso}%</span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-highest" role="progressbar" aria-valuenow={progreso} aria-valuemin={0} aria-valuemax={100} aria-label={`Progreso en ${curso.titulo}`}>
+                        <div className={`h-full rounded-full ${tema.barra}`} style={{ width: `${progreso}%` }} />
+                    </div>
                 </div>
             </div>
-            <button
-                onClick={() => onAccion(curso.id)}
-                className={`mt-4 w-full bg-surface-container-highest text-white py-3 rounded-full font-bold text-sm transition-colors flex items-center justify-center gap-2 ${tema.botonHover}`}
-            >
-                <span>{curso.labelBoton}</span>
-                <span className="material-symbols-outlined text-sm">{curso.iconoBoton}</span>
-            </button>
-        </div>
+            <div className="border-t border-linea px-5 py-3">
+                <button type="button" onClick={() => onAccion(curso.id)} className="nx-btn nx-btn-secundario w-full">
+                    {curso.labelBoton}
+                    <span className="material-symbols-outlined" aria-hidden="true">{curso.iconoBoton}</span>
+                </button>
+            </div>
+        </article>
     );
 }

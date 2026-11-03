@@ -340,6 +340,7 @@ export function registrarPerfiles(app, db) {
             t.id AS turno_id, t.nombre AS turno,
             e.id AS especialidad_id, e.nombre AS especialidad,
             p.nombre AS preceptor,
+            c.cupo_minimo, c.cupo_maximo, c.aula,
             (SELECT COUNT(*) FROM inscripciones i WHERE i.curso_id = c.id) AS estudiantes,
             (SELECT COUNT(*) FROM catedras ca WHERE ca.curso_id = c.id)    AS materias
        FROM cursos c
@@ -414,6 +415,9 @@ export function registrarPerfiles(app, db) {
         preceptor: fila.preceptor ?? null,
         estudiantes: fila.estudiantes,
         materias: fila.materias,
+        cupoMinimo: fila.cupo_minimo ?? null,
+        cupoMaximo: fila.cupo_maximo ?? null,
+        aula: fila.aula ?? null,
         activo: true,
       }));
 
@@ -455,7 +459,7 @@ export function registrarPerfiles(app, db) {
   // detalle de un curso de otra institución responde 404, no filtra nada.
   const cursoPorId = db.prepare(
     `SELECT c.id, c.anio, c.division, t.id AS turno_id, t.nombre AS turno, e.id AS especialidad_id, e.nombre AS especialidad,
-            c.institucion_id, c.preceptor_id, p.nombre AS preceptor
+            c.institucion_id, c.preceptor_id, p.nombre AS preceptor, c.cupo_minimo, c.cupo_maximo, c.aula
        FROM cursos c
        LEFT JOIN usuarios p ON p.id = c.preceptor_id
        LEFT JOIN curso_turnos t ON t.id = c.turno_id
@@ -516,6 +520,9 @@ export function registrarPerfiles(app, db) {
           division: curso.division,
           turno: datoDeLista(curso.turno_id, curso.turno),
           especialidad: datoDeLista(curso.especialidad_id, curso.especialidad),
+          cupoMinimo: curso.cupo_minimo ?? null,
+          cupoMaximo: curso.cupo_maximo ?? null,
+          aula: curso.aula ?? null,
         },
         preceptor: curso.preceptor ?? null,
         preceptorId: curso.preceptor_id == null ? null : String(curso.preceptor_id),

@@ -3,7 +3,6 @@ import { enviar, useDatos } from "../../../servicios/api";
 import { useNavegacion } from "../../../navegacion";
 import Selector from "../shared/Selector";
 import ModalDetalleTarea from "../shared/tareas/ModalDetalleTarea";
-import ProyectosVinculados from "../proyectos/ProyectosVinculados";
 import { EvaluacionesLeccion, GrabacionLeccion, PracticasLeccion, ReproductorLeccion } from "./MediosLeccion";
 import type { Subtitulo } from "../multimedia/EstudioMultimedia";
 
@@ -56,7 +55,6 @@ export default function LeccionesMateria({ catedraId }: { catedraId:string }) {
     {n.tipo==="leccion"&&!datos?.editable&&<div className="flex flex-wrap gap-3"><button disabled={guardando} className="text-xs text-primary" onClick={()=>void progreso(n,"visto")}>{n.progreso?.vistoEn?"Vista ✓":"Marcar vista"}</button><button disabled={guardando} className="text-xs text-primary" onClick={()=>void progreso(n,"realizado")}>{n.progreso?.realizadoEn?"Realizada ✓":"Marcar realizada"}</button>{n.progreso?.evaluadoEn&&<span className="text-xs text-emerald-300">Evaluada ✓</span>}</div>}
     {n.tipo==="leccion"&&datos?.editable&&<EvaluacionesLeccion url={`${url}/${n.id}`} />}
     {n.tipo==="leccion"&&<PracticasLeccion leccionId={n.id} editable={!!datos?.editable} />}
-    {n.tipo==="leccion"&&<ProyectosDeLeccion id={n.id} />}
     {datos?.editable&&n.tipo!=="leccion"&&<div className="flex flex-wrap gap-3">{(["modulo","seccion","leccion"] as Tipo[]).map(t=><button key={t} className="text-xs text-primary" onClick={()=>abrir(t,n.id)}>+ {t}</button>)}</div>}
     {hijos(n.id,nivel+1)}
   </article>);
@@ -88,11 +86,6 @@ export default function LeccionesMateria({ catedraId }: { catedraId:string }) {
     </form>}
     {tareaAbierta&&<ModalDetalleTarea tareaId={tareaAbierta} onCerrar={()=>{setTareaAbierta(null);recargar();}} onCambio={recargar} />}
   </section>;
-}
-
-function ProyectosDeLeccion({id}:{id:string}){
-  const [abierto,setAbierto]=useState(false);
-  return <details onToggle={e=>setAbierto(e.currentTarget.open)} className="text-sm"><summary className="cursor-pointer text-primary">Proyectos relacionados</summary>{abierto&&<ProyectosVinculados tipo="leccion" id={id}/>}</details>;
 }
 
 function AccionLeccion({actividad:a,url,recargar,abrirTarea}:{actividad:Actividad;url:string;recargar:()=>void;abrirTarea:(id:string)=>void}){

@@ -122,7 +122,7 @@ export default function FormularioNuevoRegistro({
                 type="date"
                 value={form.fecha}
                 onChange={(e) => actualizar("fecha", e.target.value)}
-                className="bg-fondo border-none rounded-full px-4 py-2 text-white focus:ring-2 focus:ring-acento"
+                className="bg-fondo border-none rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-acento"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -132,7 +132,7 @@ export default function FormularioNuevoRegistro({
               <Selector
                 value={form.materiaCurso}
                 onChange={(e) => actualizar("materiaCurso", e.target.value)}
-                className="bg-fondo border-none rounded-full px-4 py-2 text-white focus:ring-2 focus:ring-acento"
+                className="bg-fondo border-none rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-acento"
               >
                 {opciones.map((mc) => (
                   <option key={mc}>{mc}</option>
@@ -192,14 +192,14 @@ export default function FormularioNuevoRegistro({
               <button
                 type="button"
                 onClick={onCancelar}
-                className="text-slate-400 font-bold px-5 py-3 rounded-full hover:text-white transition-colors font-label"
+                className="text-slate-400 font-bold px-5 py-3 rounded-lg hover:text-white transition-colors font-label"
               >
                 Cancelar
               </button>
             )}
             <button
               type="submit"
-              className="bg-acento text-white font-bold px-8 py-3 rounded-full hover:shadow-[0_0_20px_rgba(197,72,245,0.4)] transition-all active:scale-95 flex items-center gap-2"
+              className="bg-acento text-white font-bold px-8 py-3 rounded-lg transition-all flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-sm">save</span>
               {editando ? "Actualizar registro" : "Guardar registro"}

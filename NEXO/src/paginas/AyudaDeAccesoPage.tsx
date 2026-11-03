@@ -10,7 +10,6 @@
 // crea la institución, y por eso el reclamo va a la institución.
 
 import { useNavigate } from "react-router-dom";
-import BackgroundGlow from "./components/shared/BackgroundGlow";
 import NexoLogo from "./components/shared/NexoLogo";
 import LoginFooter from "./components/moduloLogin/LoginFooter";
 
@@ -52,10 +51,9 @@ export default function AyudaDeAccesoPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
-      <BackgroundGlow />
 
       <main className="w-full max-w-[560px] relative z-10">
-        <div className="bg-surface-container p-8 md:p-10 rounded-[20px] border border-primary/10 shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
+        <div className="bg-surface-container p-8 md:p-10 rounded-xl border border-primary/10 shadow-lg">
           <div className="mb-10">
             <NexoLogo size="md" showSlogan />
           </div>
@@ -86,7 +84,7 @@ export default function AyudaDeAccesoPage() {
           <div className="mt-8 pt-8 border-t border-outline-variant/10 flex flex-col gap-3">
             <button
               onClick={() => navigate("/recuperar-contrasena")}
-              className="w-full bg-primary hover:bg-primary-container text-surface-container-lowest font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all duration-200"
+              className="w-full bg-primary hover:bg-primary-container text-surface-container-lowest font-bold py-4 rounded-xl shadow-lg transition-all duration-200"
             >
               Recuperar mi contraseña
             </button>

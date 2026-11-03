@@ -111,7 +111,7 @@ export default function GestionQuejasPage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
             <div>
               <h2 className="text-3xl font-extrabold font-headline text-white tracking-tight">
-                Quejas Estudiantiles
+                Quejas estudiantiles
               </h2>
               <p className="text-slate-400 mt-1">
                 Retroalimentación anónima de la comunidad estudiantil.
@@ -128,7 +128,7 @@ export default function GestionQuejasPage() {
                 id="filtro-categoria"
                 value={filtroCategoria}
                 onChange={(e) => setFiltroCategoria(e.target.value as FiltroCategoria)}
-                className="bg-surface-container border-none text-on-surface rounded-full px-6 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 cursor-pointer hover:bg-surface-container-high transition-colors"
+                className="bg-surface-container border-none text-on-surface rounded-lg px-6 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 cursor-pointer hover:bg-surface-container-high transition-colors"
               >
                 <option value="todas">Filtrar por categoría</option>
                 {CATEGORIAS.map((c) => (
@@ -170,7 +170,7 @@ export default function GestionQuejasPage() {
                   ))
                 ) : (
                   <div className="bg-surface border border-surface-container-highest rounded-lg p-10 text-center text-slate-400">
-                    <span className="material-symbols-outlined text-4xl mb-2 block opacity-50">
+                    <span className="material-symbols-outlined text-4xl mb-2 block mx-auto opacity-50">
                       inbox
                     </span>
                     No hay quejas que coincidan con tu búsqueda.

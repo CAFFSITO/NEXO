@@ -72,7 +72,7 @@ export default function EnviarQuejaPage() {
               </p>
               <button
                 onClick={() => setEnviada(false)}
-                className="mt-2 px-6 py-2.5 bg-acento hover:bg-[#d15aff] text-white font-bold rounded-full transition-all active:scale-95 text-sm"
+                className="mt-2 px-6 py-2.5 bg-acento hover:bg-acento-vivo text-white font-bold rounded-lg transition-all text-sm"
               >
                 Enviar otra
               </button>
@@ -111,7 +111,7 @@ export default function EnviarQuejaPage() {
               <button
                 type="submit"
                 disabled={enviando}
-                className="w-full py-3 bg-acento hover:bg-[#d15aff] text-white font-bold rounded-full transition-all active:scale-95 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-acento hover:bg-acento-vivo text-white font-bold rounded-full transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {enviando ? "Enviando…" : "Enviar de forma anónima"}
               </button>

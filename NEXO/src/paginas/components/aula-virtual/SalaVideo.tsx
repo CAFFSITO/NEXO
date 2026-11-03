@@ -132,7 +132,7 @@ export default function SalaVideo({ claseId, nombre, onSalir }: SalaVideoProps) 
         <button
           onClick={onSalir}
           title="Salir del video"
-          className="ml-2 w-10 h-10 rounded-full bg-error/80 text-white flex items-center justify-center hover:bg-error active:scale-95"
+          className="ml-2 w-10 h-10 rounded-full bg-error/80 text-white flex items-center justify-center hover:bg-error"
         >
           <span className="material-symbols-outlined">call_end</span>
         </button>
@@ -182,7 +182,7 @@ function Recuadro({
 
   return (
     <div
-      className={`relative rounded-xl overflow-hidden bg-[#0f0820] border ${
+      className={`relative rounded-xl overflow-hidden bg-surface-container-lowest border ${
         alerta ? "border-error/50" : "border-white/10"
       } min-h-[120px]`}
     >
@@ -232,7 +232,7 @@ function BotonControl({
       disabled={deshabilitado}
       title={titulo}
       aria-label={titulo}
-      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
+      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
         resaltar
           ? "bg-primary text-white"
           : activo

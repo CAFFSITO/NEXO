@@ -340,14 +340,14 @@ export default function ModalPerfil({
           <button
             type="button"
             onClick={onCerrar}
-            className="flex-1 py-3 rounded-xl border border-primary/20 text-primary font-medium hover:bg-primary/5 transition-colors active:scale-95"
+            className="flex-1 py-3 rounded-xl border border-primary/20 text-primary font-medium hover:bg-primary/5 transition-colors"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={guardando}
-            className="flex-1 bg-acento hover:bg-acento/90 text-white py-3 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-60"
+            className="flex-1 bg-acento hover:bg-acento/90 text-white py-3 rounded-xl font-bold transition-all disabled:opacity-60"
           >
             {guardando ? "Guardando…" : esEdicion ? "Guardar cambios" : "Crear perfil"}
           </button>

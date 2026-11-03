@@ -38,7 +38,7 @@ export default function GraficoProgresoAlumno({ serie }: Props) {
   if (serie.length === 0) {
     return (
       <div className="bg-fondo border border-white/5 rounded-[14px] p-8 text-center">
-        <span className="material-symbols-outlined text-4xl text-slate-600 mb-2 block">show_chart</span>
+        <span className="material-symbols-outlined text-4xl text-slate-600 mb-2 block mx-auto">show_chart</span>
         <p className="text-slate-400 text-sm">
           Todavía no hay notas corregidas de este alumno en la materia.
         </p>

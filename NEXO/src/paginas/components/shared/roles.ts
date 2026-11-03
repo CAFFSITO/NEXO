@@ -25,7 +25,7 @@ export type Rol =
 export const ROL_LABELS: Record<Rol, string> = {
     estudiante: "Estudiante",
     profesor: "Profesor",
-    "admin-academico": "Admin. Académica",
+    "admin-academico": "Dirección",
     preceptor: "Preceptor",
     secretaria: "Secretaría",
     "centro-estudiantes": "Centro de Estudiantes",

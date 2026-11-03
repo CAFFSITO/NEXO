@@ -13,7 +13,7 @@ export default function ReporteSemanalCard({
   onGenerarPDF,
 }: ReporteSemanalCardProps) {
   return (
-    <div className="bg-gradient-to-br from-lienzo to-[#4900a6] p-8 rounded-lg shadow-xl border border-primary/20">
+    <div className="bg-gradient-to-br from-lienzo to-primary/10 p-8 rounded-lg shadow-xl border border-primary/20">
       <span
         className="material-symbols-outlined text-primary-container text-4xl mb-4"
         style={{ fontVariationSettings: "'FILL' 1" }}
@@ -21,7 +21,7 @@ export default function ReporteSemanalCard({
         analytics
       </span>
       <h3 className="text-xl font-bold text-white font-headline mb-2">Actividad académica</h3>
-      <p className="text-primary-fixed/70 text-sm mb-6 leading-relaxed">
+      <p className="text-on-surface-variant text-sm mb-6 leading-relaxed">
         Consultá la actividad de los últimos 7 días y descargá el reporte institucional de cursos, entregas y calificaciones.
       </p>
 
@@ -37,7 +37,7 @@ export default function ReporteSemanalCard({
       <button
         onClick={onGenerarPDF}
         disabled={generando}
-        className="w-full bg-white text-fondo font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-primary-fixed transition-all active:scale-95 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full bg-acento text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-acento-vivo transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
       >
         <span className="material-symbols-outlined">
           {generando ? "progress_activity" : "download"}

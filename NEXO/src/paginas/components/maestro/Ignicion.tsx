@@ -175,7 +175,7 @@ export default function Ignicion({ genoma, catalogo, direccion, forjar, onVolver
           <div className="m-onda" style={{ animationDelay: ".25s" }} />
           <div className="relative z-[3] text-center px-6 m-aparecer" style={{ animationDelay: ".5s" }}>
             <p className="m-eyebrow justify-center">Instancia forjada</p>
-            <h2 className="m-titulo text-5xl md:text-7xl mt-4" style={{ textShadow: `0 0 60px ${genoma.tema.acento}` }}>{genoma.identidad.nombre}</h2>
+            <h2 className="m-titulo text-5xl md:text-7xl mt-4">{genoma.identidad.nombre}</h2>
           </div>
         </>
       )}
@@ -200,7 +200,7 @@ export default function Ignicion({ genoma, catalogo, direccion, forjar, onVolver
               <h3>Paleta</h3>
               <div className="flex justify-center gap-3 mt-3">
                 {(["acento", "primario", "secundario", "terciario"] as const).map((k) => (
-                  <span key={k} className="w-10 h-10 rounded-full" style={{ background: genoma.tema[k], boxShadow: `0 0 24px ${genoma.tema[k]}` }} />
+                  <span key={k} className="w-10 h-10 rounded-full" style={{ background: genoma.tema[k] }} />
                 ))}
               </div>
               <h3>Diseñada por</h3>

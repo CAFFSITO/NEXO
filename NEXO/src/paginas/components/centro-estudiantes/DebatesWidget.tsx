@@ -15,7 +15,7 @@ export default function DebatesWidget({ debates, onGestionar }: DebatesWidgetPro
     <section className="bg-lienzo rounded-lg p-6 border border-white/5 relative overflow-hidden">
       <div className="absolute top-0 left-0 w-1 h-full bg-acento" />
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-headline font-bold text-white">Debates Activos</h3>
+        <h3 className="text-lg font-headline font-bold text-white">Debates activos</h3>
         <div className="flex items-center gap-1 text-[10px] text-on-surface-variant font-bold">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
           {debates.length} ABIERTOS

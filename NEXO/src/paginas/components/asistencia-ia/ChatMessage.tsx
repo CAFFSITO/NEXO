@@ -11,7 +11,7 @@ export default function ChatMessage({ role, content }: ChatMessageProps) {
       <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
         isUser
           ? "bg-surface-container-highest"
-          : "bg-primary shadow-lg shadow-primary/20"
+          : "bg-primary shadow-lg"
       }`}>
         <span className={`material-symbols-outlined text-xl ${
           isUser ? "text-primary" : "text-fondo"
@@ -21,8 +21,8 @@ export default function ChatMessage({ role, content }: ChatMessageProps) {
       </div>
       <div className={`p-4 rounded-2xl shadow-sm ${
         isUser
-          ? "bg-acento text-white rounded-tr-none shadow-lg shadow-primary/10"
-          : "bg-lienzo text-on-surface rounded-tl-none border border-purple-800/30"
+          ? "bg-acento text-white rounded-tr-none shadow-lg"
+          : "bg-lienzo text-on-surface rounded-tl-none border border-linea"
       }`}>
         <p className="font-body leading-relaxed" dangerouslySetInnerHTML={{ __html: content }} />
       </div>

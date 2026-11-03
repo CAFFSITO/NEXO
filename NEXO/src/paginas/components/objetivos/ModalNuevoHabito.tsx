@@ -43,7 +43,7 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar, inicial }: Modal
     >
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md bg-lienzo rounded-[20px] border border-purple-900/30 shadow-2xl p-6"
+        className="w-full max-w-md bg-lienzo rounded-xl border border-linea shadow-2xl p-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -81,7 +81,7 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar, inicial }: Modal
             onChange={(e) => setNombre(e.target.value)}
             autoFocus
             placeholder="Ej: Estudiar 30 min sin distracciones"
-            className="w-full bg-fondo text-white text-sm rounded-lg px-4 py-3 border border-purple-900/30 focus:ring-2 focus:ring-acento/50 focus:border-acento/50 outline-none placeholder-slate-500"
+            className="w-full bg-fondo text-white text-sm rounded-lg px-4 py-3 border border-linea focus:ring-2 focus:ring-acento/50 focus:border-acento/50 outline-none placeholder-slate-500"
           />
         </div>
 
@@ -97,7 +97,7 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar, inicial }: Modal
             id="frecuencia-habito"
             value={frecuencia}
             onChange={(e) => setFrecuencia(e.target.value as (typeof FRECUENCIAS)[number])}
-            className="w-full bg-fondo text-white text-sm rounded-lg px-4 py-3 border border-purple-900/30 focus:ring-2 focus:ring-acento/50 focus:border-acento/50 outline-none"
+            className="w-full bg-fondo text-white text-sm rounded-lg px-4 py-3 border border-linea focus:ring-2 focus:ring-acento/50 focus:border-acento/50 outline-none"
           >
             {FRECUENCIAS.map((f) => (
               <option key={f} value={f}>
@@ -120,7 +120,7 @@ export default function ModalNuevoHabito({ onGuardar, onCerrar, inicial }: Modal
           <button
             type="submit"
             disabled={!puedeGuardar || guardando}
-            className="px-6 py-2.5 bg-acento hover:bg-[#b039df] text-white rounded-full text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-6 py-2.5 bg-acento hover:bg-acento-vivo text-white rounded-lg text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {guardando ? "Guardando…" : "Guardar hábito"}
           </button>

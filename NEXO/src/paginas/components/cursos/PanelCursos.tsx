@@ -9,7 +9,7 @@
 // base ("Preceptor López", "Preceptor Suárez", que no existen — Error 13.4).
 
 import { useMemo, useState } from "react";
-import CursosPorAnio from "./CursosPorAnio";
+import TablaCursos from "./TablaCursos";
 import EstadoCicloLectivo from "./EstadoCicloLectivo";
 import ReporteSemanalCard from "./ReporteSemanalCard";
 import ModalNuevoCurso from "./ModalNuevoCurso";
@@ -22,7 +22,6 @@ import { useFuncion } from "../../../servicios/instancia";
 
 export default function PanelCursos() {
   const { datos, cargando, error, recargar } = useCursos();
-  const [busqueda, setBusqueda] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [detalleId, setDetalleId] = useState<string | null>(null);
   const [generandoPDF, setGenerandoPDF] = useState(false);
@@ -32,22 +31,6 @@ export default function PanelCursos() {
   // Sin "Cátedras e inscripciones" la escuela usa los cursos solo para ordenar a
   // los preceptores: no hay alumnos, materias ni tareas que mostrar.
   const conAlumnos = useFuncion("cursos.organizar");
-
-  // ── Filtro por año/división/preceptor ──
-  const cursosFiltrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
-    if (!q) return cursos;
-    return cursos.filter((c) => {
-      const etiqueta = `${c.anio}°${c.division}`.toLowerCase();
-      const preceptor = (c.preceptor ?? "sin preceptor").toLowerCase();
-      return etiqueta.includes(q) || preceptor.includes(q);
-    });
-  }, [cursos, busqueda]);
-
-  const cursosSinPreceptor = useMemo(
-    () => cursos.filter((c) => c.preceptor === null).length,
-    [cursos]
-  );
 
   // ── Handlers ──
   // Crear y volver a la lista (sin abrir el curso): se confirma con un aviso.
@@ -104,59 +87,24 @@ export default function PanelCursos() {
           </button>
         </div>
       )}
-      {/* ── Hero header + acción ── */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-8">
-        <div>
-          <h2 className="text-3xl font-extrabold text-white font-headline">Cursos Activos</h2>
-          <p className="text-on-surface-variant/70 mt-1">
-            {conAlumnos ? "Gestión y monitoreo de las divisiones académicas." : "Los cursos de la escuela, con su turno y su preceptor a cargo."}
+      {/* ── Encabezado + acción ── */}
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-semibold text-on-surface">Cursos</h2>
+          <p className="mt-1 text-sm text-on-surface-variant">
+            {conAlumnos ? "Divisiones, preceptores y cupo de estudiantes de cada curso." : "Los cursos de la escuela, con su turno y su preceptor a cargo."}
           </p>
         </div>
-        <button
-          onClick={() => setModalAbierto(true)}
-          className="bg-acento hover:bg-acento/90 text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-95 self-start md:self-auto"
-        >
-          <span className="material-symbols-outlined">add_circle</span>
+        <button type="button" onClick={() => setModalAbierto(true)} className="nx-btn nx-btn-primario">
+          <span className="material-symbols-outlined" aria-hidden="true">add</span>
           Nuevo curso
         </button>
       </div>
 
-      {/* ── Buscador + alerta de cursos sin preceptor ── */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        <div className="relative flex-1">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">
-            search
-          </span>
-          <input
-            type="text"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por año, división o preceptor…"
-            className="w-full bg-lienzo border border-surface-variant rounded-full pl-10 pr-4 py-3 text-white placeholder:text-on-surface-variant/50 focus:border-primary outline-none transition-colors"
-          />
-        </div>
-        {cursosSinPreceptor > 0 && (
-          <div className="flex items-center gap-2 bg-error/10 text-error px-4 py-3 rounded-full text-sm font-bold">
-            <span className="material-symbols-outlined text-base">warning</span>
-            {cursosSinPreceptor} curso{cursosSinPreceptor > 1 ? "s" : ""} sin preceptor
-          </div>
-        )}
-      </div>
-
-      {/* ── Años en tarjetas; al abrir uno, sus divisiones separadas por turno ── */}
-      {cursosFiltrados.length > 0 ? (
-        <CursosPorAnio cursos={cursosFiltrados} busqueda={busqueda} conAlumnos={conAlumnos} onVerDetalle={handleVerDetalle} />
-      ) : (
-        <div className="text-center py-16 text-on-surface-variant mb-12">
-          <span className="material-symbols-outlined text-5xl mb-2 block">search_off</span>
-          {busqueda
-            ? `No se encontraron cursos para “${busqueda}”.`
-            : "Todavía no hay cursos cargados."}
-        </div>
-      )}
+      <TablaCursos cursos={cursos} conAlumnos={conAlumnos} onVerDetalle={handleVerDetalle} onNuevo={() => setModalAbierto(true)} />
 
       {/* ── Dashboard inferior (alumnos, materias y tareas) ── */}
-      {conAlumnos && <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      {conAlumnos && <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
         <EstadoCicloLectivo
           avanceCronograma={datos.ciclo.avanceCronograma}
           inscripciones={datos.ciclo.inscripciones}

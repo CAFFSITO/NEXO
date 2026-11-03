@@ -52,7 +52,7 @@ export default function FiltrosPerfiles({
       <Selector
         value={filtroRol}
         onChange={(e) => onFiltrarRol(e.target.value as FiltroRol)}
-        className="bg-surface-container border border-white/5 rounded-full px-4 py-2.5 text-sm text-on-surface focus:ring-1 focus:ring-primary outline-none"
+        className="bg-surface-container border border-white/5 rounded-lg px-4 py-2.5 text-sm text-on-surface focus:ring-1 focus:ring-primary outline-none"
       >
         <option value="todos">Todos los roles</option>
         {ROLES.map((rol) => (
@@ -66,7 +66,7 @@ export default function FiltrosPerfiles({
       <Selector
         value={filtroEstado}
         onChange={(e) => onFiltrarEstado(e.target.value as FiltroEstado)}
-        className="bg-surface-container border border-white/5 rounded-full px-4 py-2.5 text-sm text-on-surface focus:ring-1 focus:ring-primary outline-none"
+        className="bg-surface-container border border-white/5 rounded-lg px-4 py-2.5 text-sm text-on-surface focus:ring-1 focus:ring-primary outline-none"
       >
         {ESTADOS.map((e) => (
           <option key={e.valor} value={e.valor}>

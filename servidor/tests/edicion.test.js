@@ -174,7 +174,8 @@ test('La dirección no toca lo que es del Maestro', async () => {
   const antes = await ok('/api/instancia/edicion', 'direccion');
   const r = await guardar({
     identidad: { nombre: 'Escuela Hackeada' },
-    tema: { acento: '#ff0000' },
+    // Los colores sí son de la dirección; la redondez y el movimiento, no.
+    tema: { radio: 26, movimiento: 'vibrante' },
     flujos: [{ id: 'x', nombre: 'Intruso' }],
     perfiles: {
       estudiante: { nombre: 'Otro nombre', color: '#000000', inicio: 'objetivos' },
@@ -193,6 +194,37 @@ test('La dirección no toca lo que es del Maestro', async () => {
   const r2 = await guardar({ modulos: { comunidad: null, perfiles: { oculto: true } } });
   assert.equal(Object.keys(r2.edicion.modulos).length, antes.catalogo.modulos.length);
   await guardar({ modulos: { perfiles: { oculto: false } } });
+});
+
+test('Colores de la escuela: la dirección los cambia (por ejemplo, desde el logo)', async () => {
+  const antes = await ok('/api/instancia/edicion', 'direccion');
+  const paleta = { acento: '#0B6E4F', primario: '#a7f3d0', secundario: '#fde68a', terciario: '#f59e0b', fondo: '#07130e', superficie: '#10241b' };
+  const revision = await ok('/api/instancia/edicion/revisar', 'direccion', 'POST', { tema: paleta });
+  assert.ok(revision.cambios.some((c) => c.icono === 'palette' && c.texto === 'Nuevos colores de la escuela'));
+
+  const r = await guardar({ tema: paleta });
+  assert.equal(r.edicion.tema.acento, '#0b6e4f', 'se guarda en minúsculas');
+  assert.equal(r.edicion.tema.fondo, '#07130e');
+  assert.equal(r.edicion.tema.radio, antes.tema.radio, 'la redondez sigue siendo la del Maestro');
+  assert.equal(r.edicion.tema.movimiento, antes.tema.movimiento);
+  // Todos los de la escuela reciben la paleta nueva.
+  assert.equal((await ok('/api/instancia', 'estudiante')).tema.acento, '#0b6e4f');
+  const detalle = await ok('/api/maestro/instancias/1', 'maestro');
+  assert.equal(detalle.genoma.tema.superficie, '#10241b');
+
+  // Un fondo claro o un color mal escrito no se guardan, y se dice por qué.
+  const { version } = await ok('/api/instancia/edicion', 'direccion');
+  const claro = await request('/api/instancia/edicion', 'direccion', 'PUT', { version, tema: { fondo: '#f5f5f5' } });
+  assert.equal(claro.status, 400);
+  assert.match(claro.data.error, /oscuro/);
+  const mal = await request('/api/instancia/edicion', 'direccion', 'PUT', { version, tema: { acento: 'rojo' } });
+  assert.equal(mal.status, 400);
+  assert.match(mal.data.error, /no es válido/);
+  assert.equal((await ok('/api/instancia/edicion', 'direccion')).tema.acento, '#0b6e4f');
+
+  // Vuelve a la paleta de antes para no afectar las otras pruebas.
+  const deVuelta = Object.fromEntries(['acento', 'primario', 'secundario', 'terciario', 'fondo', 'superficie'].map((k) => [k, antes.tema[k]]));
+  assert.deepEqual((await guardar({ tema: deVuelta })).edicion.tema, antes.tema);
 });
 
 test('Revisar antes de guardar: lista de cambios y advertencias', async () => {

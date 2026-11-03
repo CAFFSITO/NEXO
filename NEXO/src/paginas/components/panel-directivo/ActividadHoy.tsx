@@ -7,7 +7,7 @@ export interface ItemActividad {
   titulo: string;
   detalle: string;
   tiempo: string;
-  color: string; // clase de fondo Tailwind del nodo, ej: "bg-fuchsia-600"
+  color: string; // clase de fondo Tailwind del nodo, ej: "bg-acento"
 }
 
 interface ActividadHoyProps {
@@ -16,12 +16,12 @@ interface ActividadHoyProps {
 
 export default function ActividadHoy({ items }: ActividadHoyProps) {
   return (
-    <div className="bg-lienzo rounded-[20px] p-6 border border-white/5 shadow-lg">
+    <div className="bg-lienzo rounded-xl p-6 border border-white/5 shadow-lg">
       <h3 className="font-headline font-bold text-xl mb-6 flex items-center">
-        <span className="material-symbols-outlined mr-3 text-fuchsia-500">history</span>
+        <span className="material-symbols-outlined mr-3 text-primary">history</span>
         Actividad de hoy
       </h3>
-      <div className="space-y-6 relative before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-fuchsia-900/30">
+      <div className="space-y-6 relative before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-linea">
         {items.map((item) => (
           <div key={item.id} className="relative pl-8 group">
             <div className={`absolute left-0 top-1 w-6 h-6 rounded-full border-4 border-lienzo z-10 ${item.color}`} />
