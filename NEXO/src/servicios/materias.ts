@@ -118,3 +118,17 @@ export function materiasSinProfesores(materias: Materia[], consulta: string): Ma
   return materias.filter((m) => !m.profesores.some((p) => p.activo)
     && palabras.every((p) => `${normalizar(m.nombre)} ${normalizar(m.area ?? "")}`.includes(p)));
 }
+
+// ── Abrir Materias ya filtrada ──────────────────────────
+// Desde otra pantalla (por ejemplo, el perfil de un profesor en Perfiles) se
+// puede pedir que Materias se abra con la búsqueda ya escrita.
+let busquedaPedida = "";
+export function pedirBusquedaMaterias(texto: string): void { busquedaPedida = texto; }
+export function leerBusquedaPedida(): string { return busquedaPedida; }
+export function olvidarBusquedaPedida(): void { busquedaPedida = ""; }
+
+/** Los años en que ya existe una materia con ese nombre (sin contar `sinContar`). */
+export function aniosOcupados(materias: Materia[], nombre: string, sinContar?: string): Set<number | null> {
+  const buscado = nombre.replace(/\s+/g, " ").trim().toLocaleLowerCase("es");
+  return new Set(materias.filter((m) => m.id !== sinContar && m.nombre.toLocaleLowerCase("es") === buscado).map((m) => m.anio));
+}

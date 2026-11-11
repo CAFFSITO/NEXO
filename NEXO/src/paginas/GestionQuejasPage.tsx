@@ -113,9 +113,6 @@ export default function GestionQuejasPage() {
               <h2 className="text-3xl font-extrabold font-headline text-white tracking-tight">
                 Quejas estudiantiles
               </h2>
-              <p className="text-slate-400 mt-1">
-                Retroalimentación anónima de la comunidad estudiantil.
-              </p>
             </div>
             <div className="flex items-center gap-3">
               <label

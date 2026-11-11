@@ -21,8 +21,10 @@
 import { useState } from "react";
 import VinculosFamilia from "./VinculosFamilia";
 import { META_ROL, ROLES, type Perfil, type PerfilEditable, type Rol } from "./tipos";
-import { usePerfilesEscuela } from "../../../servicios/instancia";
+import { moduloDePagina, useInstancia, usePerfilesEscuela } from "../../../servicios/instancia";
 import { useOpcionesAlta, type Asignacion, type OpcionesAlta } from "../../../servicios/perfiles";
+import { pedirBusquedaMaterias } from "../../../servicios/materias";
+import { useNavegacion } from "../../../navegacion";
 import { agruparCursos } from "../../../servicios/gestionAcademica";
 import Selector from "../shared/Selector";
 
@@ -95,6 +97,7 @@ export default function ModalPerfil({
   const meta = META_ROL[datos.rol];
   const esEdicion = perfilEnEdicion !== null;
   const llevaCursos = !esEdicion && ROLES_CON_CURSOS.includes(datos.rol);
+  const conSusMaterias = perfilEnEdicion?.rol === "profesor" && datos.rol === "profesor" && Array.isArray(perfilEnEdicion.materias);
 
   const actualizar = <K extends keyof PerfilEditable>(campo: K, valor: PerfilEditable[K]) => {
     setDatos((prev) => ({ ...prev, [campo]: valor }));
@@ -325,7 +328,10 @@ export default function ModalPerfil({
           />
         )}
 
-        {(datos.rol === "familia" || (esEdicion && ROLES_CON_CURSOS.includes(datos.rol))) && (
+        {/* Profesor (edición): sus materias y en qué cursos las da */}
+        {conSusMaterias && <MateriasQueDa perfil={perfilEnEdicion} />}
+
+        {(datos.rol === "familia" || (esEdicion && ROLES_CON_CURSOS.includes(datos.rol) && !conSusMaterias)) && (
           <p className="text-[11px] text-on-surface-variant/60 -mt-2 mb-4">
             {datos.rol === "familia"
               ? "Guardá el perfil para vincular sus estudiantes a cargo."
@@ -492,6 +498,52 @@ function SeccionCursos({
         {TITULO_CURSOS[rol]} <span className="normal-case tracking-normal text-on-surface-variant/60">(opcional)</span>
       </span>
       {contenido}
+    </div>
+  );
+}
+
+/**
+ * Al editar un profesor: las materias que da y en qué cursos. Se eligen en
+ * Materias (y el curso de cada una, en Cursos); acá se ven de un vistazo.
+ */
+function MateriasQueDa({ perfil }: { perfil: Perfil }) {
+  const { instancia } = useInstancia();
+  const { navegar } = useNavegacion();
+  // Solo se ofrece ir a Materias si esa pantalla está prendida en la escuela.
+  const conMaterias = moduloDePagina(instancia, "materias-institucion") !== null;
+  const materias = perfil.materias ?? [];
+  const irAMaterias = () => {
+    // Con materias, Materias se abre ya filtrada por su nombre.
+    pedirBusquedaMaterias(materias.length ? perfil.nombre : "");
+    navegar("/admin/materias");
+  };
+  return (
+    <div className="mb-4 flex flex-col gap-2">
+      <span className="text-xs text-on-surface-variant uppercase tracking-wider">
+        Materias que da{materias.length > 0 && ` · ${materias.length}`}
+      </span>
+      {materias.length === 0 ? (
+        <p className="rounded-lg bg-surface-container px-3 py-2.5 text-sm text-on-surface-variant">Todavía no tiene materias.</p>
+      ) : (
+        <ul className="flex max-h-56 flex-col gap-1.5 overflow-y-auto">
+          {materias.map((m) => (
+            <li key={m.id} className="rounded-lg bg-surface-container px-3 py-2">
+              <span className="block text-sm font-semibold text-white">{m.nombre}</span>
+              <span className="block text-xs text-on-surface-variant">
+                {m.cursos.length ? `En ${m.cursos.join(", ")}` : "Todavía en ningún curso"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-[11px] text-on-surface-variant/60">
+        Las materias de cada profesor se eligen en Materias; en qué curso da cada una, en Cursos.
+      </p>
+      {conMaterias && (
+        <button type="button" onClick={irAMaterias} className="self-start text-sm font-semibold text-primary hover:underline">
+          {materias.length ? "Ver sus materias en Materias" : "Ir a Materias para darle una"}
+        </button>
+      )}
     </div>
   );
 }

@@ -1,25 +1,29 @@
 // Las materias de la escuela en tarjetas: nombre, año, profesores que la dan,
 // cursos donde ya se dicta y si tiene temario. Tocar una la abre para editarla;
-// "Nueva materia" abre el mismo editor vacío.
+// "Nueva materia" abre el mismo editor vacío, y "Duplicar" lo abre con una copia
+// de la materia para otro año (Matemática de 1° → Matemática de 2°).
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavegacion } from "../../../navegacion";
 import { useFuncion } from "../../../servicios/instancia";
-import { nombreMateria, normalizar, useCatalogoMaterias, type Materia } from "../../../servicios/materias";
+import { leerBusquedaPedida, nombreMateria, normalizar, olvidarBusquedaPedida, useCatalogoMaterias, type Materia } from "../../../servicios/materias";
 import { Cargando, Fallo } from "../shared/EstadoCarga";
 import EditorMateria from "./EditorMateria";
 
 type Filtro = "todas" | "sin-profesores" | "sin-cursos";
+/** Qué está abierto en el editor: una materia nueva, una para editar o la copia de otra. */
+type Abierta = { modo: "nueva" } | { modo: "editar" | "copiar"; id: string };
 
 export default function PanelMaterias() {
   const { datos, cargando, error, recargar } = useCatalogoMaterias();
   const { navegar } = useNavegacion();
   const puedeEditar = useFuncion("cursos.materias");
-  const [busqueda, setBusqueda] = useState("");
+  // Si se llegó desde otra pantalla (el perfil de un profesor), la búsqueda ya viene escrita.
+  const [busqueda, setBusqueda] = useState(leerBusquedaPedida);
+  useEffect(() => olvidarBusquedaPedida(), []);
   const [anio, setAnio] = useState<number | "todos" | "sin-anio">("todos");
   const [filtro, setFiltro] = useState<Filtro>("todas");
-  // null = cerrado; "nueva" = crear; si no, el id de la materia que se edita.
-  const [abierta, setAbierta] = useState<string | null>(null);
+  const [abierta, setAbierta] = useState<Abierta | null>(null);
   const [exito, setExito] = useState("");
 
   const materias = useMemo(() => datos?.materias ?? [], [datos]);
@@ -49,7 +53,8 @@ export default function PanelMaterias() {
   // La pantalla nueva con el servidor de antes: se avisa en vez de romperse.
   if (!Array.isArray(datos.profesores)) return <p role="alert" className="rounded-xl bg-amber-500/10 p-5 text-amber-200">Falta reiniciar el servidor de NEXO para usar Materias. Quien administra NEXO tiene que reiniciarlo.</p>;
 
-  const materiaAbierta = abierta && abierta !== "nueva" ? materias.find((m) => m.id === abierta) ?? null : null;
+  const elegida = abierta && abierta.modo !== "nueva" ? materias.find((m) => m.id === abierta.id) ?? null : null;
+  const abrir = (cual: Abierta) => { setExito(""); setAbierta(cual); };
   const alGuardar = (mensaje: string) => { setAbierta(null); setExito(mensaje); recargar(); };
   const alternar = (f: Filtro) => setFiltro((actual) => (actual === f ? "todas" : f));
 
@@ -69,7 +74,7 @@ export default function PanelMaterias() {
             Creá cada materia con sus detalles y elegí qué profesores la dan. Después, en <button type="button" className="font-semibold text-primary hover:underline" onClick={() => navegar("/admin/cursos")}>Cursos</button>, buscás la materia o el profesor y la sumás a cada curso.
           </p>
         </div>
-        {puedeEditar && <button type="button" onClick={() => { setExito(""); setAbierta("nueva"); }} className="nx-btn nx-btn-primario">
+        {puedeEditar && <button type="button" onClick={() => abrir({ modo: "nueva" })} className="nx-btn nx-btn-primario">
           <span className="material-symbols-outlined" aria-hidden="true">add</span>Nueva materia
         </button>}
       </div>
@@ -102,7 +107,7 @@ export default function PanelMaterias() {
           <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 40 }} aria-hidden="true">menu_book</span>
           <p className="text-lg font-medium text-on-surface">Todavía no hay materias</p>
           <p className="max-w-md text-sm text-on-surface-variant">Empezá por crear las materias de la escuela y elegir qué profesores dan cada una.</p>
-          {puedeEditar && <button type="button" className="nx-btn nx-btn-primario mt-3" onClick={() => setAbierta("nueva")}><span className="material-symbols-outlined" aria-hidden="true">add</span>Crear la primera materia</button>}
+          {puedeEditar && <button type="button" className="nx-btn nx-btn-primario mt-3" onClick={() => abrir({ modo: "nueva" })}><span className="material-symbols-outlined" aria-hidden="true">add</span>Crear la primera materia</button>}
         </div>
       ) : visibles.length === 0 ? (
         <div className="nx-tarjeta flex flex-col items-center gap-2 px-6 py-12 text-center">
@@ -112,13 +117,15 @@ export default function PanelMaterias() {
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {visibles.map((m) => <li key={m.id}><TarjetaMateria materia={m} onAbrir={() => { setExito(""); setAbierta(m.id); }} /></li>)}
+          {visibles.map((m) => <li key={m.id}><TarjetaMateria materia={m} onAbrir={() => abrir({ modo: "editar", id: m.id })}
+            onDuplicar={puedeEditar ? () => abrir({ modo: "copiar", id: m.id }) : undefined} /></li>)}
         </ul>
       )}
 
-      {abierta && (abierta === "nueva" || materiaAbierta) && <EditorMateria
-        key={abierta}
-        materia={materiaAbierta}
+      {abierta && (abierta.modo === "nueva" || elegida) && <EditorMateria
+        key={abierta.modo === "nueva" ? "nueva" : `${abierta.modo}-${abierta.id}`}
+        materia={abierta.modo === "editar" ? elegida : null}
+        copiaDe={abierta.modo === "copiar" ? elegida : null}
         catalogo={datos}
         soloLectura={!puedeEditar}
         onCerrar={() => setAbierta(null)}
@@ -141,11 +148,12 @@ function Indicador({ etiqueta, valor, icono, tono, activo, onClick }: { etiqueta
   );
 }
 
-function TarjetaMateria({ materia: m, onAbrir }: { materia: Materia; onAbrir: () => void }) {
+function TarjetaMateria({ materia: m, onAbrir, onDuplicar }: { materia: Materia; onAbrir: () => void; onDuplicar?: () => void }) {
   const activos = m.profesores.filter((p) => p.activo);
   const visibles = activos.slice(0, 4);
   return (
-    <button type="button" onClick={onAbrir} className="nx-tarjeta flex h-full w-full flex-col gap-3 p-4 text-left transition-colors hover:bg-surface-container-high" aria-label={`Abrir ${nombreMateria(m)}`}>
+    <div className="nx-tarjeta relative h-full transition-colors hover:bg-surface-container-high">
+    <button type="button" onClick={onAbrir} className="flex h-full w-full flex-col gap-3 rounded-[inherit] p-4 text-left" aria-label={`Abrir ${nombreMateria(m)}`}>
       <span className="flex items-start justify-between gap-3">
         <span className="min-w-0">
           <span className="block text-base font-semibold text-on-surface">{m.nombre}</span>
@@ -162,10 +170,17 @@ function TarjetaMateria({ materia: m, onAbrir }: { materia: Materia; onAbrir: ()
         {activos.length === 0 && <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-300"><span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden="true">person_off</span>Sin profesores</span>}
       </span>
 
-      <span className="mt-auto flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-on-surface-variant">
+      <span className={`mt-auto flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-on-surface-variant ${onDuplicar ? "pr-28" : ""}`}>
         <span className="inline-flex items-center gap-1"><span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden="true">school</span>{m.cursos.length === 0 ? "En ningún curso" : m.cursos.length === 1 ? `En ${m.cursos[0].curso}` : `En ${m.cursos.length} cursos`}</span>
         <span className="inline-flex items-center gap-1"><span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden="true">format_list_numbered</span>{m.temario.length === 0 ? "Sin temario" : m.temario.length === 1 ? "1 unidad" : `${m.temario.length} unidades`}</span>
       </span>
     </button>
+    {/* Fuera del botón de la tarjeta (un botón no puede ir dentro de otro). */}
+    {onDuplicar && <button type="button" onClick={onDuplicar} title="Crear la misma materia para otro año, con sus profesores, programa y temario"
+      aria-label={`Duplicar ${nombreMateria(m)} para otro año`}
+      className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold text-primary hover:bg-primary/10">
+      <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden="true">content_copy</span>Duplicar
+    </button>}
+    </div>
   );
 }

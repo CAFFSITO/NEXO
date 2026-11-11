@@ -243,13 +243,32 @@ export function registrarPerfiles(app, db) {
       ORDER BY c.anio, c.division`
   );
 
-  const catedrasDe = db.prepare(
-    `SELECT DISTINCT m.nombre
-       FROM catedras ca
-       JOIN materias m ON m.id = ca.materia_id
-      WHERE ca.profesor_id = ?
-      ORDER BY m.nombre`
+  // Las materias de un profesor: las que tiene elegidas en Materias y, por las
+  // dudas, las que da en algún curso aunque no figure ahí.
+  const materiasDeProfesor = db.prepare(
+    `SELECT m.id, m.nombre, m.anio
+       FROM materias m
+      WHERE m.id IN (SELECT materia_id FROM materia_profesores WHERE profesor_id = ?
+                     UNION SELECT materia_id FROM catedras WHERE profesor_id = ?)
+      ORDER BY m.nombre COLLATE NOCASE, COALESCE(m.anio, 0)`
   );
+  const cursosDeProfesor = db.prepare(
+    `SELECT ca.materia_id, c.anio, c.division
+       FROM catedras ca
+       JOIN cursos c ON c.id = ca.curso_id
+      WHERE ca.profesor_id = ?
+      ORDER BY c.anio, c.division`
+  );
+
+  /** Cada materia del profesor con los cursos donde la da (vacío = en ninguno todavía). */
+  function materiasDe(profesorId) {
+    const cursos = cursosDeProfesor.all(profesorId);
+    return materiasDeProfesor.all(profesorId, profesorId).map((m) => ({
+      id: String(m.id),
+      nombre: nombreDeMateria(m),
+      cursos: cursos.filter((c) => c.materia_id === m.id).map((c) => `${c.anio}° ${c.division}`),
+    }));
+  }
 
   const cursosACargoDe = db.prepare(
     `SELECT anio, division FROM cursos
@@ -278,9 +297,9 @@ export function registrarPerfiles(app, db) {
     }
 
     if (fila.rol === "profesor") {
-      const materias = catedrasDe.all(fila.id);
-      if (materias.length === 0) return "Sin cátedra asignada";
-      return materias.map((m) => `Cátedra de ${m.nombre}`).join(", ");
+      const materias = fila.materias ?? materiasDe(fila.id);
+      if (materias.length === 0) return "Sin materias asignadas";
+      return materias.map((m) => m.nombre).join(", ");
     }
 
     if (fila.rol === "preceptor") {
@@ -310,24 +329,32 @@ export function registrarPerfiles(app, db) {
       // se vea al día en el momento en que la dirección la abre.
       purgarPapeleraVencida(db, usuario.institucionId);
 
-      const perfiles = listarPersonas.all(usuario.institucionId).map((fila) => ({
-        id: String(fila.id),
-        nombre: fila.nombre,
-        // El "ID: #48291" y la "Matrícula: DOC-331" que mostraba la tabla no
-        // existen: los sorteaba `Math.random()` al crear cada perfil. La base
-        // no guarda matrículas. Lo que sí identifica a una persona de forma
-        // única y real es su correo, que además es con lo que entra.
-        identificador: fila.email,
-        email: fila.email,
-        rol: fila.rol,
-        asignacion: asignacionDe(fila),
-        estado: fila.estado,
-        avatarUrl: fila.avatar_url ?? undefined,
-        eliminadoEn: fila.eliminado_en,
-        // El perfil que el Maestro diseñó y la dirección le asignó (null = el
-        // predeterminado de su rol).
-        perfilClave: fila.perfil_clave ?? null,
-      }));
+      const perfiles = listarPersonas.all(usuario.institucionId).map((original) => {
+        // Las materias del profesor se leen una sola vez: sirven para el texto
+        // de la asignación y para la lista que muestra la tabla.
+        const materias = original.rol === "profesor" ? materiasDe(original.id) : undefined;
+        const fila = { ...original, materias };
+        return {
+          id: String(fila.id),
+          nombre: fila.nombre,
+          // El "ID: #48291" y la "Matrícula: DOC-331" que mostraba la tabla no
+          // existen: los sorteaba `Math.random()` al crear cada perfil. La base
+          // no guarda matrículas. Lo que sí identifica a una persona de forma
+          // única y real es su correo, que además es con lo que entra.
+          identificador: fila.email,
+          email: fila.email,
+          rol: fila.rol,
+          asignacion: asignacionDe(fila),
+          estado: fila.estado,
+          avatarUrl: fila.avatar_url ?? undefined,
+          eliminadoEn: fila.eliminado_en,
+          // El perfil que el Maestro diseñó y la dirección le asignó (null = el
+          // predeterminado de su rol).
+          perfilClave: fila.perfil_clave ?? null,
+          // Solo para profesores: qué materias da y en qué cursos.
+          ...(materias ? { materias } : {}),
+        };
+      });
 
       // Cuántos días dura la papelera en ESTA escuela (null = no se purga sola).
       res.json({ perfiles, diasPapelera: plazoPapelera(db, usuario.institucionId) });

@@ -115,7 +115,7 @@ export default function SelectorAudiencia({ destinos, valor, onCambiar }: Props)
       {/* Cursos */}
       {destinos.cursos.length > 0 && destinos.cursos[0].roles.length > 0 && (
         <div>
-          <p className="a-subtitulo mb-2">Por curso</p>
+          <p className="a-subtitulo mb-2">Cursos</p>
           <div className="grid gap-1.5 sm:grid-cols-2">
             {destinos.cursos.map((c) => (
               <div key={c.id} className="flex flex-wrap items-center gap-1.5 rounded-xl bg-white/[0.03] px-3 py-2">

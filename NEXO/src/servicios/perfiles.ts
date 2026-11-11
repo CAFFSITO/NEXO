@@ -145,6 +145,15 @@ export interface Perfil {
   eliminadoEn?: string | null;
   /** El perfil que el Maestro diseñó y la dirección le asignó (null = el de su rol). */
   perfilClave?: string | null;
+  /** Solo profesores: las materias que da ("Matemática · 1° año") y en qué cursos. */
+  materias?: MateriaDelProfesor[];
+}
+
+export interface MateriaDelProfesor {
+  id: string;
+  nombre: string;
+  /** Vacío = la tiene elegida en Materias pero todavía no la da en ningún curso. */
+  cursos: string[];
 }
 
 export function usePerfiles() {

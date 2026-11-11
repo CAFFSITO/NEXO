@@ -5,6 +5,7 @@
 import BadgePerfilRol from "./BadgePerfilRol";
 import type { EstadoPerfil, Perfil } from "./tipos";
 import type { PerfilDeLaEscuela } from "../../../servicios/instancia";
+import type { MateriaDelProfesor } from "../../../servicios/perfiles";
 
 interface TablaPerfilesProps {
   perfiles: Perfil[]; // slice de la página actual
@@ -121,7 +122,11 @@ export default function TablaPerfiles({
                       <PerfilDisenado clave={perfil.perfilClave} perfiles={perfilesEscuela} />
                     </td>
                     <td className="px-6 py-4 text-slate-300 text-sm font-medium">
-                      {perfil.asignacion}
+                      {perfil.rol === "profesor" && perfil.materias ? (
+                        <MateriasDelProfesor materias={perfil.materias} />
+                      ) : (
+                        perfil.asignacion
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -226,6 +231,29 @@ export default function TablaPerfiles({
         </div>
       </div>
     </div>
+  );
+}
+
+/** Las materias que da un profesor y en qué cursos (las primeras; el resto, contado). */
+function MateriasDelProfesor({ materias }: { materias: MateriaDelProfesor[] }) {
+  if (materias.length === 0) return <span className="text-on-surface-variant">Sin materias asignadas</span>;
+  const visibles = materias.slice(0, 3);
+  return (
+    <ul className="flex max-w-xs flex-col gap-1.5">
+      {visibles.map((m) => (
+        <li key={m.id} className="leading-snug">
+          <span className="font-semibold text-on-surface">{m.nombre}</span>
+          <span className="block text-xs font-normal text-on-surface-variant">
+            {m.cursos.length ? m.cursos.join(", ") : "Todavía en ningún curso"}
+          </span>
+        </li>
+      ))}
+      {materias.length > visibles.length && (
+        <li className="text-xs text-on-surface-variant">
+          y {materias.length - visibles.length} {materias.length - visibles.length === 1 ? "materia más" : "materias más"} (tocá Editar para verlas)
+        </li>
+      )}
+    </ul>
   );
 }
 

@@ -257,7 +257,7 @@ export default function EditorEvento({ pedido, categorias, onCerrar, onGuardado 
           <div className="flex flex-col gap-5">
             <section aria-label="Quién lo ve">
               <div className="mb-3 flex items-center justify-between gap-2">
-                <p className="a-subtitulo">¿Quién lo ve?</p>
+                <p className="a-subtitulo">Alcance</p>
                 {comparte && (
                   <div className="a-segmentos" role="radiogroup" aria-label="Personal o compartido">
                     <button type="button" role="radio" aria-checked={!compartir} className="a-segmento" onClick={() => setCompartir(false)}>Solo yo</button>
@@ -270,7 +270,7 @@ export default function EditorEvento({ pedido, categorias, onCerrar, onGuardado 
               {destinos && (!comparte || !compartir) && (
                 <div className="flex items-start gap-3 rounded-2xl bg-white/5 p-4 text-sm text-on-surface-variant">
                   <span className="material-symbols-outlined text-primary" aria-hidden="true">lock</span>
-                  <p><b className="text-white">Solo lo ves vos.</b> {destinos.comparte ? "Es un evento personal: nadie más lo ve, ni siquiera la dirección." : `En tu nivel («${destinos.nivel.nombre}») los eventos son personales.`}</p>
+                  <p><b className="text-white">Privado</b> </p>
                 </div>
               )}
               {destinos && comparte && compartir && <SelectorAudiencia destinos={destinos} valor={f.audiencia} onCambiar={(l) => set("audiencia", l)} />}

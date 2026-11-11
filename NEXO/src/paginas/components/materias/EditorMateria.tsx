@@ -7,7 +7,7 @@
 //      profesores (lo ven al entrar a su materia).
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { borrarMateria, crearMateria, editarMateria, nombreMateria, type CatalogoMaterias, type DatosMateria, type Materia } from "../../../servicios/materias";
+import { aniosOcupados, borrarMateria, crearMateria, editarMateria, nombreMateria, type CatalogoMaterias, type DatosMateria, type Materia } from "../../../servicios/materias";
 import DialogoConfirmar from "../shared/DialogoConfirmar";
 import ElegirProfesores from "./ElegirProfesores";
 import EditorTemario from "./EditorTemario";
@@ -16,6 +16,8 @@ import { nuevaClave, type UnidadEditable } from "./temario";
 interface Props {
   /** null = materia nueva. */
   materia: Materia | null;
+  /** Materia nueva copiada de otra (para otro año): viene con sus datos ya cargados. */
+  copiaDe?: Materia | null;
   catalogo: CatalogoMaterias;
   soloLectura: boolean;
   onCerrar: () => void;
@@ -49,6 +51,32 @@ function formularioDe(m: Materia | null): Formulario {
     temario: (m?.temario ?? []).map((u) => ({ clave: nuevaClave(), id: u.id, titulo: u.titulo, contenidos: u.contenidos })),
   };
 }
+/**
+ * La copia de una materia para otro año: mismo nombre, área, horas, programa,
+ * profesores (los activos) y temario (como unidades nuevas). El año es el
+ * siguiente que todavía no tiene esa materia.
+ */
+function formularioCopia(m: Materia, catalogo: CatalogoMaterias): Formulario {
+  const base = formularioDe(m);
+  const activos = new Set(catalogo.profesores.map((p) => p.id));
+  const ocupados = aniosOcupados(catalogo.materias, m.nombre);
+  const todos = Array.from({ length: Math.max(0, catalogo.anios.max - catalogo.anios.min + 1) }, (_, i) => catalogo.anios.min + i);
+  const libres = todos.filter((a) => !ocupados.has(a));
+  const desde = m.anio ?? catalogo.anios.min - 1;
+  const anio = libres.find((a) => a > desde) ?? libres[0] ?? (ocupados.has(null) ? m.anio : null);
+  return {
+    ...base,
+    anio,
+    profesorIds: base.profesorIds.filter((id) => activos.has(id)),
+    temario: base.temario.map((u) => ({ clave: u.clave, titulo: u.titulo, contenidos: u.contenidos })),
+  };
+}
+
+/** "a, b y c" */
+const listaDeTextos = (textos: string[]) => (textos.length <= 1 ? textos.join("") : `${textos.slice(0, -1).join(", ")} y ${textos[textos.length - 1]}`);
+/** "1°, 2° y todos los años" */
+const listaDeAnios = (anios: (number | null)[]) => listaDeTextos([...anios].sort((a, b) => (a ?? 99) - (b ?? 99)).map((a) => (a === null ? "todos los años" : `${a}°`)));
+
 /** Para saber si hay cambios sin guardar (sin contar las claves internas del temario). */
 const huella = (f: Formulario) => JSON.stringify({ ...f, temario: f.temario.map(({ id, titulo, contenidos }) => [id ?? "", titulo, contenidos]) });
 
@@ -59,8 +87,8 @@ const PROGRAMA = [
   { clave: "bibliografia", titulo: "Bibliografía y materiales", ayuda: "Libros, apuntes o recursos de referencia.", filas: 3 },
 ] as const;
 
-export default function EditorMateria({ materia, catalogo, soloLectura, onCerrar, onGuardado }: Props) {
-  const inicial = useMemo(() => formularioDe(materia), [materia]);
+export default function EditorMateria({ materia, copiaDe = null, catalogo, soloLectura, onCerrar, onGuardado }: Props) {
+  const inicial = useMemo(() => (copiaDe && !materia ? formularioCopia(copiaDe, catalogo) : formularioDe(materia)), [materia, copiaDe, catalogo]);
   const [f, setF] = useState<Formulario>(inicial);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
@@ -75,6 +103,9 @@ export default function EditorMateria({ materia, catalogo, soloLectura, onCerrar
     if (materia?.anio != null && !lista.includes(materia.anio)) lista.push(materia.anio);
     return lista.sort((a, b) => a - b);
   }, [catalogo.anios, materia]);
+  // Los años en que ya hay una materia con este nombre: no se puede repetir.
+  const ocupados = useMemo(() => aniosOcupados(catalogo.materias, f.nombre, materia?.id), [catalogo.materias, f.nombre, materia]);
+  const anioRepetido = f.nombre.trim() !== "" && ocupados.has(f.anio);
   const sugerenciasArea = useMemo(() => {
     const escrito = f.area.trim().toLocaleLowerCase("es");
     return catalogo.areas.filter((a) => a.toLocaleLowerCase("es") !== escrito && (!escrito || a.toLocaleLowerCase("es").includes(escrito))).slice(0, 6);
@@ -104,6 +135,7 @@ export default function EditorMateria({ materia, catalogo, soloLectura, onCerrar
     if (guardando || soloLectura) return;
     const nombre = f.nombre.replace(/\s+/g, " ").trim();
     if (!nombre) { setError("Escribí el nombre de la materia."); nombreRef.current?.focus(); return; }
+    if (anioRepetido) { setError(f.anio ? `Ya existe ${nombre} de ${f.anio}° año. Elegí otro año.` : `Ya existe ${nombre} para todos los años. Elegí un año.`); return; }
     const sinTitulo = f.temario.findIndex((u) => !u.titulo.trim());
     if (sinTitulo >= 0) { setError(`Ponele un título a la unidad ${sinTitulo + 1} del temario (o quitala).`); return; }
     const horas = f.horas.trim() === "" ? null : Number(f.horas);
@@ -144,12 +176,18 @@ export default function EditorMateria({ materia, catalogo, soloLectura, onCerrar
 
   const etiqueta = "block text-sm font-medium text-on-surface";
   const opcional = <span className="font-normal text-on-surface-variant">(opcional)</span>;
-  const titulo = materia ? nombreMateria(materia) : "Nueva materia";
+  const titulo = materia ? nombreMateria(materia) : copiaDe ? `Copia de ${nombreMateria(copiaDe)}` : "Nueva materia";
+  // Lo que trae la copia, para contarlo en el aviso de arriba.
+  const copiado = copiaDe ? [
+    inicial.profesorIds.length ? (inicial.profesorIds.length === 1 ? "su profesor" : `sus ${inicial.profesorIds.length} profesores`) : "",
+    PROGRAMA.some((p) => inicial[p.clave].trim() !== "") ? "su programa" : "",
+    inicial.temario.length ? "su temario" : "",
+  ].filter(Boolean) : [];
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-0 sm:p-4" onClick={intentarCerrar}>
+    <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/70 p-0 sm:p-4" onClick={intentarCerrar}>
       <form role="dialog" aria-modal="true" aria-labelledby="editor-materia-titulo" onSubmit={guardar} onClick={(e) => e.stopPropagation()}
-        className="flex h-[100dvh] w-full max-w-3xl flex-col overflow-hidden bg-surface-container-low shadow-xl sm:h-auto sm:max-h-[94dvh] sm:rounded-2xl">
+        className="flex h-dvh w-full max-w-3xl flex-col overflow-hidden bg-surface-container-low shadow-xl sm:h-auto sm:max-h-[94dvh] sm:rounded-2xl">
         <header className="flex items-start justify-between gap-4 px-5 pb-3 pt-5 sm:px-7">
           <div className="min-w-0">
             <h2 id="editor-materia-titulo" className="text-xl font-semibold text-on-surface">{titulo}</h2>
@@ -163,11 +201,25 @@ export default function EditorMateria({ materia, catalogo, soloLectura, onCerrar
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 sm:px-7">
         <fieldset disabled={soloLectura || guardando} className="m-0 min-w-0 border-0 p-0">
           <div className="flex flex-col gap-8">
+            {copiaDe && (
+              <div className="rounded-xl bg-primary/10 px-4 py-3 text-sm text-on-surface">
+                <p>
+                  <span className="font-semibold">Es una copia de {nombreMateria(copiaDe)}</span>
+                  {copiado.length ? `: trae ${listaDeTextos(copiado)}.` : "."} Elegí el año y cambiá lo que sea distinto.
+                </p>
+                {f.temario.length > 0 && (
+                  <button type="button" onClick={() => cambiar("temario", [])} className="mt-1.5 text-sm font-semibold text-primary hover:underline">
+                    Empezar con el temario vacío
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* ── 1. Datos ── */}
             <section aria-labelledby="materia-datos" className="flex flex-col gap-4">
               <h3 id="materia-datos" className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Datos de la materia</h3>
               <label className={etiqueta}>Nombre de la materia
-                <input ref={nombreRef} autoFocus={!materia} required maxLength={100} value={f.nombre} onChange={(e) => cambiar("nombre", e.target.value)} className="nx-campo mt-1.5 text-base" placeholder="Ej.: Matemática y Ciencias Políticas" />
+                <input ref={nombreRef} autoFocus={!materia && !copiaDe} required maxLength={100} value={f.nombre} onChange={(e) => cambiar("nombre", e.target.value)} className="nx-campo mt-1.5 text-base" placeholder="Ej.: Matemática y Ciencias Políticas" />
               </label>
               <div>
                 <p className={etiqueta}>¿Para qué año es?</p>
@@ -175,12 +227,20 @@ export default function EditorMateria({ materia, catalogo, soloLectura, onCerrar
                 <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Año de la materia">
                   {[null, ...anios].map((a) => {
                     const elegido = f.anio === a;
+                    const yaExiste = f.nombre.trim() !== "" && ocupados.has(a);
+                    const texto = a === null ? "Todos los años" : `${a}°`;
                     return <button key={a ?? "todos"} type="button" role="radio" aria-checked={elegido} onClick={() => cambiar("anio", a)}
-                      className={`h-10 rounded-lg px-4 text-sm font-semibold transition-colors ${elegido ? "bg-acento text-white" : "bg-surface-container text-on-surface hover:bg-surface-container-high"}`}>
-                      {a === null ? "Todos los años" : `${a}°`}
+                      disabled={yaExiste && !elegido} title={yaExiste ? "Ya existe para este año" : undefined} aria-label={yaExiste ? `${texto} (ya existe)` : undefined}
+                      className={`h-10 rounded-lg px-4 text-sm font-semibold transition-colors ${elegido ? (yaExiste ? "bg-amber-500/20 text-amber-200" : "bg-acento text-white") : yaExiste ? "bg-surface-container text-on-surface-variant/50 line-through" : "bg-surface-container text-on-surface hover:bg-surface-container-high"}`}>
+                      {texto}
                     </button>;
                   })}
                 </div>
+                {anioRepetido ? (
+                  <p role="alert" className="mt-2 text-[13px] font-medium text-amber-300">Ya existe {f.nombre.trim()} {f.anio === null ? "para todos los años" : `de ${f.anio}° año`}: elegí otro año.</p>
+                ) : f.nombre.trim() !== "" && ocupados.size > 0 && (
+                  <p className="mt-2 text-[13px] text-on-surface-variant">{f.nombre.trim()} ya existe para {listaDeAnios([...ocupados])}.</p>
+                )}
               </div>
               <div className="grid gap-4 sm:grid-cols-[1fr_200px]">
                 <div>

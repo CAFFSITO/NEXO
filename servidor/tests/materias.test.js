@@ -179,3 +179,29 @@ test('Al dar de alta un profesor con su materia, queda en la lista de esa materi
   // En la lista de materias del alta, la de un año dice cuál.
   assert.ok((await ok('/api/perfiles/opciones', 'direccion')).materias.some((x) => x.nombre === 'Matemática · 5° año'));
 });
+
+test('Duplicar una materia para otro año: la copia se crea; para el mismo año, no', async () => {
+  const base = { nombre: 'Historia', area: 'Sociales', profesorIds: [LOMBARDI], temario: [{ titulo: 'Revolución de Mayo' }] };
+  await ok('/api/materias', 'direccion', 'POST', { ...base, anio: 3 }, 201);
+  const copia = await ok('/api/materias', 'direccion', 'POST', { ...base, anio: 4 }, 201);
+  const m = (await listar()).materias.find((x) => x.id === copia.id);
+  assert.equal(m.anio, 4);
+  assert.deepEqual(m.profesores.map((p) => p.id), [LOMBARDI]);
+  assert.deepEqual(m.temario.map((u) => u.titulo), ['Revolución de Mayo']);
+  const repetida = await request('/api/materias', 'direccion', 'POST', { ...base, anio: 3 });
+  assert.equal(repetida.status, 409);
+  assert.match(repetida.data.error, /Historia de 3° año/);
+});
+
+test('En Perfiles, cada profesor muestra sus materias y en qué cursos las da', async () => {
+  const { perfiles } = await ok('/api/perfiles', 'direccion');
+  const garcia = perfiles.find((p) => p.id === GARCIA);
+  const matematica = garcia.materias.find((m) => m.nombre === 'Matemática');
+  assert.deepEqual(matematica.cursos, ['4° A', '4° B']);
+  const lombardi = perfiles.find((p) => p.id === LOMBARDI);
+  const historia = lombardi.materias.filter((m) => m.nombre.startsWith('Historia ·'));
+  assert.deepEqual(historia.map((m) => [m.nombre, m.cursos]), [['Historia · 3° año', []], ['Historia · 4° año', []]]);
+  assert.match(lombardi.asignacion, /Historia · 3° año/);
+  // Solo los profesores traen la lista.
+  assert.ok(perfiles.filter((p) => p.rol !== 'profesor').every((p) => p.materias === undefined));
+});
