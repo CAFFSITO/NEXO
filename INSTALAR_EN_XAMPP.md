@@ -251,11 +251,12 @@ Probá desde **otra** computadora o un celular: `https://nexo.miescuela.edu.ar`.
 
 La dirección entra con su correo y esa contraseña. La primera vez, NEXO le ofrece cambiarla. Después, en este orden:
 
-1. **Cursos y materias**: crear los cursos (año, división, turno, cupo mínimo y máximo) y las materias.
+1. **Cursos**: crear los cursos (año, división, turno, cupo mínimo y máximo).
 2. **Perfiles académicos → Nuevo perfil**: dar de alta docentes, preceptores, estudiantes (cada uno en su curso), familias, biblioteca y Centro de Estudiantes. Cada cuenta nueva recibe una contraseña inicial que se muestra en pantalla para entregarla. Cada persona la puede cambiar al entrar.
-3. En cada curso: asignar el **preceptor** y cada **materia con su docente**.
+3. **Materias**: crear cada materia (con su año, programa y temario si se quiere) y marcar qué profesores la dan.
+4. En **Cursos → Organizar curso**: asignar el **preceptor** y, con el buscador, cada **materia con su docente** (se escribe parte de la materia o del profesor y se toca la opción).
 
-> Estudiantes, docentes y preceptores **no pueden entrar hasta tener un curso asignado** (verán un mensaje que lo explica). Conviene entregar las contraseñas después del punto 3.
+> Estudiantes, docentes y preceptores **no pueden entrar hasta tener un curso asignado** (verán un mensaje que lo explica). Conviene entregar las contraseñas después del punto 4.
 
 4. **Modo edición** (opcional): colores, qué módulos se ven, el orden del menú.
 

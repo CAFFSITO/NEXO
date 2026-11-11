@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
 import { catalogoApps, instalacionesApps, instalarApp, cambiarInstanciaApp, type AppPublica, type InstanciaApp } from '../../../servicios/appsPublicas';
+import { enviar, useDatos } from '../../../servicios/api';
+import { capacidadesApp } from '../../../servicios/appsPublicas';
+import CapacidadApp from '../comunidad/CapacidadApp';
+import EvidenciaApp from '../comunidad/EvidenciaApp';
+import Selector from '../shared/Selector';
 
 export default function PanelAppsPublicas() {
   const [catalogo, setCatalogo] = useState<AppPublica[]>([]);
@@ -15,7 +20,7 @@ export default function PanelAppsPublicas() {
   };
   return <section className="space-y-6" aria-label="Apps públicas de la institución">
     <div className="e-panel p-5"><h2 className="text-xl font-semibold">Catálogo público y gratuito</h2><p className="mt-1 text-sm text-white/60">Instalá tantas copias como necesites. Cada una mantiene sus propios ajustes y avances.</p>
-      <div className="mt-4 grid gap-3 md:grid-cols-2">{catalogo.map(a => <article key={a.id} className="rounded-xl border border-white/15 p-4"><h3 className="font-semibold">{a.nombre} <span className="text-xs text-white/50">v{a.versionActual}</span></h3><p className="mt-1 text-sm text-white/65">{a.descripcion}</p><p className="mt-2 text-xs text-amber-200">Evidencia científica: sin evaluación registrada. Revisá su utilidad pedagógica antes de aplicarla.</p><button disabled={ocupado} type="button" className="e-boton mt-3" onClick={() => actuar(() => instalarApp(a.id), `${a.nombre} instalada.`)}>+ Instalar</button></article>)}</div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">{catalogo.map(a => <article key={a.id} className="rounded-xl border border-white/15 p-4"><h3 className="font-semibold">{a.nombre} <span className="text-xs text-white/50">v{a.versionActual}</span></h3><p className="mt-1 text-sm text-white/65">{a.descripcion}</p><details className="mt-2 text-sm"><summary>Bloques y evidencia declarada</summary>{a.definicion.bloques.map(b=><div key={b.id} className="mt-2"><strong>{b.titulo}</strong><EvidenciaApp bloque={b}/></div>)}</details><button disabled={ocupado} type="button" className="e-boton mt-3" onClick={() => actuar(() => instalarApp(a.id), `${a.nombre} instalada.`)}>+ Instalar</button></article>)}</div>
       {!catalogo.length && <p className="mt-3 text-sm text-white/60">Todavía no hay apps publicadas.</p>}
     </div>
     <div><h2 className="mb-3 text-xl font-semibold">Instaladas en esta institución</h2><div className="space-y-4">{instancias.map(i => {
@@ -24,9 +29,22 @@ export default function PanelAppsPublicas() {
         <div className="flex flex-wrap gap-2">{publicada && publicada.versionActual > i.version && <button disabled={ocupado} type="button" className="e-boton" onClick={() => actuar(() => cambiarInstanciaApp(i, 'version', { version: publicada.versionActual }), 'App actualizada; tus datos y ajustes permanecen.')}>Actualizar a v{publicada.versionActual}</button>}
           {i.version > 1 && <button disabled={ocupado} type="button" className="e-boton" onClick={() => actuar(() => cambiarInstanciaApp(i, 'version', { version: i.version - 1 }), 'Versión anterior restaurada; tus datos y ajustes permanecen.')}>Volver a v{i.version - 1}</button>}</div></div>
         <label className="mt-4 block max-w-sm text-sm">Nombre en esta institución<input className="mt-1 w-full rounded-lg border border-white/20 bg-white/10 p-2" value={i.nombre} onChange={e => setInstancias(actual => actual.map(x => x.id === i.id ? { ...x, nombre: e.target.value } : x))} onBlur={() => { if (i.nombre.trim()) actuar(() => cambiarInstanciaApp(i, 'configuracion', { configuracion: { nombre: i.nombre } }), 'Nombre guardado.'); }} /></label>
+        <ConfiguracionCursos instancia={i} ocupado={ocupado} actuar={actuar}/>
+        {i.definicion.bloques.some(b=>(capacidadesApp as readonly string[]).includes(b.tipo))&&<div className="mt-3 space-y-3"><button type="button" disabled={ocupado} className="e-boton" onClick={()=>void actuar(()=>enviar(`/api/apps-publicas/instancias/${i.id}/preparar`,'POST',{}),'Herramientas nativas preparadas; sus datos se conservaron.')}>Preparar herramientas nativas</button><HerramientasInstalacion instancia={i}/></div>}
         <div className="mt-4 space-y-3">{i.definicion.bloques.map(b => <div className="rounded-xl border border-white/10 p-3" key={b.id}>{b.tipo === 'accionable' ? <label className="flex items-start gap-3"><input type="checkbox" className="mt-1" checked={Boolean(i.datos[b.id])} onChange={e => actuar(() => cambiarInstanciaApp(i, 'datos', { datos: { ...i.datos, [b.id]: e.target.checked } }), 'Accionable guardado.')} /><span><strong>{b.titulo}</strong><span className="block text-sm text-white/65">{b.contenido}</span></span></label> : <><h4 className="font-medium">{b.titulo}</h4><p className="text-sm text-white/65">{b.contenido}</p>{b.tipo === 'enlace' && <a className="mt-2 inline-block text-violet-300 underline" href={b.ruta}>Abrir en NEXO</a>}</>}</div>)}</div>
       </article>;
     })}</div>{!instancias.length && <p className="text-sm text-white/60">Todavía no hay apps instaladas.</p>}</div>
     {error && <p role="alert" className="text-red-300">{error}</p>}{mensaje && <p role="status" className="text-emerald-300">{mensaje}</p>}
   </section>;
+}
+
+type Actuar=(fn:()=>Promise<unknown>,mensaje:string)=>Promise<void>;
+function ConfiguracionCursos({instancia:i,ocupado,actuar}:{instancia:InstanciaApp;ocupado:boolean;actuar:Actuar}){
+  const cursos=i.definicion.bloques.filter(b=>b.tipo==='curso');
+  const {datos,error}=useDatos<{catedras:{id:number;titulo:string}[]}>(cursos.length?`/api/apps-publicas/instancias/${i.id}/opciones`:null);
+  return <div className="space-y-2">{cursos.map(b=><label key={b.id} className="mt-3 block text-sm">Cátedra para {b.titulo}<Selector aria-label={`Cátedra de ${b.titulo}`} disabled={ocupado} value={String(i.configuracion.bloques?.[b.id]?.catedraId??'')} onChange={e=>void actuar(()=>cambiarInstanciaApp(i,'configuracion',{configuracion:{bloques:{[b.id]:{catedraId:e.target.value?Number(e.target.value):null}}}}),'Cátedra configurada para esta instalación.')}><option value="">Sin cátedra elegida</option>{datos?.catedras.map(c=><option key={c.id} value={c.id}>{c.titulo}</option>)}</Selector></label>)}{error&&<p role="alert">{error}</p>}</div>;
+}
+function HerramientasInstalacion({instancia}:{instancia:InstanciaApp}){
+  const [abierta,setAbierta]=useState(false);
+  return <div><button type="button" aria-expanded={abierta} className="text-primary underline" onClick={()=>setAbierta(v=>!v)}>Configurar y probar herramientas integradas</button>{abierta&&<div className="mt-3 space-y-3">{instancia.definicion.bloques.filter(b=>(capacidadesApp as readonly string[]).includes(b.tipo)).map(b=><section key={b.id} className="rounded-xl border border-white/15 p-3"><h4 className="font-semibold">{b.titulo}</h4><CapacidadApp instanciaId={instancia.id} bloque={b}/><EvidenciaApp bloque={b}/></section>)}</div>}</div>;
 }

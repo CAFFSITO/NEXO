@@ -21,7 +21,7 @@
 // botón no alcanza; la ventanilla vuelve a comprobar el rol y la institución.
 // ============================================================================
 
-import { exigirAcceso, ventanilla } from "./comun.js";
+import { exigirAcceso, nombreDeMateria, ventanilla } from "./comun.js";
 import { asegurarComunidadCurso } from "./chat.js";
 import { datoDeLista } from "./gestion-academica.js";
 import { generarContrasenaInicial, hashearContrasena, validarContrasena } from "./contrasenas.js";
@@ -164,7 +164,7 @@ export function borrarPerfilEnFirme(db, u, realizadoPorId) {
     db.prepare("UPDATE cursos SET preceptor_id = NULL WHERE preceptor_id = ?").run(u.id);
     // Sus cátedras sin nada colgando (ni tareas ni clases) se sueltan. Las que ya
     // tienen trabajo de los chicos las protege la base (nada referencia a una
-    // cátedra en cascada): se quedan, para reasignarlas en Cursos y materias.
+    // cátedra en cascada): se quedan, para reasignarlas en Cursos.
     for (const { id } of db.prepare("SELECT id FROM catedras WHERE profesor_id = ?").all(u.id)) {
       db.exec("SAVEPOINT soltar_catedra");
       try {
@@ -175,6 +175,11 @@ export function borrarPerfilEnFirme(db, u, realizadoPorId) {
         db.exec("RELEASE soltar_catedra");
       }
     }
+    // Sale de la lista de profesores de cada materia que ya no da en ningún curso.
+    db.prepare(
+      `DELETE FROM materia_profesores WHERE profesor_id = ?1
+         AND NOT EXISTS (SELECT 1 FROM catedras ca WHERE ca.profesor_id = ?1 AND ca.materia_id = materia_profesores.materia_id)`
+    ).run(u.id);
 
     let resultado = "borrado";
     db.exec("SAVEPOINT borrar_usuario");
@@ -468,12 +473,12 @@ export function registrarPerfiles(app, db) {
   );
 
   const catedrasDelCurso = db.prepare(
-    `SELECT ca.id, ca.materia_id, ca.profesor_id, m.nombre AS materia, pr.nombre AS profesor
+    `SELECT ca.id, ca.materia_id, ca.profesor_id, m.nombre AS materia, m.anio AS materia_anio, pr.nombre AS profesor
        FROM catedras ca
        JOIN materias m  ON m.id = ca.materia_id
        JOIN usuarios pr ON pr.id = ca.profesor_id
       WHERE ca.curso_id = ?
-      ORDER BY m.nombre`
+      ORDER BY m.nombre COLLATE NOCASE, ca.id`
   );
 
   const alumnosDelCurso = db.prepare(
@@ -531,6 +536,7 @@ export function registrarPerfiles(app, db) {
           materiaId: String(f.materia_id),
           profesorId: String(f.profesor_id),
           materia: f.materia,
+          materiaAnio: f.materia_anio ?? null,
           profesor: f.profesor,
         })),
         alumnos: alumnosDelCurso.all(id).map((f) => ({
@@ -623,7 +629,7 @@ export function registrarPerfiles(app, db) {
       ORDER BY c.anio, c.division`
   );
   const materiasDelColegio = db.prepare(
-    "SELECT id, nombre FROM materias WHERE institucion_id = ? ORDER BY nombre"
+    "SELECT id, nombre, anio FROM materias WHERE institucion_id = ? ORDER BY nombre, COALESCE(anio, 0)"
   );
   const catedrasDelColegio = db.prepare(
     `SELECT ca.curso_id, ca.materia_id, u.nombre AS profesor
@@ -652,7 +658,8 @@ export function registrarPerfiles(app, db) {
           especialidad: datoDeLista(c.especialidad_id, c.especialidad),
           preceptor: c.preceptor ?? null,
         })),
-        materias: materiasDelColegio.all(usuario.institucionId).map((m) => ({ id: String(m.id), nombre: m.nombre })),
+        // "Matemática · 1° año": la misma materia puede estar cargada para varios años.
+        materias: materiasDelColegio.all(usuario.institucionId).map((m) => ({ id: String(m.id), nombre: nombreDeMateria(m) })),
         catedras: catedrasDelColegio.all(usuario.institucionId).map((c) => ({
           cursoId: String(c.curso_id),
           materiaId: String(c.materia_id),
@@ -671,6 +678,8 @@ export function registrarPerfiles(app, db) {
     `INSERT INTO catedras (curso_id, materia_id, profesor_id) VALUES (?, ?, ?)
      ON CONFLICT(materia_id, curso_id) DO UPDATE SET profesor_id = excluded.profesor_id`
   );
+  // Y queda en la lista de profesores de esa materia (sección Materias).
+  const darMateria = db.prepare("INSERT OR IGNORE INTO materia_profesores (materia_id, profesor_id) VALUES (?, ?)");
 
   app.post("/api/perfiles", async (req, res) => {
     try {
@@ -717,7 +726,10 @@ export function registrarPerfiles(app, db) {
         for (const a of asignaciones.lista) {
           if (rol === "estudiante") inscribir.run(a.cursoId, nuevoId);
           if (rol === "preceptor") ponerPreceptor.run(nuevoId, a.cursoId);
-          if (rol === "profesor") darCatedra.run(a.cursoId, a.materiaId, nuevoId);
+          if (rol === "profesor") {
+            darCatedra.run(a.cursoId, a.materiaId, nuevoId);
+            darMateria.run(a.materiaId, nuevoId);
+          }
           // El chat del curso suma a quien entra y saca al preceptor anterior.
           if (rol !== "profesor") asegurarComunidadCurso(db, a.cursoId);
         }

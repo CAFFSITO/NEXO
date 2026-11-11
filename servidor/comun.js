@@ -229,6 +229,9 @@ export function aplicarVoto(db, usuarioId, objetoTipo, objetoId, valor) {
   return { miVoto, votosAFavor: totales.a_favor, votosEnContra: totales.en_contra };
 }
 
+/** "Matemática · 1° año" o "Matemática": la misma materia puede estar cargada para varios años. */
+export const nombreDeMateria = (m) => (m.anio ? `${m.nombre} · ${m.anio}° año` : m.nombre);
+
 /** El voto propio como lo espera la vidriera: "a-favor" / "en-contra" / null. */
 export function nombreDeVoto(valor) {
   return valor === 1 ? "a-favor" : valor === -1 ? "en-contra" : null;

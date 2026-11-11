@@ -22,6 +22,11 @@ export interface Catedra {
 
 /** Datos de una tarea creada por el profesor, con el conteo real de entregas. */
 export interface TareaDocente {
+  serieId?: string | null;
+  recurrencia?: RecurrenciaPersonal | null;
+  recurrenciaActiva?: boolean;
+  anticipacionDias?: number;
+  serieVersion?: number;
   id: string;
   titulo: string;
   consigna: string;
@@ -42,6 +47,11 @@ export interface TareaDocente {
 
 /** Lo que el profesor completa en el formulario de creación/edición. */
 export interface DatosNuevaTarea {
+  recurrencia?: RecurrenciaPersonal | null;
+  recurrenciaActiva?: boolean;
+  anticipacionDias?: number;
+  serieVersion?: number;
+  actualizarFuturas?: boolean;
   catedraId: string;
   titulo: string;
   consigna: string;

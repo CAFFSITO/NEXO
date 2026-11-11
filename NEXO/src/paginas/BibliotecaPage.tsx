@@ -6,6 +6,7 @@ import { useNavegacion } from "../navegacion";
 import SearchAndFilter from "./components/biblioteca/SearchAndFilter";
 import ResourceCard from "./components/biblioteca/ResourceCard";
 import LectorRecurso from "./components/biblioteca/LectorRecurso";
+import BibliotecaLocal from './components/biblioteca/BibliotecaLocal';
 import GestorArchivos from "./components/biblioteca/GestorArchivos";
 import ModalPresentarRecurso from "./components/biblioteca/ModalPresentarRecurso";
 import {
@@ -201,6 +202,7 @@ export default function BibliotecaPage() {
               mensaje={query ? "No se encontraron recursos para tu búsqueda." : "Todavía no hay recursos en esta biblioteca."}
             />
           )}
+          <BibliotecaLocal />
           <GestorArchivos direccion={rol === "admin-academico"} />
 
           {/* Antes había, además del botón de arriba, un segundo "Presentar

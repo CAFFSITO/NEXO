@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { enviar, pedir } from '../../../servicios/api';
 import CapacidadApp from './CapacidadApp';
+import EvidenciaApp from './EvidenciaApp';
 import { capacidadesApp } from '../../../servicios/appsPublicas';
 import type { BloqueApp, DefinicionApp } from '../../../servicios/appsPublicas';
 
@@ -42,8 +43,6 @@ export default function AppsInstaladas() {
 }
 
 function BloqueInstalado({ bloque: b, instanciaId, valor, total, nombreGrupo, onCambiar, onReserva }: { bloque: BloqueApp; instanciaId:number; valor: boolean | string | undefined; total?:number[]; nombreGrupo:string; onCambiar: (v: boolean | string) => void; onReserva:(opcion:number|null)=>void }) {
-  const estado = b.evidencia?.estado ?? 'sin-evaluar';
-  const evidencia = estado === 'sin-evaluar' ? 'Sin evaluación científica registrada' : `El creador declara evidencia ${estado}; NEXO no verificó esta valoración`;
   return <div className="rounded-xl border border-white/10 p-3"><h3 className="font-semibold">{b.titulo}</h3><p className="text-sm text-on-surface-variant">{b.contenido}</p>
     {['accionable','bienvenida'].includes(b.tipo) && <label className="mt-2 flex gap-2 text-sm"><input type="checkbox" checked={valor === true} onChange={e => onCambiar(e.target.checked)} />{b.tipo === 'bienvenida' ? 'Ya leí la bienvenida' : 'Completado'}</label>}
     {(capacidadesApp as readonly string[]).includes(b.tipo)&&<CapacidadApp instanciaId={instanciaId} bloque={b}/>}
@@ -52,6 +51,6 @@ function BloqueInstalado({ bloque: b, instanciaId, valor, total, nombreGrupo, on
     {['encuesta','juego'].includes(b.tipo) && <fieldset className="mt-2 space-y-1"><legend className="sr-only">{b.titulo}</legend>{b.opciones?.map((o, ix) => <label className="flex gap-2 text-sm" key={ix}><input type="radio" name={nombreGrupo} checked={valor === String(ix)} onChange={() => onCambiar(String(ix))} />{o}</label>)}{b.tipo === 'juego' && valor !== undefined && <p role="status" className={Number(valor) === b.correcta ? 'text-emerald-300' : 'text-amber-300'}>{Number(valor) === b.correcta ? 'Respuesta correcta. Explicá por qué funciona.' : 'Revisá el concepto e intentá otra opción.'}</p>}</fieldset>}
     {b.tipo==='encuesta'&&valor!==undefined&&total&&<p className="mt-2 text-xs text-white/70">Respuestas: {total.map((n,i)=>`${b.opciones?.[i]} ${n}`).join(' · ')}</p>}
     {b.tipo==='reserva'&&<div className="mt-2 space-y-2 text-sm"><p>Capacidad por turno: {b.capacidad}</p>{b.opciones?.map((opcion,i)=><button key={i} type="button" disabled={valor!==String(i)&&total!==undefined&&(total[i]??0)>=Number(b.capacidad)} onClick={()=>onReserva(i)} className={`mr-2 rounded px-2 py-1 ${valor===String(i)?'bg-emerald-700':'bg-white/10'} disabled:opacity-40`}>{opcion} · {total?Math.max(0,Number(b.capacidad)-(total[i]??0)):'…'} lugares{valor===String(i)?' · tu reserva':''}</button>)}{valor!==undefined&&<button type="button" className="text-amber-200 underline" onClick={()=>onReserva(null)}>Cancelar mi reserva</button>}</div>}
-    <div className="mt-2 space-y-1 text-xs text-amber-300"><p>{evidencia}</p>{b.evidencia?.resumen&&<p>Contexto: {b.evidencia.resumen}</p>}{b.evidencia?.limites&&<p>Límites: {b.evidencia.limites}</p>}{b.evidencia?.revisadoEn&&<p>Revisado: {b.evidencia.revisadoEn}</p>}{b.evidencia?.fuentes?.map(f=><a key={f.url} className="block underline" href={f.url} target="_blank" rel="noreferrer">{f.titulo}</a>)}{b.evidencia?.fuente && <a className="ml-2 underline" href={b.evidencia.fuente} target="_blank" rel="noreferrer">Ver fuente</a>}</div>
+    <EvidenciaApp bloque={b}/>
   </div>;
 }

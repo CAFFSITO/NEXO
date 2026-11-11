@@ -151,6 +151,13 @@ export function registrarProyectos(app,db) {
     const p=datosPaso(a,b,previo);if(p.error)return res.status(400).json({error:p.error});
     db.prepare("UPDATE proyecto_pasos SET titulo=?,padre_id=?,depende_de_id=?,responsable_id=?,completada=?,evidencia=?,archivo_id=?,version=version+1,actualizado_en=datetime('now') WHERE id=?").run(p.titulo.trim(),p.padre_id,p.depende_de_id,p.responsable_id,p.completada,p.evidencia.trim(),p.archivo_id,previo.id);res.json({version:previo.version+1});
   }));
+  app.delete('/api/proyectos/:id/pasos/:pasoId',ventanilla((req,res)=>{
+    const a=propio(req,res,true,true);if(!a)return;const pid=id(req.params.pasoId),p=db.prepare('SELECT * FROM proyecto_pasos WHERE id=? AND proyecto_id=?').get(pid,a.p.id);
+    if(!p)return res.status(404).json({error:'Paso no disponible.'});
+    if(req.body?.version!==p.version)return res.status(409).json({error:'El paso cambió. Recargá antes de quitarlo.'});
+    if(db.prepare('SELECT 1 FROM proyecto_pasos WHERE padre_id=? OR depende_de_id=?').get(pid,pid)||db.prepare('SELECT 1 FROM proyecto_entregas WHERE paso_id=?').get(pid))return res.status(409).json({error:'Conservá el paso con historial o reubicá antes sus hijos y dependencias.'});
+    db.prepare('DELETE FROM proyecto_pasos WHERE id=?').run(pid);res.json({ok:true});
+  }));
   app.post('/api/proyectos/:id/entregas',ventanilla((req,res)=>{
     const a=propio(req,res,true);if(!a)return;const b=req.body||{},pasoId=b.pasoId===null||b.pasoId===undefined?null:id(b.pasoId),archivos=b.archivos??[];
     if(!texto(b.texto,15000)||!Array.isArray(archivos)||archivos.length>20||archivos.some(x=>!id(x)||!archivoPropio(a.u,id(x)))||b.pasoId&&!pasoId||pasoId&&!db.prepare('SELECT 1 FROM proyecto_pasos WHERE id=? AND proyecto_id=?').get(pasoId,a.p.id))return res.status(400).json({error:'Escribí una producción y usá sólo archivos propios y un paso del proyecto.'});

@@ -26,6 +26,7 @@ export interface EventoVivo {
     // mismo del chat y las notificaciones: la sala de clase no abre uno nuevo.
     | "aula-trazo"          // el docente dibujó un trazo en la pizarra (2.C.1)
     | "aula-pizarra-limpia" // el docente borró la pizarra
+    | "aula-pizarra-permisos" // cambió quién puede colaborar en la pizarra
     | "aula-etapas"         // avanzó la trayectoria de la clase (3.B.1)
     | "aula-pulso"          // cambió el pulso del aula (3.B.4)
     | "aula-conectados"     // entró o salió alguien de la clase (3.B.11)
@@ -49,7 +50,11 @@ export interface EventoVivo {
     | "anuncio-leido"       // lo marqué leído en otro navegador (el celular, otra pestaña)
     | "anuncio-lectura"     // alguien leyó o reaccionó a un aviso que mandé
     | "anuncio-borrado"     // quien lo mandó lo borró para todos
-    | "documento-version";  // se guardó una nueva versión de un documento compartido
+    | "documento-version"
+    | "apps-actualizadas";  // cambió una instalación o sus datos comunitarios
+  appInstanciaId?: string;
+  appBloqueId?: string;
+  appOperacion?: string;
   documentoId?: string;
   version?: number;
   autorId?: string;

@@ -1,4 +1,5 @@
 import { exigirAcceso, ventanilla } from './comun.js';
+import { createHash } from 'node:crypto';
 
 /** Material propio organizado sobre recursos existentes, sin duplicar sus archivos. */
 export function registrarBibliotecaOrganizacion(app, db) {
@@ -43,6 +44,44 @@ export function registrarBibliotecaOrganizacion(app, db) {
   const visible = (u,id) => db.prepare(`SELECT 1 FROM recursos WHERE id=? AND eliminado_en IS NULL AND
     ((estado='aprobado' AND (alcance='nacional' OR institucion_id=?)) OR
     (institucion_id=? AND (autor_id=? OR (estado='en-revision' AND ? IN ('bibliotecario','admin-academico')))))`).get(id,u.institucionId,u.institucionId,u.id,u.rol);
+  db.exec(`CREATE TABLE IF NOT EXISTS biblioteca_notas_locales (
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id), clave TEXT NOT NULL,
+    recurso_id INTEGER NOT NULL REFERENCES recursos(id), anotacion_id INTEGER REFERENCES biblioteca_anotaciones(id) ON DELETE SET NULL,
+    huella TEXT NOT NULL, version_origen TEXT NOT NULL, PRIMARY KEY(usuario_id,clave));`);
+  const versionLocal = rid => {
+    const r=db.prepare('SELECT titulo,descripcion,archivo_id,enlace_url,(SELECT COALESCE(MAX(numero),0) FROM biblioteca_versiones WHERE recurso_id=r.id) AS version FROM recursos r WHERE id=?').get(rid);
+    return r ? createHash('sha256').update(JSON.stringify(r)).digest('hex') : null;
+  };
+  app.get('/api/biblioteca/recursos/:id/copia-local',ventanilla((req,res)=>{
+    const u=usuario(req,res);if(!u)return;const rid=Number(req.params.id);
+    if(!Number.isSafeInteger(rid)||rid<1)return res.status(400).json({error:'Recurso inválido.'});
+    if(!visible(u,rid))return res.status(404).json({error:'Recurso no disponible para esta cuenta.'});
+    const r=db.prepare(`SELECT r.id,r.titulo,r.descripcion,r.archivo_id,r.enlace_url,r.alcance,u.nombre AS autor,
+      a.nombre_original,a.tipo_mime,a.tamano_bytes FROM recursos r JOIN usuarios u ON u.id=r.autor_id LEFT JOIN archivos a ON a.id=r.archivo_id WHERE r.id=?`).get(rid);
+    const anotaciones=db.prepare('SELECT id,ubicacion,contenido FROM biblioteca_anotaciones WHERE recurso_id=? AND usuario_id=? ORDER BY id').all(rid,u.id).map(n=>({...n,id:String(n.id)}));
+    res.json({recurso:{id:String(r.id),titulo:r.titulo,descripcion:r.descripcion,autor:r.autor,alcance:r.alcance,enlaceUrl:r.enlace_url},version:versionLocal(rid),archivo:r.archivo_id&&r.nombre_original?{id:String(r.archivo_id),nombre:r.nombre_original,tipoMime:r.tipo_mime||'application/octet-stream',tamanoBytes:r.tamano_bytes}:null,anotaciones});
+  }));
+  app.post('/api/biblioteca/recursos/:id/anotaciones-locales',ventanilla((req,res)=>{
+    const u=usuario(req,res);if(!u)return;const rid=Number(req.params.id);
+    if(!Number.isSafeInteger(rid)||rid<1)return res.status(400).json({error:'Recurso inválido.'});
+    if(!visible(u,rid))return res.status(404).json({error:'Recurso no disponible para esta cuenta.'});
+    const {version,notas}=req.body??{};
+    if(typeof version!=='string'||!Array.isArray(notas)||notas.length>100||notas.some(n=>!n||typeof n.clave!=='string'||!/^[\w-]{8,100}$/.test(n.clave)||typeof n.contenido!=='string'||!n.contenido.trim()||n.contenido.length>10000||typeof n.ubicacion!=='string'||n.ubicacion.length>200||typeof n.versionOrigen!=='string'||n.versionOrigen.length>100))return res.status(400).json({error:'Notas locales inválidas; enviá hasta 100 por lote.'});
+    const actual=versionLocal(rid);
+    if(version!==actual)return res.status(409).json({error:'El recurso cambió. Conservá tus notas y elegí si corresponden a la versión actual antes de sincronizarlas.',versionActual:actual});
+    db.exec('BEGIN');try{
+      const confirmadas=[];
+      for(const n of notas){
+        const huella=createHash('sha256').update(JSON.stringify({rid,ubicacion:n.ubicacion,contenido:n.contenido.trim(),versionOrigen:n.versionOrigen})).digest('hex');
+        const previa=db.prepare('SELECT recurso_id,anotacion_id,huella FROM biblioteca_notas_locales WHERE usuario_id=? AND clave=?').get(u.id,n.clave);
+        if(previa){if(previa.huella!==huella||previa.recurso_id!==rid){db.exec('ROLLBACK');return res.status(409).json({error:'Una nota con ese identificador ya fue sincronizada con otro contenido. Duplicala como nota nueva para conservar ambas.'});}confirmadas.push({clave:n.clave,id:previa.anotacion_id?String(previa.anotacion_id):null});continue;}
+        const id=db.prepare('INSERT INTO biblioteca_anotaciones(usuario_id,recurso_id,ubicacion,contenido) VALUES(?,?,?,?)').run(u.id,rid,n.ubicacion,n.contenido.trim()).lastInsertRowid;
+        db.prepare('INSERT INTO biblioteca_notas_locales(usuario_id,clave,recurso_id,anotacion_id,huella,version_origen) VALUES(?,?,?,?,?,?)').run(u.id,n.clave,rid,id,huella,n.versionOrigen);
+        confirmadas.push({clave:n.clave,id:String(id)});
+      }
+      db.exec('COMMIT');res.json({confirmadas,version:actual});
+    }catch(e){try{db.exec('ROLLBACK');}catch{/* La transacción ya fue cerrada. */}throw e;}
+  }));
   const destino=(u,tipo,id,editar=false)=>{
     if(!Number.isSafeInteger(id)||id<1)return null;
     if(tipo==='tarea'){

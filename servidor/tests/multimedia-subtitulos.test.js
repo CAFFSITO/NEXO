@@ -6,3 +6,10 @@ test('Subtítulos SRT locales conservan intervalos y texto y descartan entradas 
   const subtitulos=leerSrt('1\n00:00:01,250 --> 00:00:02,500\nPrimera idea\n\n2\n00:00:02,500 --> 00:00:04,000\nSegunda línea\ncon ejemplo\n\n3\n00:00:05,000 --> 00:00:04,000\nInválido');
   assert.deepEqual(subtitulos,[{inicio:1.25,fin:2.5,texto:'Primera idea'},{inicio:2.5,fin:4,texto:'Segunda línea\ncon ejemplo'}]);
 });
+
+test('Los subtítulos de grabaciones largas no se recortan a 200 segmentos y rechazan tiempos imposibles',()=>{
+  const bloque='1\n00:00:01,000 --> 00:00:02,000\nIdea completa';
+  assert.equal(leerSrt(Array.from({length:250},()=>bloque).join('\n\n')).length,250);
+  assert.deepEqual(leerSrt('1\n00:61:00,000 --> 00:62:00,000\nTiempo inválido'),[]);
+  assert.throws(()=>leerSrt(Array.from({length:10001},()=>bloque).join('\n\n')),/10000/);
+});

@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 import { exigirSesion, ventanilla } from './comun.js';
 
 const ejecutar = promisify(execFile);
-const segundos = marca => { const m=/^(\d{2}):(\d{2}):(\d{2})[,.](\d{3})$/.exec(marca); return m ? Number(m[1])*3600+Number(m[2])*60+Number(m[3])+Number(m[4])/1000 : null; };
+const segundos = marca => { const m=/^(\d{2}):([0-5]\d):([0-5]\d)[,.](\d{3})$/.exec(marca); return m ? Number(m[1])*3600+Number(m[2])*60+Number(m[3])+Number(m[4])/1000 : null; };
 export function leerSrt(texto) {
   const salida=[];
   for(const bloque of String(texto).replace(/\r/g,'').trim().split(/\n\s*\n/)) {

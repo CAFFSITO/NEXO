@@ -79,6 +79,7 @@ import { registrarAula } from "./aula.js";
 import { crearMensajero, conectarMensajero } from "./tiempo-real.js";
 import { crearNotificaciones, registrarNotificaciones } from "./notificaciones.js";
 import { registrarGestionAcademica } from "./gestion-academica.js";
+import { registrarCatalogoMaterias } from "./catalogo-materias.js";
 import { migrarBase } from "./migraciones.js";
 import { crearGuardiaInstancia, registrarInstancia } from "./instancia.js";
 import { registrarMaestro } from "./maestro.js";
@@ -191,6 +192,7 @@ registrarConectores(app, db);
 registrarInstitucion(app, db);
 registrarPerfiles(app, db);
 registrarGestionAcademica(app, db);
+registrarCatalogoMaterias(app, db);
 // Etapa 4: servicio transversal de archivos (14.19) y circuito de tareas (14.7).
 // El de archivos va antes que el de tareas porque las tareas lo referencian.
 registrarArchivos(app, db, carpetaDatos);
@@ -243,7 +245,7 @@ registrarPlataforma(app, db);
 // nodos, simulación y aprobación por probabilidad), y la vista de la instancia
 // desde adentro (lo que dibuja la vidriera y lo que la dirección desoculta).
 registrarMaestro(app, db);
-registrarAppsPublicas(app, db);
+registrarAppsPublicas(app, db, mensajero);
 registrarInstancia(app, db);
 // Modo edición de la dirección: jerarquía del menú, módulos, sus funciones y sus
 // algoritmos (con vista previa sobre los datos reales de la escuela).

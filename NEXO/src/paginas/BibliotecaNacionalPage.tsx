@@ -6,6 +6,7 @@ import { PESTANAS_BIBLIOTECA } from "./components/shared/pestanasModulos";
 import { useNavegacion } from "../navegacion";
 import TarjetaRecursoNacional from "./components/biblioteca/TarjetaRecursoNacional";
 import LectorRecurso from "./components/biblioteca/LectorRecurso";
+import BibliotecaLocal from './components/biblioteca/BibliotecaLocal';
 import FiltrosNacional, {
   type EstadoFiltros,
 } from "./components/biblioteca/FiltrosNacional";
@@ -201,6 +202,7 @@ export default function BibliotecaNacionalPage() {
             </div>
           </div>
         </div>
+        <div className="px-4 sm:px-8"><BibliotecaLocal/></div>
       </main>
       {lectorId && (recursos ?? []).find(r => r.id === lectorId) && <LectorRecurso recurso={(recursos ?? []).find(r => r.id === lectorId)!} cerrar={() => setLectorId(null)} actualizado={recargar} />}
     </div>

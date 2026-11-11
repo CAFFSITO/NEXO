@@ -17,7 +17,7 @@
 // hecho nada; una racha contada solo puede decir la verdad.
 // ============================================================================
 
-import { exigirAcceso, exigirSesion, ventanilla, hoyISO } from "./comun.js";
+import { exigirAcceso, exigirSesion, ventanilla, hoyISO, nombreDeMateria } from "./comun.js";
 import { algoritmo } from "./genoma.js";
 
 /** Cuántos días trae el historial que dibuja cada tarjeta de hábito. */
@@ -287,7 +287,7 @@ export function registrarObjetivos(app, db) {
       if (!usuario) return;
 
       const materias = db.prepare(
-        `SELECT id, nombre FROM materias WHERE institucion_id = ? ORDER BY nombre`
+        `SELECT id, nombre, anio FROM materias WHERE institucion_id = ? ORDER BY nombre, COALESCE(anio, 0)`
       ).all(usuario.institucionId);
 
       const unidadesDe = db.prepare(
@@ -297,7 +297,8 @@ export function registrarObjetivos(app, db) {
       res.json({
         materias: materias.map((m) => ({
           id: String(m.id),
-          nombre: m.nombre,
+          // La misma materia puede estar cargada para varios años.
+          nombre: nombreDeMateria(m),
           unidades: unidadesDe.all(m.id).map((u) => ({
             id: String(u.id),
             numero: u.numero,

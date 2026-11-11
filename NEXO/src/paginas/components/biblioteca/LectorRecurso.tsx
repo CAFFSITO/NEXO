@@ -6,6 +6,7 @@ import Selector from "../shared/Selector";
 import { enviar, useDatos } from "../../../servicios/api";
 import { subirArchivo } from "../../../servicios/archivos";
 import { useNavegacion } from "../../../navegacion";
+import { GuardarCopiaLocal } from './BibliotecaLocal';
 
 type TipoVinculo = "tarea" | "materia" | "publicacion";
 type Vinculo = {tipo:TipoVinculo;id:number;titulo:string;editable?:boolean};
@@ -36,6 +37,7 @@ export default function LectorRecurso({ recurso, cerrar, actualizado }: { recurs
     <section role="dialog" aria-modal="true" aria-label={`Leer ${recurso.titulo}`} className="mx-auto max-w-5xl h-full overflow-y-auto rounded-xl bg-lienzo p-5 text-white" onClick={e=>e.stopPropagation()}>
       <header className="flex justify-between gap-4"><div><h2 className="text-xl font-bold">{recurso.titulo}</h2><p className="text-sm text-white/60">{recurso.autor} · {recurso.institucion ?? "Nacional"}</p></div><button type="button" onClick={cerrar} aria-label="Cerrar lector">✕</button></header>
       <p className="my-4 whitespace-pre-wrap">{recurso.descripcion}</p>
+      <GuardarCopiaLocal recursoId={recurso.id}/>
       <section className="my-3"><h3 className="font-bold">Etiquetas</h3>{recurso.esMio ? <div className="flex gap-2"><input aria-label="Etiquetas separadas por comas" value={nuevasEtiquetas??(etiquetasDatos?.etiquetas??[]).join(', ')} onChange={e=>setNuevasEtiquetas(e.target.value)} className="w-full rounded bg-fondo p-2"/><button type="button" onClick={()=>void accion(async()=>{await enviar(`/api/biblioteca/recursos/${recurso.id}/etiquetas`,"PUT",{etiquetas:(nuevasEtiquetas??(etiquetasDatos?.etiquetas??[]).join(',')).split(',').map(x=>x.trim()).filter(Boolean)});recargarEtiquetas();setNuevasEtiquetas(null);})}>Guardar</button></div> : <p className="text-sm text-white/70">{(etiquetasDatos?.etiquetas??[]).join(' · ')||'Sin etiquetas'}</p>}</section>
       {vista && <iframe title={`Vista de ${recurso.titulo}`} src={urlPreview(recurso.archivoId!)} className="h-[50vh] w-full rounded border border-white/15 bg-blanco" />}
       <div className="my-4">{recurso.archivoId ? <a href={urlDescarga(recurso.archivoId)}>Descargar archivo</a> : recurso.enlaceUrl ? <a href={recurso.enlaceUrl} target="_blank" rel="noopener noreferrer">Abrir enlace</a> : null}</div>

@@ -54,6 +54,26 @@ export function registrarMateria(app, db) {
                hora_inicio`
   );
 
+  // Programa y temario que cargó la dirección en Materias: referencia para el
+  // profesor (opcional; puede no haber nada).
+  const programaDe = db.prepare(
+    "SELECT anio, area, horas_semanales, descripcion, objetivos, evaluacion, bibliografia FROM materias WHERE id = ?"
+  );
+  const temarioDe = db.prepare("SELECT numero, titulo, contenidos FROM unidades WHERE materia_id = ? ORDER BY numero, id");
+  function referenciaDe(materiaId) {
+    const p = programaDe.get(materiaId) ?? {};
+    return {
+      anio: p.anio ?? null,
+      area: p.area ?? null,
+      horasSemanales: p.horas_semanales ?? null,
+      descripcion: p.descripcion ?? "",
+      objetivos: p.objetivos ?? "",
+      evaluacion: p.evaluacion ?? "",
+      bibliografia: p.bibliografia ?? "",
+      temario: temarioDe.all(materiaId).map((u) => ({ numero: u.numero, titulo: u.titulo, contenidos: u.contenidos ?? "" })),
+    };
+  }
+
   const tareasDeCatedra = db.prepare(
     `SELECT t.id, t.titulo, t.consigna, t.fecha_limite, t.metodo_estudio,
             t.tipo_asignacion,
@@ -202,6 +222,8 @@ export function registrarMateria(app, db) {
           aula: h.aula ?? null,
         })),
         tareas: tareasDeCatedra.all(catedraId, usuario.id).map(tareaJSON),
+        // Solo el profesor ve el programa y el temario de referencia.
+        ...(usuario.id === catedra.profesor_id ? { referencia: referenciaDe(catedra.materia_id) } : {}),
       });
     })
   );

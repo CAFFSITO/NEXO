@@ -16,6 +16,7 @@ export type Page =
     | "asistencia-ia"
     | "biblioteca"
     | "documentos"
+    | "proyectos"
     | "metodos-estudio"
     | "biblioteca-nacional"
     | "comunidad"
@@ -28,6 +29,7 @@ export type Page =
     | "gestion-quejas"
     | "calendario-institucional"
     | "cursos-activos"
+    | "materias-institucion"
     | "perfiles-academicos"
     | "panel-institucional"
     | "reportes"
@@ -89,6 +91,7 @@ export type Seccion =
     | "asistencia-ia"
     | "admin-perfiles"
     | "admin-cursos"
+    | "admin-materias"
     | "admin-panel"
     | "admin-instituciones"
     | "admin-salud"
@@ -165,6 +168,7 @@ export const MAPA_RUTAS = {
     // dos ítems distintos del menú del bibliotecario: dos secciones distintas.
     "/biblioteca/institucional": { pagina: "biblioteca", seccion: "biblioteca" },
     "/documentos": { pagina: "documentos", seccion: "biblioteca" },
+    "/proyectos": { pagina: "proyectos", seccion: "biblioteca" },
     "/estudio/metodos": { pagina: "metodos-estudio", seccion: "portafolio-estudiante" },
     "/biblioteca/nacional": { pagina: "biblioteca-nacional", seccion: "biblioteca" },
     "/biblioteca/panel": { pagina: "panel-bibliotecario", seccion: "biblioteca-panel" },
@@ -187,6 +191,8 @@ export const MAPA_RUTAS = {
     // Admin académico
     "/admin/perfiles": { pagina: "perfiles-academicos", seccion: "admin-perfiles" },
     "/admin/cursos": { pagina: "cursos-activos", seccion: "admin-cursos" },
+    // Materias: cada materia con sus detalles, temario y los profesores que la dan.
+    "/admin/materias": { pagina: "materias-institucion", seccion: "admin-materias" },
     "/admin/panel": { pagina: "panel-institucional", seccion: "admin-panel" },
     // Modo edición de la dirección: jerarquía del menú, módulos y sus
     // algoritmos (lo que el Maestro ocultó se vuelve a mostrar desde acá).

@@ -30,6 +30,19 @@ export interface DetalleMateria {
   profesorAvatar: string | null;
   horarios: HorarioCatedra[];
   tareas: TareaAcademica[];
+  /** Solo para el profesor: el programa y el temario que cargó la dirección (de referencia). */
+  referencia?: ReferenciaMateria;
+}
+
+export interface ReferenciaMateria {
+  anio: number | null;
+  area: string | null;
+  horasSemanales: number | null;
+  descripcion: string;
+  objetivos: string;
+  evaluacion: string;
+  bibliografia: string;
+  temario: { numero: number; titulo: string; contenidos: string }[];
 }
 
 export function useDetalleMateria(catedraId: string) {

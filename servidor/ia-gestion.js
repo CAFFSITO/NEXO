@@ -31,9 +31,9 @@ export function registrarGestionIA(app, db, { validarOrigen, modeloAdmitido, lee
     const u=permiso(req,res);if(!u)return;
     const modelo=req.body?.modelo;
     if(!modeloAdmitido(modelo))return res.status(400).json({error:'Elegí un identificador de modelo local válido.'});
+    let origen;try{origen=await validarOrigen(valores(u.institucionId).origen);}catch(e){return res.status(400).json({error:e.message});}
     const previo=trabajos.get(u.institucionId);
     if(previo?.estado==='descargando')return res.status(409).json({error:'Ya hay una descarga en curso.'});
-    let origen;try{origen=await validarOrigen(valores(u.institucionId).origen);}catch(e){return res.status(400).json({error:e.message});}
     const t={modelo,estado:'descargando',detalle:'Iniciando descarga',total:0,completado:0,controller:new AbortController()};trabajos.set(u.institucionId,t);
     res.status(202).json({estado:t.estado,modelo});
     void (async()=>{

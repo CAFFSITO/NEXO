@@ -42,6 +42,7 @@ const AyudaDeAccesoPage = diferida(() => import("./paginas/AyudaDeAccesoPage.tsx
 const AsistenciaIAPage = diferida(() => import("./paginas/AsistenciaIAPage.tsx"));
 const BibliotecaPage = diferida(() => import("./paginas/BibliotecaPage.tsx"));
 const DocumentosPage = diferida(() => import("./paginas/DocumentosPage.tsx"));
+const ProyectosPage = diferida(() => import("./paginas/ProyectosPage.tsx"));
 const MetodosEstudioPage = diferida(() => import("./paginas/MetodosEstudioPage.tsx"));
 const BibliotecaNacionalPage = diferida(() => import("./paginas/BibliotecaNacionalPage.tsx"));
 const ComunidadPage = diferida(() => import("./paginas/ComunidadPage.tsx"));
@@ -54,6 +55,7 @@ const PortalCentroEstudiantesPage = diferida(() => import("./paginas/PortalCentr
 const GestionQuejasPage = diferida(() => import("./paginas/GestionQuejasPage.tsx"));
 const CalendarioInstitucionalPage = diferida(() => import("./paginas/CalendarioInstitucionalPage.tsx"));
 const CursosActivosPage = diferida(() => import("./paginas/CursosActivosPage.tsx"));
+const MateriasPage = diferida(() => import("./paginas/MateriasPage.tsx"));
 const PerfilesAcademicosPage = diferida(() => import("./paginas/PerfilesAcademicosPage.tsx"));
 const PanelInstitucionalPage = diferida(() => import("./paginas/PanelInstitucionalPage.tsx"));
 const ReportesPage = diferida(() => import("./paginas/ReportesPage.tsx"));
@@ -94,6 +96,7 @@ const PAGINAS: Record<Exclude<Page, "login">, () => React.ReactElement> = {
   "asistencia-ia": () => <AsistenciaIAPage />,
   biblioteca: () => <BibliotecaPage />,
   documentos: () => <DocumentosPage />,
+  proyectos: () => <ProyectosPage />,
   "metodos-estudio": () => <MetodosEstudioPage />,
   "biblioteca-nacional": () => <BibliotecaNacionalPage />,
   comunidad: () => <ComunidadPage />,
@@ -106,6 +109,7 @@ const PAGINAS: Record<Exclude<Page, "login">, () => React.ReactElement> = {
   "gestion-quejas": () => <GestionQuejasPage />,
   "calendario-institucional": () => <CalendarioInstitucionalPage />,
   "cursos-activos": () => <CursosActivosPage />,
+  "materias-institucion": () => <MateriasPage />,
   "perfiles-academicos": () => <PerfilesAcademicosPage />,
   "panel-institucional": () => <PanelInstitucionalPage />,
   reportes: () => <ReportesPage />,

@@ -53,6 +53,7 @@ import { exigirSesion, ventanilla } from "./comun.js";
 import { asegurarConversacionClase } from "./chat.js";
 import { algoritmo } from "./genoma.js";
 import { registrarAulaTransmision } from './aula-transmision.js';
+import { registrarPermisosPizarra } from './aula-pizarra.js';
 
 // Cada cuánto el servidor revisa el ritmo de las clases en vivo (14.3, paso 6).
 const INTERVALO_ALERTA_MS = 30_000; // medio minuto
@@ -135,7 +136,7 @@ export function registrarAula(app, db, mensajero, notificaciones) {
     return null;
   }
 
-  registrarAulaTransmision(app, db, { accesoAClase, claseConCatedra, estaInscriptoEn });
+  const transmision=registrarAulaTransmision(app, db, { accesoAClase, claseConCatedra, estaInscriptoEn });
 
   /** Los ids a los que hay que empujar un evento de la clase: el docente + los
    *  estudiantes conectados en este momento. */
@@ -401,7 +402,7 @@ export function registrarAula(app, db, mensajero, notificaciones) {
   // ── Finalizar la clase (docente) — Error 3.B.12 flujo de salida ─────────────
   app.post(
     "/api/aula/clases/:id/finalizar",
-    ventanilla((req, res) => {
+    ventanilla(async (req, res) => {
       const acc = accesoAClase(req, res, req.params.id);
       if (!acc) return;
       if (!acc.esDocente) return res.status(403).json({ error: "Solo el docente finaliza la clase." });
@@ -418,6 +419,7 @@ export function registrarAula(app, db, mensajero, notificaciones) {
       mensajero.emitirAVarios(destinatariosClase(clase), {
         tipo: "aula-estado", claseId: String(clase.id), estado: "finalizada",
       });
+      await transmision.cerrarClase(clase.id);
       res.json({ ok: true });
     })
   );
@@ -535,6 +537,7 @@ export function registrarAula(app, db, mensajero, notificaciones) {
     })
   );
 
+  const permisosPizarra=registrarPermisosPizarra(app,db,{accesoAClase,mensajero,destinatariosClase});
   // ── Pizarra: leer todos los trazos (para el que entra tarde) ────────────────
   app.get(
     "/api/aula/clases/:id/pizarra",
@@ -555,13 +558,11 @@ export function registrarAula(app, db, mensajero, notificaciones) {
     ventanilla((req, res) => {
       const acc = accesoAClase(req, res, req.params.id);
       if (!acc) return;
-      // La regla de "solo el docente dibuja" se cumple en la cocina: aunque un
-      // estudiante arme el pedido a mano, la pizarra lo rechaza (regla de oro 4).
-      if (!acc.esDocente) return res.status(403).json({ error: "Solo el docente dibuja en la pizarra." });
+      if (!permisosPizarra.puedeDibujar(acc)) return res.status(403).json({ error: "No tenés permiso para dibujar en esta pizarra." });
 
       const datos = req.body?.datos;
-      if (datos === undefined || datos === null) {
-        return res.status(400).json({ error: "Falta el trazo." });
+      if (!datos || !/^#[a-fA-F0-9]{6}$/.test(datos.color) || !Number.isFinite(datos.ancho) || datos.ancho<1 || datos.ancho>30 || !Array.isArray(datos.puntos) || !datos.puntos.length || datos.puntos.length>5000 || datos.puntos.some(p=>!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)||p.x<0||p.x>1||p.y<0||p.y>1)) {
+        return res.status(400).json({ error: "El trazo debe incluir color, ancho y puntos dentro de la pizarra." });
       }
       const proxima =
         (db.prepare("SELECT MAX(secuencia) AS m FROM pizarra_trazos WHERE clase_id = ?").get(acc.clase.id)?.m ?? 0) + 1;
@@ -584,6 +585,7 @@ export function registrarAula(app, db, mensajero, notificaciones) {
       const acc = accesoAClase(req, res, req.params.id);
       if (!acc) return;
       if (!acc.esDocente) return res.status(403).json({ error: "Solo el docente borra la pizarra." });
+      if(acc.clase.estado==='finalizada')return res.status(409).json({error:'La clase ya finalizó.'});
       db.prepare("DELETE FROM pizarra_trazos WHERE clase_id = ?").run(acc.clase.id);
       mensajero.emitirAVarios(destinatariosClase(acc.clase), {
         tipo: "aula-pizarra-limpia", claseId: String(acc.clase.id),

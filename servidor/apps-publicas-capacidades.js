@@ -11,6 +11,7 @@ const leer=JSON.parse;
 
 export function prepararCapacidadesApp(db,instancia,definicion,usuario){
   for(const b of definicion.bloques){
+    if(b.dependeDe&&[...NATIVOS,'ayuda','curso'].includes(b.tipo))throw new Error('La capacidad nativa no admite condiciones visuales de acceso. Publicá una versión sin esa condición.');
     if(!NATIVOS.has(b.tipo))continue;
     const anterior=db.prepare("SELECT * FROM apps_publicas_capacidades WHERE instancia_id=? AND bloque_id=? AND clave='comunidad'").get(instancia.id,b.id);
     if(anterior){if(anterior.tipo!==b.tipo)throw new Error('Un bloque nativo con datos debe conservar su tipo. Usá otro identificador para otra capacidad.');continue;}
@@ -31,11 +32,16 @@ function crearCanal(db,i,u,b,clase){
   return id;
 }
 
-export function registrarCapacidadesApps(app,db){
+export function registrarCapacidadesApps(app,db,emitir=()=>{}){
   db.exec(`CREATE TABLE IF NOT EXISTS apps_publicas_capacidades(instancia_id INTEGER NOT NULL REFERENCES apps_publicas_instancias(id),bloque_id TEXT NOT NULL,clave TEXT NOT NULL,tipo TEXT NOT NULL,referencia_id INTEGER NOT NULL,PRIMARY KEY(instancia_id,bloque_id,clave));
     CREATE TABLE IF NOT EXISTS apps_publicas_entradas(id INTEGER PRIMARY KEY,instancia_id INTEGER NOT NULL REFERENCES apps_publicas_instancias(id),bloque_id TEXT NOT NULL,autor_id INTEGER NOT NULL REFERENCES usuarios(id),titulo TEXT NOT NULL,contenido TEXT NOT NULL,estado TEXT NOT NULL DEFAULT 'publicado',devolucion TEXT NOT NULL DEFAULT '',creado_en TEXT NOT NULL DEFAULT(datetime('now')),actualizado_en TEXT NOT NULL DEFAULT(datetime('now')));
     CREATE INDEX IF NOT EXISTS idx_apps_entradas_bloque ON apps_publicas_entradas(instancia_id,bloque_id);
     CREATE TABLE IF NOT EXISTS apps_publicas_votos(entrada_id INTEGER NOT NULL REFERENCES apps_publicas_entradas(id) ON DELETE CASCADE,usuario_id INTEGER NOT NULL REFERENCES usuarios(id),PRIMARY KEY(entrada_id,usuario_id));`);
+  const columnas=db.prepare('PRAGMA table_info(apps_publicas_entradas)').all().map(c=>c.name);
+  if(!columnas.includes('oculta'))db.exec('ALTER TABLE apps_publicas_entradas ADD COLUMN oculta INTEGER NOT NULL DEFAULT 0');
+  if(!columnas.includes('oculta_por'))db.exec('ALTER TABLE apps_publicas_entradas ADD COLUMN oculta_por INTEGER REFERENCES usuarios(id)');
+  // Las publicaciones ocultas anteriores conservan su visibilidad al migrar.
+  db.exec("UPDATE apps_publicas_entradas SET oculta=1,estado='publicado' WHERE estado='oculto'");
   function actual(req,res){
     const u=usuarioDeLaSesion(db,req);if(!u){res.status(401).json({error:'No hay sesión abierta.'});return null;}
     const i=db.prepare('SELECT * FROM apps_publicas_instancias WHERE id=? AND institucion_id=?').get(req.params.id,u.institucionId);
@@ -51,7 +57,7 @@ export function registrarCapacidadesApps(app,db){
     const u=usuarioDeLaSesion(db,req);if(!u)return res.status(401).json({error:'No hay sesión abierta.'});if(u.rol!=='admin-academico')return res.status(403).json({error:'Sólo Dirección prepara capacidades.'});
     const i=db.prepare('SELECT * FROM apps_publicas_instancias WHERE id=? AND institucion_id=?').get(req.params.id,u.institucionId);if(!i)return res.status(404).json({error:'Instalación inexistente.'});
     const d=leer(db.prepare('SELECT definicion FROM apps_publicas_versiones WHERE app_id=? AND version=?').get(i.app_id,i.version).definicion);
-    db.exec('BEGIN IMMEDIATE');try{prepararCapacidadesApp(db,i,d,u);db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');return res.status(400).json({error:e.message});}res.json({ok:true});
+    db.exec('BEGIN IMMEDIATE');try{prepararCapacidadesApp(db,i,d,u);db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');return res.status(400).json({error:e.message});}emitir(i,'preparar');res.json({ok:true});
   }));
   app.get('/api/apps-publicas/instancias/:id/opciones',ventanilla((req,res)=>{
     const u=usuarioDeLaSesion(db,req);if(!u)return res.status(401).json({error:'No hay sesión abierta.'});if(u.rol!=='admin-academico')return res.status(403).json({error:'Sólo Dirección configura capacidades.'});
@@ -63,7 +69,9 @@ export function registrarCapacidadesApps(app,db){
     if(['chat','foro','sugerencias','ayuda'].includes(b.tipo)){
       if(!exigirAcceso(db,req,res,'chat'))return;
       const c=db.prepare('SELECT referencia_id FROM apps_publicas_capacidades WHERE instancia_id=? AND bloque_id=? AND clave=?').get(i.id,b.id,b.tipo==='ayuda'?String(u.id):'comunidad');
-      const canal=c&&canalDe(db,c.referencia_id,u);return res.json({tipo:b.tipo,canal:canal??null});
+      const canal=c&&canalDe(db,c.referencia_id,u);
+      const pedidos=b.tipo==='ayuda'?db.prepare(`SELECT DISTINCT referencia_id FROM apps_publicas_capacidades WHERE instancia_id=? AND bloque_id=? AND tipo='ayuda' AND (?='admin-academico' OR clave=? OR clave LIKE ?) ORDER BY referencia_id DESC`).all(i.id,b.id,u.rol,String(u.id),`${u.id}:%`).map(x=>canalDe(db,x.referencia_id,u)).filter(Boolean):undefined;
+      return res.json({tipo:b.tipo,canal:canal??null,...(pedidos?{pedidos}:{})});
     }
     if(['documento','formulario'].includes(b.tipo)){
       if(!exigirAcceso(db,req,res,'documentos'))return;
@@ -78,7 +86,7 @@ export function registrarCapacidadesApps(app,db){
       return res.json({tipo:b.tipo,catedraId:String(catedraId)});
     }
     if(!COMUNIDAD.has(b.tipo))return res.status(400).json({error:'El bloque no es una capacidad comunitaria.'});
-    const entradas=db.prepare(`SELECT e.id,e.autor_id AS autorId,u.nombre AS autor,e.titulo,e.contenido,e.estado,e.devolucion,e.creado_en AS creadoEn,(SELECT COUNT(*) FROM apps_publicas_votos v WHERE v.entrada_id=e.id) AS votos,EXISTS(SELECT 1 FROM apps_publicas_votos v WHERE v.entrada_id=e.id AND v.usuario_id=?) AS votada FROM apps_publicas_entradas e JOIN usuarios u ON u.id=e.autor_id WHERE e.instancia_id=? AND e.bloque_id=? AND (e.estado<>'oculto' OR e.autor_id=? OR ?='admin-academico') ORDER BY e.id DESC LIMIT 200`).all(u.id,i.id,b.id,u.id,u.rol);
+    const entradas=db.prepare(`SELECT e.id,e.autor_id AS autorId,u.nombre AS autor,e.titulo,e.contenido,e.estado,e.oculta,e.oculta_por AS ocultaPor,e.devolucion,e.creado_en AS creadoEn,(SELECT COUNT(*) FROM apps_publicas_votos v WHERE v.entrada_id=e.id) AS votos,EXISTS(SELECT 1 FROM apps_publicas_votos v WHERE v.entrada_id=e.id AND v.usuario_id=?) AS votada FROM apps_publicas_entradas e JOIN usuarios u ON u.id=e.autor_id WHERE e.instancia_id=? AND e.bloque_id=? AND (e.oculta=0 OR e.autor_id=? OR ?='admin-academico') ORDER BY e.id DESC LIMIT 200`).all(u.id,i.id,b.id,u.id,u.rol);
     res.json({tipo:b.tipo,usuarioId:u.id,administrable:u.rol==='admin-academico',entradas});
   }));
   app.post('/api/apps-publicas/comunidad/:id/bloques/:bloqueId/abrir',ventanilla((req,res)=>{
@@ -86,25 +94,45 @@ export function registrarCapacidadesApps(app,db){
     if(!['chat','foro','sugerencias','ayuda'].includes(b.tipo))return res.status(400).json({error:'No es un canal.'});
     if(!exigirAcceso(db,req,res,'chat'))return;
     const clave=b.tipo==='ayuda'?String(u.id):'comunidad';let c=db.prepare('SELECT referencia_id FROM apps_publicas_capacidades WHERE instancia_id=? AND bloque_id=? AND clave=?').get(i.id,b.id,clave);
-    if(!c&&b.tipo==='ayuda'){const id=crearCanal(db,i,u,b,'ayuda');db.prepare('INSERT INTO apps_publicas_capacidades(instancia_id,bloque_id,clave,tipo,referencia_id) VALUES(?,?,?,?,?)').run(i.id,b.id,clave,b.tipo,id);c={referencia_id:id};}
+    if((!c||req.body?.nuevo===true)&&b.tipo==='ayuda'){
+      db.exec('BEGIN IMMEDIATE');try{
+        const guardar=db.prepare('INSERT OR IGNORE INTO apps_publicas_capacidades(instancia_id,bloque_id,clave,tipo,referencia_id) VALUES(?,?,?,?,?)');
+        if(c)guardar.run(i.id,b.id,`${u.id}:${c.referencia_id}`,b.tipo,c.referencia_id);
+        const id=crearCanal(db,i,u,b,'ayuda');guardar.run(i.id,b.id,`${u.id}:${id}`,b.tipo,id);
+        db.prepare(`INSERT INTO apps_publicas_capacidades(instancia_id,bloque_id,clave,tipo,referencia_id) VALUES(?,?,?,?,?) ON CONFLICT(instancia_id,bloque_id,clave) DO UPDATE SET referencia_id=excluded.referencia_id`).run(i.id,b.id,clave,b.tipo,id);c={referencia_id:id};db.exec('COMMIT');
+      }catch(e){db.exec('ROLLBACK');throw e;}
+    }
     if(!c)return res.status(409).json({error:'Dirección debe preparar esta instalación.'});
     const canal=canalDe(db,c.referencia_id,u);if(!canal)return res.status(404).json({error:'Canal no disponible.'});
     if(!canal.miembro)db.prepare('INSERT OR IGNORE INTO conversacion_miembros(conversacion_id,usuario_id) VALUES(?,?)').run(c.referencia_id,u.id);
-    res.json({canal:canalDe(db,c.referencia_id,u)});
+    emitir(i,'pedido',b.id);res.json({canal:canalDe(db,c.referencia_id,u)});
   }));
   app.post('/api/apps-publicas/comunidad/:id/bloques/:bloqueId/entradas',ventanilla((req,res)=>{
     const a=actual(req,res);if(!a)return;const {u,i,b}=a;if(!COMUNIDAD.has(b.tipo))return res.status(400).json({error:'El bloque no acepta entradas.'});
     const titulo=texto(req.body?.titulo,160),contenido=texto(req.body?.contenido,5000);if(!titulo||!contenido)return res.status(400).json({error:'Completá título y contenido.'});
     const propia=db.prepare('SELECT id FROM apps_publicas_entradas WHERE instancia_id=? AND bloque_id=? AND autor_id=?').get(i.id,b.id,u.id);
-    if(propia&&['directorio','desafio'].includes(b.tipo)){db.prepare("UPDATE apps_publicas_entradas SET titulo=?,contenido=?,estado=?,actualizado_en=datetime('now') WHERE id=?").run(titulo,contenido,b.tipo==='desafio'?'presentado':'publicado',propia.id);return res.json({id:propia.id});}
-    const id=Number(db.prepare('INSERT INTO apps_publicas_entradas(instancia_id,bloque_id,autor_id,titulo,contenido,estado) VALUES(?,?,?,?,?,?)').run(i.id,b.id,u.id,titulo,contenido,b.tipo==='propuestas'?'propuesta':b.tipo==='desafio'?'presentado':'publicado').lastInsertRowid);res.status(201).json({id});
+    if(propia&&['directorio','desafio'].includes(b.tipo)){db.prepare("UPDATE apps_publicas_entradas SET titulo=?,contenido=?,estado=?,actualizado_en=datetime('now') WHERE id=?").run(titulo,contenido,b.tipo==='desafio'?'presentado':'publicado',propia.id);emitir(i,'entrada',b.id);return res.json({id:propia.id});}
+    const id=Number(db.prepare('INSERT INTO apps_publicas_entradas(instancia_id,bloque_id,autor_id,titulo,contenido,estado) VALUES(?,?,?,?,?,?)').run(i.id,b.id,u.id,titulo,contenido,b.tipo==='propuestas'?'propuesta':b.tipo==='desafio'?'presentado':'publicado').lastInsertRowid);emitir(i,'entrada',b.id);res.status(201).json({id});
   }));
   app.put('/api/apps-publicas/comunidad/:id/bloques/:bloqueId/entradas/:entradaId',ventanilla((req,res)=>{
-    const a=actual(req,res);if(!a)return;const {u,i,b}=a;const e=db.prepare('SELECT * FROM apps_publicas_entradas WHERE id=? AND instancia_id=? AND bloque_id=?').get(req.params.entradaId,i.id,b.id);if(!e)return res.status(404).json({error:'Entrada no disponible.'});
-    if(req.body?.voto!==undefined){if(b.tipo!=='propuestas'||typeof req.body.voto!=='boolean'||e.estado==='oculto')return res.status(400).json({error:'Voto inválido.'});if(req.body.voto)db.prepare('INSERT OR IGNORE INTO apps_publicas_votos(entrada_id,usuario_id) VALUES(?,?)').run(e.id,u.id);else db.prepare('DELETE FROM apps_publicas_votos WHERE entrada_id=? AND usuario_id=?').run(e.id,u.id);return res.json({ok:true});}
+    const a=actual(req,res);if(!a)return;const {u,i,b}=a;
+    if(!COMUNIDAD.has(b.tipo))return res.status(400).json({error:'El bloque no acepta entradas.'});
+    const e=db.prepare('SELECT * FROM apps_publicas_entradas WHERE id=? AND instancia_id=? AND bloque_id=?').get(req.params.entradaId,i.id,b.id);if(!e)return res.status(404).json({error:'Entrada no disponible.'});
+    if(req.body?.voto!==undefined){if(b.tipo!=='propuestas'||typeof req.body.voto!=='boolean'||e.oculta)return res.status(400).json({error:'Voto inválido.'});if(req.body.voto)db.prepare('INSERT OR IGNORE INTO apps_publicas_votos(entrada_id,usuario_id) VALUES(?,?)').run(e.id,u.id);else db.prepare('DELETE FROM apps_publicas_votos WHERE entrada_id=? AND usuario_id=?').run(e.id,u.id);return res.json({ok:true});}
     if(u.rol!=='admin-academico'&&e.autor_id!==u.id)return res.status(403).json({error:'Sólo autor o Dirección pueden modificar la entrada.'});
-    const estado=texto(req.body?.estado,30),permitidos=u.rol==='admin-academico'?['publicado','oculto','aceptada','rechazada','devuelto','resuelto']:['oculto','publicado','presentado'];
-    if(!permitidos.includes(estado))return res.status(400).json({error:'Estado inválido.'});
-    db.prepare("UPDATE apps_publicas_entradas SET estado=?,devolucion=?,actualizado_en=datetime('now') WHERE id=?").run(estado,u.rol==='admin-academico'?texto(req.body?.devolucion,3000):e.devolucion,e.id);res.json({ok:true});
+    if(req.body?.oculta!==undefined||req.body?.estado==='oculto'){
+      const oculta=req.body?.estado==='oculto'?true:req.body.oculta;
+      if(typeof oculta!=='boolean')return res.status(400).json({error:'Visibilidad inválida.'});
+      if(!oculta&&e.oculta_por&&e.oculta_por!==u.id&&u.rol!=='admin-academico')return res.status(403).json({error:'Dirección debe volver a mostrar esta publicación moderada.'});
+      db.prepare("UPDATE apps_publicas_entradas SET oculta=?,oculta_por=?,actualizado_en=datetime('now') WHERE id=?").run(Number(oculta),oculta?u.id:null,e.id);return res.json({ok:true});
+    }
+    if(req.body?.titulo!==undefined||req.body?.contenido!==undefined){
+      const titulo=texto(req.body.titulo,160),contenido=texto(req.body.contenido,5000);if(!titulo||!contenido)return res.status(400).json({error:'Completá título y contenido.'});
+      db.prepare("UPDATE apps_publicas_entradas SET titulo=?,contenido=?,actualizado_en=datetime('now') WHERE id=?").run(titulo,contenido,e.id);return res.json({ok:true});
+    }
+    const permitidos=b.tipo==='propuestas'?['propuesta','aceptada','rechazada']:b.tipo==='desafio'?['presentado','devuelto','resuelto']:['publicado'];
+    const estado=req.body?.estado??e.estado;
+    if(u.rol!=='admin-academico'||!permitidos.includes(estado))return res.status(403).json({error:'Sólo Dirección puede registrar decisiones y devoluciones válidas para este bloque.'});
+    db.prepare("UPDATE apps_publicas_entradas SET estado=?,devolucion=?,actualizado_en=datetime('now') WHERE id=?").run(estado,req.body?.devolucion===undefined?e.devolucion:texto(req.body.devolucion,3000),e.id);res.json({ok:true});
   }));
 }

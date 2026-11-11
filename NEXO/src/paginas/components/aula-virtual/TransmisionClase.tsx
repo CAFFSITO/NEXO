@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { pedir } from '../../../servicios/api';
+import PublicarNavegador from './PublicarNavegador';
 
-type Estado = {habilitada:boolean;motivo?:string;hlsUrl?:string;obsServidor?:string;expiraEnMinutos?:number};
+type Estado = {habilitada:boolean;motivo?:string;hlsUrl?:string;obsServidor?:string;expiraEnMinutos?:number;whipUrl?:string};
 
 /** Visualización HLS separada de la sala WebRTC para quienes solo miran. */
 export default function TransmisionClase({claseId,esDocente}:{claseId:string;esDocente:boolean}){
@@ -31,6 +32,7 @@ export default function TransmisionClase({claseId,esDocente}:{claseId:string;esD
     {estado&&!estado.habilitada&&<p className="text-amber-200">{estado.motivo}</p>}
     {estado?.habilitada&&<video ref={video} controls playsInline className="min-h-0 w-full flex-1 rounded bg-black" />}
     {error&&<p role="alert" className="text-amber-200 text-sm">{error}</p>}
+    {esDocente&&estado?.whipUrl&&<PublicarNavegador key={estado.whipUrl} url={estado.whipUrl}/>}
     {esDocente&&estado?.obsServidor&&<details className="text-xs text-slate-300"><summary>Configurar OBS para esta clase</summary><p className="mt-1">En OBS: Servicio personalizado. Pegá la dirección completa como servidor; dejá la clave de transmisión vacía. Caduca en {estado.expiraEnMinutos} minutos y deja de servir cuando finaliza la clase.</p><code className="mt-1 block break-all rounded bg-white/10 p-2 select-all">{estado.obsServidor}</code><p>La dirección contiene una credencial temporal: compartila solamente con quien transmite.</p></details>}
   </div>;
 }

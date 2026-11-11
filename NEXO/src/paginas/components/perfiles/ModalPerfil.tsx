@@ -12,7 +12,7 @@
 // en cada uno (en la base, un profesor se une a un curso por una cátedra). Si un
 // curso ya tiene preceptor, o esa materia ya tiene profesor, se avisa antes de
 // guardar que el lugar pasa a la persona nueva. En la edición, los cursos se
-// siguen cambiando desde Cursos y materias.
+// siguen cambiando desde Cursos.
 //
 // `onGuardar` es asíncrono y devuelve un mensaje de error del servidor (o null
 // si salió bien): así una alta rechazada —por ejemplo un correo repetido— deja
@@ -329,7 +329,7 @@ export default function ModalPerfil({
           <p className="text-[11px] text-on-surface-variant/60 -mt-2 mb-4">
             {datos.rol === "familia"
               ? "Guardá el perfil para vincular sus estudiantes a cargo."
-              : `El ${meta.labelAsignacion.toLowerCase()} se cambia desde Cursos y materias.`}
+              : `El ${meta.labelAsignacion.toLowerCase()} se cambia desde Cursos.`}
           </p>
         )}
 
@@ -390,14 +390,14 @@ function SeccionCursos({
     contenido = (
       <p className="text-sm text-slate-400">
         Todavía no hay cursos cargados en la escuela. Podés crear el perfil igual y asignarle
-        el curso más adelante, desde Cursos y materias.
+        el curso más adelante, desde Cursos.
       </p>
     );
   } else if (rol === "profesor" && materias.length === 0) {
     contenido = (
       <p className="text-sm text-slate-400">
         Todavía no hay materias cargadas en la escuela, y un profesor se asigna a un curso por la
-        materia que da. Podés crear el perfil igual y asignarle sus cursos desde Cursos y materias.
+        materia que da. Podés crear el perfil igual: después lo sumás a sus materias en Materias y a sus cursos desde Cursos.
       </p>
     );
   } else if (rol === "estudiante") {

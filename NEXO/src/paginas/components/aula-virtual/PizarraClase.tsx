@@ -14,6 +14,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTiempoReal, type EventoVivo } from "../../../servicios/tiempoReal";
+import { enviar, useDatos } from '../../../servicios/api';
+import Selector from '../shared/Selector';
 import {
   enviarTrazo,
   limpiarPizarra,
@@ -47,6 +49,13 @@ export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) 
   const [revision, setRevision] = useState(0);
   const borradosRef = useRef(0);
   const [color, setColor] = useState(COLORES[0]);
+  const {datos:permisos,recargar:recargarPermisos}=useDatos<{modo:'docente'|'todos'|'seleccion';version:number;puedeDibujar:boolean;editores?:string[];candidatos?:{id:string;nombre:string}[]}>(`/api/aula/clases/${claseId}/pizarra/permisos`);
+  const puedeDibujar=permisos?.puedeDibujar??false;
+  const configurar=async(modo:'docente'|'todos'|'seleccion',editores=permisos?.editores??[])=>{
+    setGuardando(true);setError('');
+    try{await enviar(`/api/aula/clases/${claseId}/pizarra/permisos`,'PUT',{modo,editores,version:permisos?.version??0});recargarPermisos();}
+    catch(e){setError((e as Error).message);recargarPermisos();}finally{setGuardando(false);}
+  };
 
   // ── Dibujar todo el lienzo desde la lista de trazos ────────────────────────
   const redibujar = useCallback(() => {
@@ -123,9 +132,11 @@ export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) 
         borradosRef.current += 1;
         trazosRef.current.clear();
         redibujar();
+      } else if(evento.tipo==='aula-pizarra-permisos'||evento.tipo==='aula-estado') {
+        dibujandoRef.current=null;redibujar();recargarPermisos();
       }
     },
-    [claseId, redibujar]
+    [claseId, redibujar, recargarPermisos]
   );
   useTiempoReal(alRecibir);
 
@@ -133,23 +144,24 @@ export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) 
   const puntoDe = (e: React.PointerEvent<HTMLCanvasElement>): Punto => {
     const caja = e.currentTarget.getBoundingClientRect();
     return {
-      x: (e.clientX - caja.left) / caja.width,
-      y: (e.clientY - caja.top) / caja.height,
+      x: Math.max(0,Math.min(1,(e.clientX - caja.left) / caja.width)),
+      y: Math.max(0,Math.min(1,(e.clientY - caja.top) / caja.height)),
     };
   };
 
   const alBajar = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!esDocente || guardando) return;
+    if (!puedeDibujar || guardando) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     dibujandoRef.current = { color, ancho: 3, puntos: [puntoDe(e)] };
   };
   const alMover = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!esDocente || !dibujandoRef.current) return;
+    if (!puedeDibujar || !dibujandoRef.current) return;
+    if(dibujandoRef.current.puntos.length>=5000)dibujandoRef.current.puntos=dibujandoRef.current.puntos.filter((_,i)=>i%2===0);
     dibujandoRef.current.puntos.push(puntoDe(e));
     redibujar();
   };
   const alSoltar = () => {
-    if (!esDocente || !dibujandoRef.current) return;
+    if (!puedeDibujar || !dibujandoRef.current) return;
     const trazo = dibujandoRef.current;
     dibujandoRef.current = null;
     if (trazo.puntos.length < 1) return;
@@ -186,9 +198,9 @@ export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) 
         <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
           <span className="material-symbols-outlined text-sm">draw</span>
           Pizarra
-          {!esDocente && <span className="text-slate-500 font-normal">(la maneja el docente)</span>}
+          {!puedeDibujar && <span className="text-slate-500 font-normal">(sólo lectura)</span>}
         </span>
-        {esDocente && (
+        {puedeDibujar && (
           <div className="flex items-center gap-2">
             {COLORES.map((c) => (
               <button
@@ -201,17 +213,18 @@ export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) 
                 style={{ backgroundColor: c }}
               />
             ))}
-            <button
+            {esDocente&&<button
               onClick={borrarTodo}
               disabled={guardando}
               className="ml-1 px-2 py-1 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 text-xs flex items-center gap-1"
             >
               <span className="material-symbols-outlined text-sm">ink_eraser</span>
               Limpiar
-            </button>
+            </button>}
           </div>
         )}
       </div>
+      {esDocente&&<details className="text-xs text-slate-300"><summary>Configurar colaboración de la pizarra</summary><fieldset disabled={guardando||!permisos} className="space-y-2 py-2"><label>Quién puede dibujar <Selector value={permisos?.modo??'docente'} onChange={e=>void configurar(e.target.value as 'docente'|'todos'|'seleccion')}><option value="docente">Sólo docente</option><option value="todos">Todo el curso durante la clase</option><option value="seleccion">Personas elegidas durante la clase</option></Selector></label>{permisos?.modo==='seleccion'&&<div className="max-h-32 overflow-auto">{permisos.candidatos?.map(c=><label key={c.id} className="flex gap-2"><input type="checkbox" checked={permisos.editores?.includes(c.id)??false} onChange={e=>void configurar('seleccion',e.target.checked?[...(permisos.editores??[]),c.id]:(permisos.editores??[]).filter(id=>id!==c.id))}/>{c.nombre}</label>)}</div>}</fieldset></details>}
       {error && <div role="alert" className="text-sm text-rose-300">{error} <button onClick={() => setRevision((n) => n + 1)} className="underline">Recargar</button></div>}
       {guardando && <p role="status" className="text-xs text-slate-400">Guardando pizarra…</p>}
       <canvas
@@ -221,7 +234,7 @@ export default function PizarraClase({ claseId, esDocente }: PizarraClaseProps) 
         onPointerUp={alSoltar}
         onPointerCancel={() => { dibujandoRef.current = null; redibujar(); }}
         className={`flex-1 w-full rounded-2xl bg-surface-container-lowest border border-white/10 ${
-          esDocente ? "cursor-crosshair touch-none" : "cursor-default"
+          puedeDibujar ? "cursor-crosshair touch-none" : "cursor-default"
         }`}
       />
     </div>

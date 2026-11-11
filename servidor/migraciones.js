@@ -96,6 +96,7 @@ export function migrarBase(db) {
   `);
 
   migrarListasDeCurso(db);
+  migrarMaterias(db);
 
   migrarCalendario(db);
   migrarComunidad(db);
@@ -463,6 +464,37 @@ const TABLA_DENUNCIAS = `CREATE TABLE denuncias (
     resuelta_por   INTEGER REFERENCES usuarios(id),
     resultado      TEXT CHECK (resultado IN ('contenido-eliminado','descartada'))
 );`;
+
+/**
+ * Materias (sección Materias de la dirección): cada materia tiene sus detalles
+ * (año, área, horas, programa), un temario opcional (las `unidades`, que también
+ * usa el formulario de metas) y la lista de profesores que la dan. En Cursos se
+ * elige "materia — profesor" de esa lista. Las cátedras que ya existían cargan
+ * la lista sola: quien da una materia en un curso, da esa materia.
+ */
+function migrarMaterias(db) {
+  agregarColumnas(db, "materias", [
+    ["anio", "INTEGER"],
+    ["area", "TEXT"],
+    ["horas_semanales", "INTEGER"],
+    ["descripcion", "TEXT NOT NULL DEFAULT ''"],
+    ["objetivos", "TEXT NOT NULL DEFAULT ''"],
+    ["evaluacion", "TEXT NOT NULL DEFAULT ''"],
+    ["bibliografia", "TEXT NOT NULL DEFAULT ''"],
+  ]);
+  agregarColumnas(db, "unidades", [["contenidos", "TEXT NOT NULL DEFAULT ''"]]);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS materia_profesores (
+        materia_id  INTEGER NOT NULL REFERENCES materias(id),
+        profesor_id INTEGER NOT NULL REFERENCES usuarios(id),
+        creado_en   TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (materia_id, profesor_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_materia_profesores_profesor ON materia_profesores(profesor_id);
+    INSERT OR IGNORE INTO materia_profesores (materia_id, profesor_id)
+      SELECT DISTINCT materia_id, profesor_id FROM catedras;
+  `);
+}
 
 function agregarColumnas(db, tabla, columnas) {
   const existentes = new Set(db.prepare(`PRAGMA table_info(${tabla})`).all().map((c) => c.name));

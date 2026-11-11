@@ -53,8 +53,9 @@ export function editarCurso(id: string, datos: DatosCurso) {
 export function guardarInscripciones(id: string, estudianteIds: string[]) {
   return enviar(`/api/cursos/${id}/inscripciones`, "PUT", { estudianteIds });
 }
+/** Suma "materia — profesor" al curso. Si la materia ya estaba con otro profesor, `reemplazo` dice con quién. */
 export function guardarCatedra(id: string, materiaId: string, profesorId: string) {
-  return enviar<{ id: string }>(`/api/cursos/${id}/catedras`, "POST", { materiaId, profesorId });
+  return enviar<{ id: string; reemplazo: string | null }>(`/api/cursos/${id}/catedras`, "POST", { materiaId, profesorId });
 }
 /** Suma un turno a la lista de la escuela (por ejemplo "Noche"). */
 export function crearTurno(nombre: string) {
@@ -74,9 +75,7 @@ export function iconoTurno(nombre: string): string {
   return "schedule";
 }
 
-export function crearMateria(nombre: string) {
-  return enviar<{ id: string; nombre: string }>("/api/materias", "POST", { nombre });
-}
+// Crear y editar materias: servicios/materias.ts (sección Materias).
 export function guardarVinculosFamilia(id: string, estudiantes: { id: string; parentesco: string }[]) {
   return enviar(`/api/perfiles/${id}/vinculos`, "PUT", { estudiantes });
 }

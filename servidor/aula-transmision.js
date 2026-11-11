@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { isIP } from 'node:net';
 import { Readable, Transform } from 'node:stream';
 import { exigirSesion, ventanilla } from './comun.js';
+import { registrarAulaWhip } from './aula-whip.js';
 
 function origenPrivado(valor, protocolos) {
   try {
@@ -24,9 +25,10 @@ function comparar(a, b) {
 export function registrarAulaTransmision(app, db, { accesoAClase, claseConCatedra, estaInscriptoEn }) {
   const hls = origenPrivado(process.env.NEXO_MEDIA_HLS_ORIGIN, ['http:', 'https:']);
   const rtmp = origenPrivado(process.env.NEXO_MEDIA_RTMP_ORIGIN, ['rtmp:', 'rtmps:']);
+  const webrtc = origenPrivado(process.env.NEXO_MEDIA_WEBRTC_ORIGIN, ['http:', 'https:']);
   const secreto = process.env.NEXO_MEDIA_TOKEN_SECRET || '';
   const claveAuth = process.env.NEXO_MEDIA_AUTH_SECRET || '';
-  const habilitada = !!(hls && rtmp && secreto.length >= 32 && claveAuth.length >= 32);
+  const habilitada = !!(hls && (rtmp||webrtc) && secreto.length >= 32 && claveAuth.length >= 32);
   const ruta = clase => `nexo-inst${clase.institucion_id}-clase${clase.id}`;
   const token = (clase, usuario, accion, minutos) => {
     const cuerpo = Buffer.from(JSON.stringify({ cid: clase.id, uid: usuario.id, accion, exp: Date.now() + minutos * 60_000 })).toString('base64url');
@@ -48,7 +50,8 @@ export function registrarAulaTransmision(app, db, { accesoAClase, claseConCatedr
     if (a.clase.estado !== 'en-vivo') return res.json({ habilitada: false, motivo: 'La clase todavía no está en vivo.' });
     res.set('Cache-Control', 'no-store');
     res.json({ habilitada: true, hlsUrl: `/api/aula/clases/${a.clase.id}/transmision/hls/index.m3u8`,
-      ...(a.esDocente ? { obsServidor: `${rtmp}/${ruta(a.clase)}?token=${token(a.clase, a.usuario, 'publish', 120)}`, expiraEnMinutos: 120 } : {}) });
+      ...(a.esDocente && rtmp ? { obsServidor: `${rtmp}/${ruta(a.clase)}?token=${token(a.clase, a.usuario, 'publish', 120)}`, expiraEnMinutos: 120 } : {}),
+      ...(a.esDocente && webrtc ? {whipUrl:`/api/aula/clases/${a.clase.id}/transmision/whip`}: {}) });
   }));
 
   // MediaMTX: authMethod=http; authHTTPAddress=http://NEXO/api/aula/transmision/autorizacion?clave=...
@@ -67,6 +70,7 @@ export function registrarAulaTransmision(app, db, { accesoAClase, claseConCatedr
     res.json({ expireAt: new Date(p.exp).toISOString() });
   }));
 
+  const publicaciones=registrarAulaWhip(app,{origen:webrtc,habilitada,accesoAClase,ruta,token,claseConCatedra});
   app.get(/^\/api\/aula\/clases\/(\d+)\/transmision\/hls\/([A-Za-z0-9_.-]+)$/, ventanilla(async (req, res) => {
     const a = accesoAClase(req, res, req.params[0]); if (!a) return;
     if (!habilitada || a.clase.estado !== 'en-vivo') return res.status(503).json({ error: 'Transmisión no disponible.' });
@@ -89,4 +93,5 @@ export function registrarAulaTransmision(app, db, { accesoAClase, claseConCatedr
       Readable.fromWeb(respuesta.body).on('error', () => res.destroy()).pipe(limiteStream).on('error', () => res.destroy()).pipe(res);
     } catch { res.status(502).json({ error: 'El servidor de medios institucional no respondió.' }); }
   }));
+  return publicaciones;
 }

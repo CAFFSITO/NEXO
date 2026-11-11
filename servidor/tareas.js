@@ -36,6 +36,7 @@
 import { exigirAcceso, exigirSesion, ventanilla, estaInscripto } from "./comun.js";
 import { registrarRevisionPares } from './revision-pares.js';
 import { normalizarRecurrencia, expandir, sumarDias, esFechaValida } from './agenda.js';
+import { prepararRecurrenciaDocente } from './tareas-recurrencia-docente.js';
 
 const PAGINA_DOCENTE = "gestion-tareas-profesor";
 const PAGINA_ESTUDIANTE = "mis-tareas-estudiante";
@@ -55,6 +56,10 @@ export function registrarTareas(app, db, notificaciones) {
   if (!db.prepare("PRAGMA table_info(tareas)").all().some((c) => c.name === "rubrica")) db.exec("ALTER TABLE tareas ADD COLUMN rubrica TEXT NOT NULL DEFAULT '[]'");
   if (!db.prepare("PRAGMA table_info(correcciones)").all().some((c) => c.name === "criterios")) db.exec("ALTER TABLE correcciones ADD COLUMN criterios TEXT NOT NULL DEFAULT '{}'");
   registrarRevisionPares(app,db);
+  const recurrenciaDocente=prepararRecurrenciaDocente(db);
+  const publicarRepeticiones=()=>{try{recurrenciaDocente.generar();}catch(e){console.error('No se pudieron generar las tareas recurrentes:',e.message);}};
+  const relojRepeticiones=setInterval(publicarRepeticiones,60*60*1000);relojRepeticiones.unref();
+  setImmediate(publicarRepeticiones).unref();
   const rubricar = bruto => {
     if (bruto === undefined) return [];
     if (!Array.isArray(bruto) || bruto.length > 20 || bruto.some(c => typeof c !== 'string' || !c.trim() || c.length > 120)) return null;
@@ -167,7 +172,7 @@ export function registrarTareas(app, db, notificaciones) {
     ventanilla((req, res) => {
       const usuario = exigirAcceso(db, req, res, PAGINA_DOCENTE);
       if (!usuario) return;
-
+      recurrenciaDocente.generar({profesorId:usuario.id});
       const tareas = db
         .prepare(
           `SELECT t.id, t.titulo, t.consigna, t.fecha_limite, t.metodo_estudio, t.rubrica,
@@ -224,6 +229,7 @@ export function registrarTareas(app, db, notificaciones) {
           metodoEstudio: t.metodo_estudio ?? "",
           rubrica: JSON.parse(t.rubrica),
           tipoAsignacion: t.tipo_asignacion,
+          ...recurrenciaDocente.vista(t.id),
           alDia,
           tarde,
           pendiente,
@@ -279,6 +285,26 @@ export function registrarTareas(app, db, notificaciones) {
     res.json({ok:true});
   }));
 
+  const propiaParaSerie=(req,res)=>{
+    const u=exigirAcceso(db,req,res,PAGINA_DOCENTE);if(!u)return null;
+    const t=catedraDeTarea.get(Number(req.params.id));if(!t||t.eliminado_en||t.profesor_id!==u.id){res.status(404).json({error:'Tarea no disponible.'});return null;}return {u,t};
+  };
+  app.get('/api/tareas/:id/serie',ventanilla((req,res)=>{
+    const a=propiaParaSerie(req,res);if(!a)return;const s=recurrenciaDocente.serieDe(a.t.id);
+    res.json({...recurrenciaDocente.vista(a.t.id),ocurrencias:s?db.prepare('SELECT t.id,t.titulo,t.fecha_limite AS fechaLimite,t.eliminado_en AS eliminadoEn FROM tareas t WHERE serie_id=? ORDER BY fecha_limite,id').all(s.id).map(t=>({...t,id:String(t.id)})):[]});
+  }));
+  app.put('/api/tareas/:id/serie',ventanilla((req,res)=>{
+    const a=propiaParaSerie(req,res);if(!a)return;const actual=recurrenciaDocente.vista(a.t.id),b=req.body||{};
+    const regla=b.recurrencia===undefined?actual.recurrencia:b.recurrencia,anticipacion=b.anticipacionDias??actual.anticipacionDias;
+    const error=recurrenciaDocente.validar(regla,a.t.fecha_limite,anticipacion);if(error)return res.status(400).json({error});
+    if(b.activa!==undefined&&typeof b.activa!=='boolean')return res.status(400).json({error:'Estado inválido.'});
+    try{res.json(recurrenciaDocente.configurar(a.t.id,regla,anticipacion,b.activa??(actual.serieId?actual.recurrenciaActiva:true),b.version));}catch(e){res.status(e.estado||400).json({error:e.message});}
+  }));
+  app.post('/api/tareas/:id/serie/generar',ventanilla((req,res)=>{
+    const a=propiaParaSerie(req,res);if(!a)return;const s=recurrenciaDocente.serieDe(a.t.id);if(!s)return res.status(400).json({error:'Esta tarea no tiene repetición.'});
+    res.json({generadas:recurrenciaDocente.generar({profesorId:a.u.id,serieId:s.id}),...recurrenciaDocente.vista(a.t.id)});
+  }));
+
   // Crear una tarea rica (Error 2.C.3): consigna, fecha límite real, método de
   // estudio, tipo de asignación y adjuntos del profesor.
   app.post(
@@ -296,9 +322,12 @@ export function registrarTareas(app, db, notificaciones) {
       const adjuntos = Array.isArray(req.body?.adjuntos) ? req.body.adjuntos : [];
       const rubrica = rubricar(req.body?.rubrica);
       if (!rubrica) return res.status(400).json({ error: 'Rúbrica inválida.' });
+      const errorRepeticion=recurrenciaDocente.validar(req.body?.recurrencia,fechaLimite,req.body?.anticipacionDias??0);
+      if(errorRepeticion)return res.status(400).json({error:errorRepeticion});
+      if(req.body?.recurrenciaActiva!==undefined&&typeof req.body.recurrenciaActiva!=='boolean')return res.status(400).json({error:'Estado de repetición inválido.'});
 
       if (!titulo) return res.status(400).json({ error: "Falta el título." });
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaLimite)) {
+      if (!esFechaValida(fechaLimite)) {
         return res.status(400).json({ error: "La fecha límite es inválida." });
       }
       // La cátedra tiene que ser MÍA. Si no, un profesor podría cargarle tareas
@@ -319,6 +348,7 @@ export function registrarTareas(app, db, notificaciones) {
 
       const tareaId = info.lastInsertRowid;
       vincularAdjuntos(tareaId, adjuntos, usuario.id);
+      if(req.body?.recurrencia)recurrenciaDocente.configurar(tareaId,req.body.recurrencia,req.body.anticipacionDias??0,req.body.recurrenciaActiva??true);
 
       res.status(201).json({ id: String(tareaId) });
     })
@@ -345,6 +375,11 @@ export function registrarTareas(app, db, notificaciones) {
       const fechaLimite = String(req.body?.fechaLimite ?? "").slice(0, 10);
       const metodoEstudio = String(req.body?.metodoEstudio ?? "").trim();
       const tipo = req.body?.tipoAsignacion === "grupal" ? "grupal" : "individual";
+      const serieActual=recurrenciaDocente.serieDe(tarea.id);
+      const errorRepeticion=recurrenciaDocente.validar(req.body?.recurrencia,fechaLimite,req.body?.anticipacionDias??serieActual?.anticipacion??0);
+      if(errorRepeticion)return res.status(400).json({error:errorRepeticion});
+      if(req.body?.recurrenciaActiva!==undefined&&typeof req.body.recurrenciaActiva!=='boolean'||req.body?.actualizarFuturas!==undefined&&typeof req.body.actualizarFuturas!=='boolean')return res.status(400).json({error:'Estado de repetición inválido.'});
+      if(serieActual&&req.body?.serieVersion!==undefined&&req.body.serieVersion!==serieActual.version)return res.status(409).json({error:'La repetición cambió. Recargá antes de guardar.'});
       if (tipo !== tarea.tipo_asignacion && (db.prepare('SELECT 1 FROM entregas WHERE tarea_id=?').get(tarea.id) ||
         db.prepare('SELECT 1 FROM tarea_equipos WHERE tarea_id=?').get(tarea.id))) {
         return res.status(409).json({ error: 'No se puede cambiar el tipo de una tarea con equipos o entregas.' });
@@ -353,7 +388,7 @@ export function registrarTareas(app, db, notificaciones) {
       if (!rubrica) return res.status(400).json({ error: 'Rúbrica inválida.' });
 
       if (!titulo) return res.status(400).json({ error: "Falta el título." });
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaLimite)) {
+      if (!esFechaValida(fechaLimite)) {
         return res.status(400).json({ error: "La fecha límite es inválida." });
       }
 
@@ -364,7 +399,9 @@ export function registrarTareas(app, db, notificaciones) {
           WHERE id = ?`
       ).run(titulo, consigna, fechaLimite, metodoEstudio || null, tipo, JSON.stringify(req.body?.rubrica === undefined ? JSON.parse(db.prepare('SELECT rubrica FROM tareas WHERE id=?').get(tarea.id).rubrica) : rubrica), tarea.id);
 
-      res.json({ ok: true });
+      if(req.body?.recurrencia!==undefined)recurrenciaDocente.configurar(tarea.id,req.body.recurrencia,req.body.anticipacionDias??serieActual?.anticipacion??0,req.body.recurrenciaActiva??(serieActual?!!serieActual.activa:true),req.body.serieVersion);
+      const futurasActualizadas=req.body?.actualizarFuturas?recurrenciaDocente.actualizarFuturas(tarea.id):0;
+      res.json({ ok: true,futurasActualizadas,...recurrenciaDocente.vista(tarea.id) });
     })
   );
 

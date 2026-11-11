@@ -12,6 +12,7 @@ import type { Catedra, DatosNuevaTarea, TareaDocente } from "../../../servicios/
 import { subirArchivo, tamanoLegible } from "../../../servicios/archivos";
 import { ErrorDeApi } from "../../../servicios/api";
 import Selector from "../shared/Selector";
+import type { RecurrenciaPersonal } from '../../../servicios/portafolio';
 
 interface ModalTareaDocenteProps {
   abierto: boolean;
@@ -54,6 +55,17 @@ export default function ModalTareaDocente({
   const [adjuntos, setAdjuntos] = useState<File[]>([]);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [frecuencia,setFrecuencia]=useState<RecurrenciaPersonal['frecuencia']|''>(tareaEditando?.recurrencia?.frecuencia??'');
+  const [intervalo,setIntervalo]=useState(tareaEditando?.recurrencia?.intervalo??1);
+  const [veces,setVeces]=useState(String(tareaEditando?.recurrencia?.veces??''));
+  const [hasta,setHasta]=useState(tareaEditando?.recurrencia?.hasta??'');
+  const [habiles,setHabiles]=useState(tareaEditando?.recurrencia?.soloHabiles??false);
+  const [feriados,setFeriados]=useState(tareaEditando?.recurrencia?.saltarFeriados??false);
+  const [dias,setDias]=useState<number[]>(tareaEditando?.recurrencia?.dias??[]);
+  const [modoMensual,setModoMensual]=useState<NonNullable<RecurrenciaPersonal['modoMensual']>>(tareaEditando?.recurrencia?.modoMensual??'dia');
+  const [anticipacion,setAnticipacion]=useState(tareaEditando?.anticipacionDias??0);
+  const [activa,setActiva]=useState(tareaEditando?.recurrenciaActiva??true);
+  const [futuras,setFuturas]=useState(false);
 
   const esEdicion = tareaEditando !== null;
 
@@ -95,6 +107,8 @@ export default function ModalTareaDocente({
         tipoAsignacion: datos.tipoAsignacion,
         rubrica: datos.rubrica.split("\n").map(x => x.trim()).filter(Boolean),
         adjuntos: ids,
+        recurrencia:frecuencia?{frecuencia,intervalo,...(veces?{veces:Number(veces)}:{}),...(hasta?{hasta}:{}),...(habiles?{soloHabiles:true}:{}),...(feriados?{saltarFeriados:true}:{}),...(frecuencia==='semanal'&&dias.length?{dias}:{}),...(frecuencia==='mensual'?{modoMensual}:{} )}:null,
+        recurrenciaActiva:activa,anticipacionDias:anticipacion,serieVersion:tareaEditando?.serieVersion,actualizarFuturas:futuras,
       });
     } catch (err: unknown) {
       setError(err instanceof ErrorDeApi ? err.message : "No se pudo guardar la tarea.");
@@ -227,6 +241,7 @@ export default function ModalTareaDocente({
 
           <div><label htmlFor="rubrica" className="block text-sm font-semibold text-on-surface-variant mb-1">Criterios de evaluación (uno por línea)</label><textarea id="rubrica" rows={4} maxLength={2400} value={datos.rubrica} onChange={e => actualizar("rubrica", e.target.value)} placeholder="Comprensión del concepto&#10;Aplicación a un problema" className="w-full bg-fondo border border-outline-variant/30 rounded-lg px-4 py-2.5 text-white" /><p className="text-xs text-slate-400">Hasta 20 criterios. La nota final se registra por separado.</p></div>
 
+          <fieldset className="space-y-3 border border-white/15 rounded-xl p-3"><legend>Repetición de la tarea</legend><label className="block">Frecuencia<Selector value={frecuencia} onChange={e=>setFrecuencia(e.target.value as typeof frecuencia)} className="w-full"><option value="">No repetir / pausar serie</option><option value="diaria">Diaria</option><option value="semanal">Semanal</option><option value="mensual">Mensual</option><option value="anual">Anual</option></Selector></label>{frecuencia&&<><label className="block">Cada cuántos períodos<input type="number" min="1" max="99" value={intervalo} onChange={e=>setIntervalo(Number(e.target.value))} className="w-full bg-fondo p-2"/></label><label className="block">Total de tareas (incluye la original; vacío sin tope)<input type="number" min="1" max="500" value={veces} onChange={e=>setVeces(e.target.value)} className="w-full bg-fondo p-2"/></label><label className="block">Última fecha (opcional)<input type="date" value={hasta} onChange={e=>setHasta(e.target.value)} className="w-full bg-fondo p-2"/></label>{frecuencia==='semanal'&&<div>Días de la semana<div className="flex flex-wrap gap-2">{['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map((n,i)=><label key={i}><input type="checkbox" checked={dias.includes(i)} onChange={e=>setDias(e.target.checked?[...dias,i]:dias.filter(d=>d!==i))}/>{n}</label>)}</div></div>}{frecuencia==='mensual'&&<label>Cómo repetir<Selector value={modoMensual} onChange={e=>setModoMensual(e.target.value as typeof modoMensual)}><option value="dia">Mismo día del mes</option><option value="posicion">Misma semana y día</option><option value="ultimo">Último día de la semana del mes</option></Selector></label>}<label className="flex gap-2"><input type="checkbox" checked={habiles} onChange={e=>setHabiles(e.target.checked)}/>Sólo días hábiles</label><label className="flex gap-2"><input type="checkbox" checked={feriados} onChange={e=>setFeriados(e.target.checked)}/>Saltar feriados institucionales</label><label className="block">Publicar con anticipación (días)<input type="number" min="0" max="90" value={anticipacion} onChange={e=>setAnticipacion(Number(e.target.value))} className="w-full bg-fondo p-2"/></label><label className="flex gap-2"><input type="checkbox" checked={activa} onChange={e=>setActiva(e.target.checked)}/>Serie activa</label><p className="text-xs text-slate-400">La fecha de la tarea original fija el inicio de la serie. El servidor publica las ocurrencias cuya fecha entra en la anticipación elegida, al consultar las tareas y cada hora. Cada ocurrencia conserva sus entregas, notas y equipos propios. Pausar conserva las tareas ya publicadas.</p></>}{esEdicion&&tareaEditando?.serieId&&<label className="flex gap-2"><input type="checkbox" checked={futuras} onChange={e=>setFuturas(e.target.checked)}/>Usar esta consigna, rúbrica y adjuntos en futuras tareas sin historial de entregas y como plantilla de nuevas ocurrencias. Las fechas y equipos ya publicados se conservan.</label>}</fieldset>
           {/* Adjuntos solo al crear (editar los adjuntos existentes es de otra
               etapa; acá se suman al crear la consigna). */}
           {!esEdicion && (

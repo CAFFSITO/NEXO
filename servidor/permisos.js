@@ -135,6 +135,8 @@ export const ROLES_POR_PAGINA = {
   // veía los cursos, las materias y las métricas de un colegio puntual.
   "perfiles-academicos": ["admin-academico"],
   "cursos-activos": ["admin-academico"],
+  // Materias de la escuela: detalles, temario y qué profesores dan cada una.
+  "materias-institucion": ["admin-academico"],
   "panel-institucional": ["admin-academico"],
   // Reportes y expedientes (Etapa 8, sección 14.18). Corresponde SOLO a la
   // dirección (Error 6.F.2): el administrador de PLATAFORMA no arma reportes de

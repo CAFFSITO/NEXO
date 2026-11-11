@@ -418,9 +418,11 @@ export const MODULOS = [
     ],
   },
   {
+    // Dos pantallas: Materias (cada materia con sus profesores y su temario) y
+    // Cursos (divisiones, preceptor, inscripciones y qué materia da quién).
     id: "cursos", nombre: "Cursos y materias", icono: "school", color: "#60a5fa",
-    descripcion: "Divisiones, cátedras, inscripciones y materias.",
-    paginas: ["cursos-activos"],
+    descripcion: "Materias con sus profesores y temario; cursos con sus divisiones, materias e inscripciones.",
+    paginas: ["cursos-activos", "materias-institucion"],
     sesgo: 4, afinidad: [0, 0.4, 0, 0, 0.5, 0],
     funciones: [
       { id: "cursos.crear", nombre: "Crear cursos", arquetipos: ["admin-academico"], sens: 0,
@@ -428,9 +430,9 @@ export const MODULOS = [
       { id: "cursos.organizar", nombre: "Cátedras e inscripciones", arquetipos: ["admin-academico"], sens: 0,
         // El preceptor, turno y especialidad son datos básicos del curso:
         // editarlos depende del acceso a Cursos, no de usar cátedras o alumnos.
-        rutas: [["PUT", "/api/cursos/:id/inscripciones"], ["POST", "/api/cursos/:id/catedras"]] },
-      { id: "cursos.materias", nombre: "Crear materias", arquetipos: ["admin-academico"], sens: 0,
-        rutas: [["POST", "/api/materias"]] },
+        rutas: [["PUT", "/api/cursos/:id/inscripciones"], ["POST", "/api/cursos/:id/catedras"], ["DELETE", "/api/cursos/:id/catedras/:catedraId"]] },
+      { id: "cursos.materias", nombre: "Crear y editar materias", arquetipos: ["admin-academico"], sens: 0,
+        rutas: [["POST", "/api/materias"], ["PUT", "/api/materias/:id"], ["DELETE", "/api/materias/:id"]] },
     ],
   },
   {

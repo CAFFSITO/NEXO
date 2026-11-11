@@ -5,6 +5,7 @@ import { normalizarFichaEvidencia } from './personalizacion.js';
 import { registrarCapacidadesApps, prepararCapacidadesApp } from './apps-publicas-capacidades.js';
 
 const TIPOS = new Set(['texto', 'enlace', 'accionable', 'embed', 'encuesta', 'juego', 'bienvenida', 'reserva','chat','foro','ayuda','sugerencias','directorio','tablon','propuestas','desafio','documento','formulario','curso']);
+const NATIVOS = new Set(['chat','foro','ayuda','sugerencias','documento','formulario','curso']);
 const objeto = (v) => v && typeof v === 'object' && !Array.isArray(v) ? v : {};
 const cadena = (v, max = 180) => typeof v === 'string' ? v.trim().slice(0, max) : '';
 const json = (v) => JSON.stringify(v);
@@ -29,6 +30,7 @@ function validarDefinicion(entrada) {
     if (tipo === 'enlace' && (!/^\/[a-zA-Z0-9/_?=&%.-]+$/.test(ruta) || ruta.startsWith('//'))) throw new Error(`El enlace de ${titulo} debe ser una ruta interna de NEXO.`);
     if (tipo === 'embed' && (!/^https:\/\/[a-z0-9.-]+(?::\d+)?(?:\/[\w./?=&%-]*)?$/i.test(ruta) || ruta.includes('..'))) throw new Error(`La página embebida de ${titulo} requiere HTTPS.`);
     const dependeDe = cadena(b.dependeDe,40);
+    if(dependeDe&&NATIVOS.has(tipo))throw new Error('Las capacidades nativas usan sus propios permisos. Una condición visual no puede bloquear su acceso; quitá la condición de este bloque.');
     if (dependeDe && (dependeDe === id || !ids.has(dependeDe))) throw new Error(`La condición de ${titulo} debe apuntar a un bloque anterior.`);
     const opciones = ['encuesta','juego','reserva'].includes(tipo) ? (Array.isArray(b.opciones) ? b.opciones.map(o => cadena(o,160)) : []) : [];
     if (['encuesta','juego','reserva'].includes(tipo) && (opciones.length < (tipo==='reserva'?1:2) || opciones.length > 8 || opciones.some(o => !o))) throw new Error(`${titulo} requiere entre ${tipo==='reserva'?1:2} y 8 opciones.`);
@@ -45,7 +47,7 @@ function validarDefinicion(entrada) {
   return { nombre, descripcion, bloques };
 }
 
-export function registrarAppsPublicas(app, db) {
+export function registrarAppsPublicas(app, db, mensajero = null) {
   db.exec(`CREATE TABLE IF NOT EXISTS apps_publicas (
     id INTEGER PRIMARY KEY, creador_id INTEGER NOT NULL REFERENCES usuarios(id), nombre TEXT NOT NULL,
     descripcion TEXT NOT NULL, version_actual INTEGER NOT NULL DEFAULT 1,
@@ -64,7 +66,13 @@ export function registrarAppsPublicas(app, db) {
     instancia_id INTEGER NOT NULL REFERENCES apps_publicas_instancias(id),
     usuario_id INTEGER NOT NULL REFERENCES usuarios(id), datos TEXT NOT NULL DEFAULT '{}',
     PRIMARY KEY(instancia_id, usuario_id));`);
-  registrarCapacidadesApps(app,db);
+  const emitir=(instancia,operacion,bloqueId=null,usuarioId=null)=>{
+    if(!mensajero)return;
+    const evento={tipo:'apps-actualizadas',appInstanciaId:String(instancia.id),appOperacion:operacion,...(bloqueId?{appBloqueId:bloqueId}:{})};
+    if(usuarioId)mensajero.emitirA(usuarioId,evento);
+    else mensajero.emitirAVarios(db.prepare("SELECT id FROM usuarios WHERE institucion_id=? AND estado='activo'").all(instancia.institucion_id).map(u=>u.id),evento);
+  };
+  registrarCapacidadesApps(app,db,emitir);
 
   function usuario(req, res, maestro = false) {
     const u = usuarioDeLaSesion(db, req);
@@ -178,7 +186,7 @@ export function registrarAppsPublicas(app, db) {
       if(opcion!==null&&anterior!==String(opcion)&&totales[b.id][opcion]>=b.capacidad){db.exec('ROLLBACK');return res.status(409).json({error:'No quedan lugares para ese turno.'});}
       db.prepare(`INSERT INTO apps_publicas_usuario_datos(instancia_id,usuario_id,datos) VALUES(?,?,?)
         ON CONFLICT(instancia_id,usuario_id) DO UPDATE SET datos=excluded.datos`).run(i.id,u.id,json(datos));
-      db.exec('COMMIT');res.json({datos,totales:resumen(i.id,definicion)});
+      db.exec('COMMIT');emitir(i,'reserva',b.id);res.json({datos,totales:resumen(i.id,definicion)});
     }catch(e){db.exec('ROLLBACK');throw e;}
   }));
   app.put('/api/apps-publicas/comunidad/:id/datos', ventanilla((req, res) => {
@@ -200,7 +208,7 @@ export function registrarAppsPublicas(app, db) {
     for(const b of definicion.bloques)if(Object.hasOwn(cambios,b.id)&&cambios[b.id]!==false&&b.dependeDe&&!datos[b.dependeDe])return res.status(409).json({error:'Completá primero el bloque requerido.'});
     db.prepare(`INSERT INTO apps_publicas_usuario_datos(instancia_id,usuario_id,datos) VALUES(?,?,?)
       ON CONFLICT(instancia_id,usuario_id) DO UPDATE SET datos=excluded.datos`).run(i.id,u.id,json(datos));
-    res.json({ datos });
+    emitir(i,'datos',null,u.id);res.json({ datos });
   }));
   app.post('/api/apps-publicas/instancias', ventanilla((req, res) => {
     const u = usuario(req, res); if (!u) return;
@@ -212,7 +220,7 @@ export function registrarAppsPublicas(app, db) {
       prepararCapacidadesApp(db,instanciaPorId.get(id,u.institucionId),leer(versionPorId.get(a.id,a.version_actual).definicion),u);
       db.exec('COMMIT');
     } catch(e) {db.exec('ROLLBACK');throw e;}
-    res.status(201).json(serializarInstancia(instanciaPorId.get(id,u.institucionId)));
+    const instalada=instanciaPorId.get(id,u.institucionId);emitir(instalada,'instalacion');res.status(201).json(serializarInstancia(instalada));
   }));
   app.put('/api/apps-publicas/instancias/:id', ventanilla((req, res) => {
     const u = usuario(req, res); if (!u) return;
@@ -226,6 +234,14 @@ export function registrarAppsPublicas(app, db) {
         if (!Number.isInteger(version) || !versionPorId.get(i.app_id,version)) throw new Error('Versión inexistente.');
         const anterior=leer(versionPorId.get(i.app_id,i.version).definicion);
         const siguiente=leer(versionPorId.get(i.app_id,version).definicion);
+        for(const bloque of anterior.bloques){
+          const nuevo=siguiente.bloques.find(b=>b.id===bloque.id);
+          if(!nuevo||nuevo.tipo===bloque.tipo)continue;
+          const conDatos=db.prepare('SELECT 1 FROM apps_publicas_capacidades WHERE instancia_id=? AND bloque_id=? LIMIT 1').get(i.id,bloque.id)
+            ||db.prepare('SELECT 1 FROM apps_publicas_entradas WHERE instancia_id=? AND bloque_id=? LIMIT 1').get(i.id,bloque.id)
+            ||db.prepare('SELECT 1 FROM apps_publicas_usuario_datos d,json_each(d.datos) v WHERE d.instancia_id=? AND v.key=? LIMIT 1').get(i.id,bloque.id);
+          if(conDatos)throw new Error('Un bloque con contenido o avances conserva su tipo. Usá otro identificador para la nueva capacidad.');
+        }
         const conteos=resumen(i.id,anterior);
         for(const b of anterior.bloques.filter(x=>x.tipo==='reserva')){
           if(!conteos[b.id]?.some(n=>n>0))continue;
@@ -239,7 +255,7 @@ export function registrarAppsPublicas(app, db) {
         const nombre = cadena(config.nombre,100) || i.nombre;
         const bloques={...objeto(leer(i.configuracion).bloques)};
         const definicion=leer(versionPorId.get(i.app_id,i.version).definicion);
-        for(const [id,valor] of Object.entries(objeto(config.bloques))){const b=definicion.bloques.find(b=>b.id===id&&b.tipo==='curso');if(!b)throw new Error('Sólo se configura una cátedra para bloques curso.');const catedraId=Number(objeto(valor).catedraId);if(!Number.isSafeInteger(catedraId)||!db.prepare('SELECT 1 FROM catedras ca JOIN cursos c ON c.id=ca.curso_id WHERE ca.id=? AND c.institucion_id=?').get(catedraId,u.institucionId))throw new Error('Cátedra de otra institución o inexistente.');bloques[id]={catedraId};}
+        for(const [id,valor] of Object.entries(objeto(config.bloques))){const b=definicion.bloques.find(b=>b.id===id&&b.tipo==='curso');if(!b)throw new Error('Sólo se configura una cátedra para bloques curso.');if(objeto(valor).catedraId===null){delete bloques[id];continue;}const catedraId=Number(objeto(valor).catedraId);if(!Number.isSafeInteger(catedraId)||!db.prepare('SELECT 1 FROM catedras ca JOIN cursos c ON c.id=ca.curso_id WHERE ca.id=? AND c.institucion_id=?').get(catedraId,u.institucionId))throw new Error('Cátedra de otra institución o inexistente.');bloques[id]={catedraId};}
         db.prepare('UPDATE apps_publicas_instancias SET nombre=?, configuracion=?, revision=revision+1 WHERE id=? AND institucion_id=?').run(nombre,json({nombre,bloques}),i.id,u.institucionId);
       } else if (operacion === 'datos') {
         const d = objeto(req.body.datos);
@@ -248,7 +264,7 @@ export function registrarAppsPublicas(app, db) {
         const datos = Object.fromEntries(Object.entries(d).filter(([k,v]) => acciones.has(k) && typeof v === 'boolean'));
         db.prepare('UPDATE apps_publicas_instancias SET datos=?, revision=revision+1 WHERE id=? AND institucion_id=?').run(json(datos),i.id,u.institucionId);
       } else throw new Error('Operación inválida.');
-      res.json(serializarInstancia(instanciaPorId.get(i.id,u.institucionId)));
+      emitir(i,operacion);res.json(serializarInstancia(instanciaPorId.get(i.id,u.institucionId)));
     });
   }));
 }

@@ -227,10 +227,51 @@ export function registrarGestionAcademica(app, db) {
       || !idValido(profesorId) || !persona.get(profesorId, usuario.institucionId, "profesor")) {
       return res.status(400).json({ error: "Elegí una materia y un profesor activo de tu institución." });
     }
-    db.prepare(`INSERT INTO catedras (curso_id, materia_id, profesor_id) VALUES (?, ?, ?)
-      ON CONFLICT(materia_id, curso_id) DO UPDATE SET profesor_id = excluded.profesor_id`).run(curso.id, materiaId, profesorId);
-    const catedra = db.prepare("SELECT id FROM catedras WHERE curso_id = ? AND materia_id = ?").get(curso.id, materiaId);
-    res.status(201).json({ id: String(catedra.id) });
+    // Si esa materia ya estaba en el curso con otro profesor, pasa al nuevo (la
+    // pantalla lo dice antes: "Cambiar a …"). Quien da una materia en un curso
+    // queda en la lista de profesores de esa materia (sección Materias).
+    const anterior = db.prepare(
+      "SELECT u.nombre FROM catedras ca JOIN usuarios u ON u.id = ca.profesor_id WHERE ca.curso_id = ? AND ca.materia_id = ? AND ca.profesor_id <> ?"
+    ).get(curso.id, materiaId, profesorId);
+    const catedra = transaccion(() => {
+      db.prepare(`INSERT INTO catedras (curso_id, materia_id, profesor_id) VALUES (?, ?, ?)
+        ON CONFLICT(materia_id, curso_id) DO UPDATE SET profesor_id = excluded.profesor_id`).run(curso.id, materiaId, profesorId);
+      db.prepare("INSERT OR IGNORE INTO materia_profesores (materia_id, profesor_id) VALUES (?, ?)").run(materiaId, profesorId);
+      return db.prepare("SELECT id FROM catedras WHERE curso_id = ? AND materia_id = ?").get(curso.id, materiaId);
+    });
+    res.status(201).json({ id: String(catedra.id), reemplazo: anterior?.nombre ?? null });
+  }));
+
+  // Quitar una materia del curso. Sus horarios se van con ella; si ya tiene
+  // trabajo (tareas, clases, avisos, lecciones), la base no deja borrarla y se
+  // explica: para no perder lo de los chicos, se le cambia el profesor.
+  app.delete("/api/cursos/:id/catedras/:catedraId", ventanilla((req, res) => {
+    const usuario = acceso(req, res);
+    if (!usuario) return;
+    const curso = cursoPropio(req, res, usuario);
+    if (!curso) return;
+    const catedra = idValido(req.params.catedraId)
+      ? db.prepare(
+        "SELECT ca.id, m.nombre AS materia FROM catedras ca JOIN materias m ON m.id = ca.materia_id WHERE ca.id = ? AND ca.curso_id = ?"
+      ).get(Number(req.params.catedraId), curso.id)
+      : null;
+    if (!catedra) return res.status(404).json({ error: "Esa materia ya no está en este curso." });
+    db.exec("SAVEPOINT quitar_catedra");
+    try {
+      db.prepare("DELETE FROM catedra_horarios WHERE catedra_id = ?").run(catedra.id);
+      db.prepare("DELETE FROM catedras WHERE id = ?").run(catedra.id);
+      db.exec("RELEASE quitar_catedra");
+    } catch (error) {
+      db.exec("ROLLBACK TO quitar_catedra");
+      db.exec("RELEASE quitar_catedra");
+      if (String(error?.message ?? "").includes("FOREIGN KEY")) {
+        return res.status(409).json({
+          error: `${catedra.materia} ya tiene tareas, clases o avisos en este curso. Para no perder ese trabajo no se puede quitar: si la va a dar otra persona, elegí la misma materia con el profesor nuevo y se cambia.`,
+        });
+      }
+      throw error;
+    }
+    res.json({ ok: true });
   }));
 
   // ── Sumar un turno o una especialidad a la lista de la escuela ──────────────
@@ -255,17 +296,7 @@ export function registrarGestionAcademica(app, db) {
     }));
   }
 
-  app.post("/api/materias", ventanilla((req, res) => {
-    const usuario = acceso(req, res);
-    if (!usuario) return;
-    const nombre = String(req.body?.nombre ?? "").trim();
-    if (!nombre || nombre.length > 100) return res.status(400).json({ error: "Escribí un nombre de materia de hasta 100 caracteres." });
-    if (db.prepare("SELECT id FROM materias WHERE institucion_id = ? AND nombre = ? COLLATE NOCASE").get(usuario.institucionId, nombre)) {
-      return res.status(409).json({ error: "Esa materia ya existe en tu institución." });
-    }
-    const info = db.prepare("INSERT INTO materias (institucion_id, nombre) VALUES (?, ?)").run(usuario.institucionId, nombre);
-    res.status(201).json({ id: String(info.lastInsertRowid), nombre });
-  }));
+  // Las materias (crear, editar, borrar) viven en catalogo-materias.js.
 
   app.get("/api/perfiles/:id/vinculos", ventanilla((req, res) => {
     const usuario = acceso(req, res);

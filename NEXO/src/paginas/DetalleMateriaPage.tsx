@@ -8,6 +8,7 @@ import { PESTANAS_PORTAFOLIO } from "./components/shared/pestanasModulos";
 import TarjetaTarea from "./components/portafolio/TarjetaTarea";
 import ModalDetalleTarea from "./components/shared/tareas/ModalDetalleTarea";
 import PanelAlumnosProfesor from "./components/portafolio-docente/PanelAlumnosProfesor";
+import ReferenciaMateria from "./components/materias/ReferenciaMateria";
 import { Cargando, Fallo, Vacio } from "./components/shared/EstadoCarga";
 import { useNavegacion } from "../navegacion";
 import { textoRelativo } from "../servicios/fechas";
@@ -117,6 +118,9 @@ export default function DetalleMateriaPage() {
                     </span>
                   </div>
                 </header>
+
+                {/* Programa y temario que cargó la dirección: solo para el profesor. */}
+                {detalle.soyProfesor && detalle.referencia && <ReferenciaMateria referencia={detalle.referencia} />}
 
                 {/* Horarios / días */}
                 <section className="mb-10">
